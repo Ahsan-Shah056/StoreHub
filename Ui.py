@@ -463,8 +463,13 @@ class InventoryUI:
         self.adjust_employee_combobox.grid(row=2, column=1, padx=2, pady=2)
         self.get_employees_callback = None
         self._populate_employees()
+        # Reason label and entry
+        self.adjust_reason_label = ttk.Label(self.adjust_tab, text="Reason:")
+        self.adjust_reason_label.grid(row=3, column=0, sticky=tk.W, padx=2, pady=2)
+        self.adjust_reason_entry = ttk.Entry(self.adjust_tab, width=25)
+        self.adjust_reason_entry.grid(row=3, column=1, sticky=tk.W, padx=2, pady=2)
         self.adjust_stock_button = ttk.Button(self.adjust_tab, text="Adjust Stock", command=self._threaded_adjust_stock)
-        self.adjust_stock_button.grid(row=3, column=0, columnspan=2, pady=5)
+        self.adjust_stock_button.grid(row=4, column=0, columnspan=2, pady=5)
         # Add title and description to Adjust Stock subtab
         adj_title = ttk.Label(self.adjust_tab, text="Adjust Stock", font=("Helvetica", 14, "bold"))
         adj_title.grid(row=0, column=2, sticky=tk.W, padx=10, pady=(10,2))
@@ -523,9 +528,11 @@ class InventoryUI:
         if self.adjust_stock_callback:
             selected_employee = self.adjust_employee_combobox.get()
             employee_id = self.employees_map.get(selected_employee)
-            self.adjust_stock_callback(self.adjust_sku_entry, self.adjust_quantity_entry, employee_id)
+            reason = self.adjust_reason_entry.get()
+            self.adjust_stock_callback(self.adjust_sku_entry, self.adjust_quantity_entry, employee_id, reason)
             self.adjust_sku_entry.delete(0, tk.END)
             self.adjust_quantity_entry.delete(0, tk.END)
+            self.adjust_reason_entry.delete(0, tk.END)
             self.adjust_sku_entry.focus_set()
 
 class ReportsUI:

@@ -429,14 +429,16 @@ def populate_employees_treeview(employees_list, employee_tree):
     for employee in employees_list:
         employee_tree.insert("", "end", values=(employee['employee_id'], employee['name'], employee['role']))
 
-def adjust_stock(connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id):
+def adjust_stock(connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason):
     """Adjusts the stock level of a specific item."""
     try:
         sku = adjust_sku_entry.get()
         quantity_change = int(adjust_quantity_entry.get())
         if quantity_change == 0:
             raise ValueError("Please enter a non-zero value to adjust stock.")
-        inventory.adjust_stock(connection, cursor, sku, quantity_change, reason="Manual adjustment from UI", employee_id=employee_id)
+        if not reason:
+            raise ValueError("Please provide a reason for the stock adjustment.")
+        inventory.adjust_stock(connection, cursor, sku, quantity_change, reason=reason, employee_id=employee_id)
         messagebox.showinfo("Success", f"Stock for SKU '{sku}' adjusted successfully.")
     except ValueError as ve:
         handle_error(str(ve))
@@ -702,12 +704,13 @@ if __name__ == "__main__":
         ),
         view_employees_callback=lambda *_: view_employees(cursor, pos_app.customer_ui.customer_tree),
         view_suppliers_callback=lambda suppliers_tree, *_: _populate_suppliers_treeview(suppliers.view_suppliers(cursor), suppliers_tree),
-        adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, *_: adjust_stock(
+        adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
             db_connection,
             cursor,
             adjust_sku_entry,
             adjust_quantity_entry,
-            employee_id
+            employee_id,
+            reason
         ),
         low_stock_report_callback=lambda *_: low_stock_report(cursor),
         _update_cart_display_callback=_update_cart_display,
