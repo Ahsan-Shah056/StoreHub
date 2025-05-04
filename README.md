@@ -42,19 +42,16 @@ Storecore is a robust, user-friendly Point-of-Sale (POS) and inventory managemen
 
 ```bash
 # 1. Clone the repository
-git clone [repository URL]
+git clone [https://github.com/Ahsan-Shah056/Storecore.git]
 cd Storecore
 
 # 2. Set up a virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Set up the MySQL database
-#    - Create database and tables (see schema.sql)
-#    - Edit database.py with your MySQL credentials
+# 3. Set up the MySQL database
+- Create database and tables (see schema.sql)
+- Edit database.py with your MySQL credentials
 
 # 5. (Optional) Populate with sample data
 python sample_data.py
@@ -68,12 +65,14 @@ python main.py
 ## 🖥️ How the App Operates
 
 ### For Sales Staff
+
 - **Start the Application:** Launch `main.py`.
 - **Add to Cart:** Enter SKU and quantity, click 'Add to Cart'.
 - **Select Customer:** Use the dropdown to select a customer.
 - **Checkout:** Click 'Checkout' to complete the sale and view the receipt.
 
 ### For Managers/Admins
+
 - **Inventory:** Add/delete products, adjust stock, and view inventory value.
 - **Customers/Suppliers:** Add, delete, and view all records.
 - **Reports:**
@@ -124,7 +123,6 @@ Storecore/
 - Python 3.x
 - Tkinter (usually included with Python)
 - MySQL Server
-- Python packages in `requirements.txt`
 
 ---
 
@@ -136,10 +134,4 @@ Contributions are welcome! Please fork the repository and submit a pull request.
 
 ## 📬 Contact
 
-For questions or feedback, contact the maintainer: [your-email@example.com]
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License.
+For questions or feedback, contact the maintainer: [ahsanxhah056@gmail.com]
