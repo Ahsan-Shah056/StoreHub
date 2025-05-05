@@ -55,6 +55,21 @@ class SalesUI:
         self.title_label.pack(pady=(10, 2), padx=10, anchor="w")
         self.desc_label = ttk.Label(master, text="Manage product sales, add items to cart, and complete customer checkouts.", font=("Helvetica", 12))
         self.desc_label.pack(pady=(0, 15), padx=10, anchor="w")
+        # Define a custom style for blue buttons with white text for sales tab
+        style = ttk.Style(master)
+        style.theme_use('clam')  # Use a theme that supports custom styles
+        style.configure("Blue.TButton",
+                        background="#1976D2",
+                        foreground="white",
+                        relief="raised",
+                        borderwidth=1,
+                        focusthickness=3,
+                        focuscolor="#1976D2")
+        style.map("Blue.TButton",
+                  background=[('active', '#1565C0'), ('pressed', '#0D47A1')],
+                  foreground=[('active', 'white'), ('pressed', 'white')],
+                  bordercolor=[('focus', '#1976D2'), ('!focus', '#1976D2')],
+                  focuscolor=[('focus', '#1976D2'), ('!focus', '#1976D2')])
         self.get_customers_callback = None  # Ensure this is set before _init_purchase_tab
         self.get_employees_callback = None  # Add for employee dropdown
         self.sales_notebook = ttk.Notebook(master)
@@ -97,7 +112,7 @@ class SalesUI:
         ttk.Label(purchase_frame, text='Quantity:').grid(row=1, column=0, sticky='e', padx=5, pady=5)
         self.quantity_entry = ttk.Entry(purchase_frame, width=10)
         self.quantity_entry.grid(row=1, column=1, padx=5, pady=5)
-        add_to_cart_btn = ttk.Button(purchase_frame, text='Add to Cart', command=self._on_add_to_cart)
+        add_to_cart_btn = ttk.Button(purchase_frame, text='Add to Cart', command=self._on_add_to_cart, style="Blue.TButton")
         add_to_cart_btn.grid(row=2, column=0, columnspan=2, pady=10)
         self.cart_tree = ttk.Treeview(self.purchase_tab, columns=('SKU', 'Name', 'Quantity', 'Price'), show='headings', height=8)
         self.cart_tree.heading('SKU', text='SKU')
@@ -114,9 +129,9 @@ class SalesUI:
         self.receipt_tree.pack(padx=20, pady=10, fill='both', expand=True)
         actions_frame = ttk.Frame(self.purchase_tab)
         actions_frame.pack(pady=10)
-        checkout_btn = ttk.Button(actions_frame, text='Checkout', command=self._on_checkout)
+        checkout_btn = ttk.Button(actions_frame, text='Checkout', command=self._on_checkout, style="Blue.TButton")
         checkout_btn.pack(side='left', padx=10)
-        empty_cart_btn = ttk.Button(actions_frame, text='Empty Cart', command=self._on_empty_cart)
+        empty_cart_btn = ttk.Button(actions_frame, text='Empty Cart', command=self._on_empty_cart, style="Blue.TButton")
         empty_cart_btn.pack(side='left', padx=10)
         self.purchase_status = ttk.Label(self.purchase_tab, text='')
         self.purchase_status.pack(pady=10)
@@ -210,7 +225,7 @@ class CustomerUI:
         self.add_customer_address_label.grid(row=2, column=0, sticky=tk.W, padx=2, pady=2)
         self.add_customer_address_entry = ttk.Entry(self.add_tab, width=20)
         self.add_customer_address_entry.grid(row=2, column=1, sticky=tk.W, padx=2, pady=2)
-        self.add_customer_button = ttk.Button(self.add_tab, text="Add Customer", command=self._threaded_add_customer)
+        self.add_customer_button = ttk.Button(self.add_tab, text="Add Customer", command=self._threaded_add_customer, style="Blue.TButton")
         self.add_customer_button.grid(row=3, column=0, columnspan=2, pady=5)
         # Add title and description to Add subtab
         add_title = ttk.Label(self.add_tab, text="Add Customer", font=("Helvetica", 14, "bold"))
@@ -225,7 +240,7 @@ class CustomerUI:
         self.delete_customer_id_label.grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
         self.delete_customer_id_entry = ttk.Entry(self.delete_tab, width=10)
         self.delete_customer_id_entry.grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
-        self.delete_customer_button = ttk.Button(self.delete_tab, text="Delete Customer", command=self._threaded_delete_customer)
+        self.delete_customer_button = ttk.Button(self.delete_tab, text="Delete Customer", command=self._threaded_delete_customer, style="Blue.TButton")
         self.delete_customer_button.grid(row=1, column=0, columnspan=2, pady=5)
         # Add title and description to Delete subtab
         del_title = ttk.Label(self.delete_tab, text="Delete Customer", font=("Helvetica", 14, "bold"))
@@ -242,7 +257,7 @@ class CustomerUI:
         self.frame.rowconfigure(1, weight=1)
         self.frame.columnconfigure(1, weight=1)
         # Add View Customers button to customers tab
-        self.view_customers_button = ttk.Button(self.frame, text="View Customers", command=self._on_view_customers)
+        self.view_customers_button = ttk.Button(self.frame, text="View Customers", command=self._on_view_customers, style="Blue.TButton")
         self.view_customers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
         # Do not auto-populate customer_listbox or customer_tree on init
         self.view_customers_callback = None
@@ -395,6 +410,21 @@ class InventoryUI:
         self.frame.pack(fill='both', expand=True)
         self.notebook = ttk.Notebook(self.frame)
         self.notebook.grid(row=0, column=0, padx=10, pady=5, sticky=tk.NW)
+        # Define a custom style for blue buttons with white text for inventory tab
+        style = ttk.Style(master)
+        style.theme_use('clam')
+        style.configure("Blue.TButton",
+                        background="#1976D2",
+                        foreground="white",
+                        relief="raised",
+                        borderwidth=1,
+                        focusthickness=3,
+                        focuscolor="#1976D2")
+        style.map("Blue.TButton",
+                  background=[('active', '#1565C0'), ('pressed', '#0D47A1')],
+                  foreground=[('active', 'white'), ('pressed', 'white')],
+                  bordercolor=[('focus', '#1976D2'), ('!focus', '#1976D2')],
+                  focuscolor=[('focus', '#1976D2'), ('!focus', '#1976D2')])
         # Add Tab
         self.add_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.add_tab, text="Add")
@@ -423,7 +453,7 @@ class InventoryUI:
         self.supplier_id_label.grid(row=5, column=0, sticky=tk.W, padx=2, pady=2)
         self.supplier_id_entry = ttk.Entry(self.add_tab, width=15)
         self.supplier_id_entry.grid(row=5, column=1, sticky=tk.W, padx=2, pady=2)
-        self.add_item_button = ttk.Button(self.add_tab, text="Add Item", command=self._threaded_add_item)
+        self.add_item_button = ttk.Button(self.add_tab, text="Add Item", command=self._threaded_add_item, style="Blue.TButton")
         self.add_item_button.grid(row=6, column=0, columnspan=2, pady=5)
         # Add title and description to Add subtab
         add_title = ttk.Label(self.add_tab, text="Add Item", font=("Helvetica", 14, "bold"))
@@ -438,7 +468,7 @@ class InventoryUI:
         self.delete_item_sku_label.grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
         self.delete_item_sku_entry = ttk.Entry(self.delete_tab, width=15)
         self.delete_item_sku_entry.grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
-        self.delete_item_button = ttk.Button(self.delete_tab, text="Delete Item", command=self._threaded_delete_item)
+        self.delete_item_button = ttk.Button(self.delete_tab, text="Delete Item", command=self._threaded_delete_item, style="Blue.TButton")
         self.delete_item_button.grid(row=1, column=0, columnspan=2, pady=5)
         # Add title and description to Delete subtab
         del_title = ttk.Label(self.delete_tab, text="Delete Item", font=("Helvetica", 14, "bold"))
@@ -468,7 +498,7 @@ class InventoryUI:
         self.adjust_reason_label.grid(row=3, column=0, sticky=tk.W, padx=2, pady=2)
         self.adjust_reason_entry = ttk.Entry(self.adjust_tab, width=25)
         self.adjust_reason_entry.grid(row=3, column=1, sticky=tk.W, padx=2, pady=2)
-        self.adjust_stock_button = ttk.Button(self.adjust_tab, text="Adjust Stock", command=self._threaded_adjust_stock)
+        self.adjust_stock_button = ttk.Button(self.adjust_tab, text="Adjust Stock", command=self._threaded_adjust_stock, style="Blue.TButton")
         self.adjust_stock_button.grid(row=4, column=0, columnspan=2, pady=5)
         # Add title and description to Adjust Stock subtab
         adj_title = ttk.Label(self.adjust_tab, text="Adjust Stock", font=("Helvetica", 14, "bold"))
@@ -480,7 +510,7 @@ class InventoryUI:
         for col in ('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID'):
             self.inventory_tree.heading(col, text=col)
         self.inventory_tree.grid(row=0, column=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
-        self.view_inventory_button = ttk.Button(self.frame, text="View Inventory", command=self._threaded_view_inventory)
+        self.view_inventory_button = ttk.Button(self.frame, text="View Inventory", command=self._threaded_view_inventory, style="Blue.TButton")
         self.view_inventory_button.grid(row=4, column=0, pady=10, sticky=tk.W)
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
@@ -552,8 +582,24 @@ class ReportsUI:
         self.options_frame = ttk.Frame(self.frame)
         self.options_frame.pack(fill='x', padx=10, pady=5)
 
+        # Define a custom style for blue buttons with white text for reports tab
+        style = ttk.Style(master)
+        style.theme_use('clam')
+        style.configure("Blue.TButton",
+                        background="#1976D2",
+                        foreground="white",
+                        relief="raised",
+                        borderwidth=1,
+                        focusthickness=3,
+                        focuscolor="#1976D2")
+        style.map("Blue.TButton",
+                  background=[('active', '#1565C0'), ('pressed', '#0D47A1')],
+                  foreground=[('active', 'white'), ('pressed', 'white')],
+                  bordercolor=[('focus', '#1976D2'), ('!focus', '#1976D2')],
+                  focuscolor=[('focus', '#1976D2'), ('!focus', '#1976D2')])
+
         # Low Stock Report
-        self.low_stock_btn = ttk.Button(self.options_frame, text="Low Stock Report", command=self._on_low_stock_report)
+        self.low_stock_btn = ttk.Button(self.options_frame, text="Low Stock Report", command=self._on_low_stock_report, style="Blue.TButton")
         self.low_stock_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
         # Sales by Employee
@@ -561,7 +607,7 @@ class ReportsUI:
         self.employee_label.grid(row=2, column=1, padx=5, pady=5, sticky="e")
         self.employee_combobox = ttk.Combobox(self.options_frame, state='readonly', width=18)
         self.employee_combobox.grid(row=2, column=2, padx=5, pady=5, sticky="ew")
-        self.sales_by_employee_btn = ttk.Button(self.options_frame, text="Show", command=self._on_sales_by_employee_report)
+        self.sales_by_employee_btn = ttk.Button(self.options_frame, text="Show", command=self._on_sales_by_employee_report, style="Blue.TButton")
         self.sales_by_employee_btn.grid(row=2, column=3, padx=5, pady=5, sticky="ew")
 
         # Supplier Purchase Report
@@ -569,15 +615,15 @@ class ReportsUI:
         self.supplier_label.grid(row=0, column=4, padx=5, pady=5, sticky="e")
         self.supplier_combobox = ttk.Combobox(self.options_frame, state='readonly', width=18)
         self.supplier_combobox.grid(row=0, column=5, padx=5, pady=5, sticky="ew")
-        self.supplier_purchase_btn = ttk.Button(self.options_frame, text="Show", command=self._on_supplier_purchase_report)
+        self.supplier_purchase_btn = ttk.Button(self.options_frame, text="Show", command=self._on_supplier_purchase_report, style="Blue.TButton")
         self.supplier_purchase_btn.grid(row=0, column=6, padx=5, pady=5, sticky="ew")
 
         # Inventory Adjustment History
-        self.adjustment_history_btn = ttk.Button(self.options_frame, text="Inventory Adjustment History", command=self._on_adjustment_history_report)
+        self.adjustment_history_btn = ttk.Button(self.options_frame, text="Inventory Adjustment History", command=self._on_adjustment_history_report, style="Blue.TButton")
         self.adjustment_history_btn.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
         # Inventory Value Report
-        self.inventory_value_btn = ttk.Button(self.options_frame, text="Inventory Value Report", command=self._on_inventory_value_report)
+        self.inventory_value_btn = ttk.Button(self.options_frame, text="Inventory Value Report", command=self._on_inventory_value_report, style="Blue.TButton")
         self.inventory_value_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
         # Customer Purchase History Report
@@ -585,7 +631,7 @@ class ReportsUI:
         self.customer_label.grid(row=2, column=4, padx=5, pady=5, sticky="e")
         self.customer_combobox = ttk.Combobox(self.options_frame, state='readonly', width=18)
         self.customer_combobox.grid(row=2, column=5, padx=5, pady=5, sticky="ew")
-        self.customer_purchase_history_btn = ttk.Button(self.options_frame, text="Show", command=self._on_customer_purchase_history_report)
+        self.customer_purchase_history_btn = ttk.Button(self.options_frame, text="Show", command=self._on_customer_purchase_history_report, style="Blue.TButton")
         self.customer_purchase_history_btn.grid(row=2, column=6, padx=5, pady=5, sticky="ew")
 
         # Remove problematic custom style.layout for scrollbar
@@ -705,6 +751,21 @@ class SuppliersUI:
         self.frame.pack(fill='both', expand=True)
         self.notebook = ttk.Notebook(self.frame)
         self.notebook.grid(row=0, column=0, padx=10, pady=5, sticky=tk.NW)
+        # Define a custom style for blue buttons with white text for suppliers tab
+        style = ttk.Style(master)
+        style.theme_use('clam')
+        style.configure("Blue.TButton",
+                        background="#1976D2",
+                        foreground="white",
+                        relief="raised",
+                        borderwidth=1,
+                        focusthickness=3,
+                        focuscolor="#1976D2")
+        style.map("Blue.TButton",
+                  background=[('active', '#1565C0'), ('pressed', '#0D47A1')],
+                  foreground=[('active', 'white'), ('pressed', 'white')],
+                  bordercolor=[('focus', '#1976D2'), ('!focus', '#1976D2')],
+                  focuscolor=[('focus', '#1976D2'), ('!focus', '#1976D2')])
         # Add Tab
         self.add_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.add_tab, text="Add")
@@ -721,7 +782,7 @@ class SuppliersUI:
         self.add_supplier_address_label.grid(row=2, column=0, sticky=tk.W, padx=2, pady=2)
         self.add_supplier_address_entry = ttk.Entry(self.add_tab, width=20)
         self.add_supplier_address_entry.grid(row=2, column=1, sticky=tk.W, padx=2, pady=2)
-        self.add_supplier_button = ttk.Button(self.add_tab, text='Add Supplier', command=self._threaded_add_supplier)
+        self.add_supplier_button = ttk.Button(self.add_tab, text='Add Supplier', command=self._threaded_add_supplier, style="Blue.TButton")
         self.add_supplier_button.grid(row=3, column=0, columnspan=2, pady=5)
         # Add title and description to Add subtab
         add_title = ttk.Label(self.add_tab, text="Add Supplier", font=("Helvetica", 14, "bold"))
@@ -736,7 +797,7 @@ class SuppliersUI:
         self.delete_supplier_id_label.grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
         self.delete_supplier_id_entry = ttk.Entry(self.delete_tab, width=10)
         self.delete_supplier_id_entry.grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
-        self.delete_supplier_button = ttk.Button(self.delete_tab, text='Delete Supplier', command=self._threaded_delete_supplier)
+        self.delete_supplier_button = ttk.Button(self.delete_tab, text='Delete Supplier', command=self._threaded_delete_supplier, style="Blue.TButton")
         self.delete_supplier_button.grid(row=1, column=0, columnspan=2, pady=5)
         # Add title and description to Delete subtab
         del_title = ttk.Label(self.delete_tab, text="Delete Supplier", font=("Helvetica", 14, "bold"))
@@ -744,7 +805,7 @@ class SuppliersUI:
         del_desc = ttk.Label(self.delete_tab, text="Remove a supplier from the system by their ID.", font=("Helvetica", 10))
         del_desc.grid(row=1, column=2, sticky=tk.W, padx=10, pady=(0,10))
         # View Suppliers button and Treeview
-        self.view_suppliers_button = ttk.Button(self.frame, text="View Suppliers", command=self._on_view_suppliers)
+        self.view_suppliers_button = ttk.Button(self.frame, text="View Suppliers", command=self._on_view_suppliers, style="Blue.TButton")
         self.view_suppliers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
         self.suppliers_tree = ttk.Treeview(self.frame, columns=('ID', 'Name', 'Contact', 'Address'), show='headings', height=10)
         self.suppliers_tree.heading('ID', text='ID')
