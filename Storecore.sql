@@ -21,15 +21,17 @@ CREATE TABLE Products (
     name VARCHAR(255) NOT NULL,
     base_product_id VARCHAR(255),
     category_id INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    price DECIMAL(10 , 2 ) NOT NULL CHECK (price > 0),
     stock INT NOT NULL CHECK (stock >= 0),
     low_stock_threshold INT DEFAULT 5,
     supplier_id INT,
     color VARCHAR(50),
     size VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
-    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+    FOREIGN KEY (supplier_id)
+        REFERENCES Suppliers (supplier_id),
+    FOREIGN KEY (category_id)
+        REFERENCES Categories (category_id)
 );
 
 -- Roles
@@ -44,7 +46,8 @@ CREATE TABLE Employees (
     name VARCHAR(255) NOT NULL,
     role_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (role_id) REFERENCES Roles(role_id)
+    FOREIGN KEY (role_id)
+        REFERENCES Roles (role_id)
 );
 
 -- Customers
@@ -61,12 +64,14 @@ CREATE TABLE Customers (
 CREATE TABLE Sales (
     sale_id INT AUTO_INCREMENT PRIMARY KEY,
     sale_datetime DATETIME NOT NULL,
-    total DECIMAL(10, 2) NOT NULL CHECK (total >= 0),
+    total DECIMAL(10 , 2 ) NOT NULL CHECK (total >= 0),
     employee_id INT NOT NULL,
     customer_id INT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id),
-    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+    FOREIGN KEY (employee_id)
+        REFERENCES Employees (employee_id),
+    FOREIGN KEY (customer_id)
+        REFERENCES Customers (customer_id)
 );
 
 -- Sale Items
@@ -75,9 +80,11 @@ CREATE TABLE SaleItems (
     sale_id INT NOT NULL,
     SKU VARCHAR(255) NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-    FOREIGN KEY (sale_id) REFERENCES Sales(sale_id),
-    FOREIGN KEY (SKU) REFERENCES Products(SKU)
+    price DECIMAL(10 , 2 ) NOT NULL CHECK (price >= 0),
+    FOREIGN KEY (sale_id)
+        REFERENCES Sales (sale_id),
+    FOREIGN KEY (SKU)
+        REFERENCES Products (SKU)
 );
 
 -- Purchases
@@ -85,10 +92,11 @@ CREATE TABLE Purchases (
     purchase_id INT AUTO_INCREMENT PRIMARY KEY,
     supplier_id INT NOT NULL,
     purchase_datetime DATETIME NOT NULL,
-    shipping_cost DECIMAL(10, 2) DEFAULT 0,
+    shipping_cost DECIMAL(10 , 2 ) DEFAULT 0,
     delivery_status ENUM('pending', 'received') NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
+    FOREIGN KEY (supplier_id)
+        REFERENCES Suppliers (supplier_id)
 );
 
 -- Purchase Items
@@ -97,9 +105,11 @@ CREATE TABLE PurchaseItems (
     purchase_id INT NOT NULL,
     SKU VARCHAR(255) NOT NULL,
     quantity INT NOT NULL CHECK (quantity > 0),
-    unit_cost DECIMAL(10, 2) NOT NULL CHECK (unit_cost >= 0),
-    FOREIGN KEY (purchase_id) REFERENCES Purchases(purchase_id),
-    FOREIGN KEY (SKU) REFERENCES Products(SKU)
+    unit_cost DECIMAL(10 , 2 ) NOT NULL CHECK (unit_cost >= 0),
+    FOREIGN KEY (purchase_id)
+        REFERENCES Purchases (purchase_id),
+    FOREIGN KEY (SKU)
+        REFERENCES Products (SKU)
 );
 
 -- Inventory Adjustments
@@ -111,14 +121,19 @@ CREATE TABLE InventoryAdjustments (
     reason VARCHAR(255),
     employee_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (SKU) REFERENCES Products(SKU),
-    FOREIGN KEY (employee_id) REFERENCES Employees(employee_id)
+    FOREIGN KEY (SKU)
+        REFERENCES Products (SKU),
+    FOREIGN KEY (employee_id)
+        REFERENCES Employees (employee_id)
 );
 
 -- Create default anonymous customer
 INSERT INTO Customers (customer_id, name, is_anonymous) 
 VALUES (0, 'Cash_sales', TRUE);
-select * from customers;
+SELECT 
+    *
+FROM
+    customers;
 
 
 -- Disable foreign key checks
@@ -126,7 +141,9 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- Clear existing data
 DELETE FROM Suppliers;
-DELETE FROM Customers WHERE customer_id != 0;
+DELETE FROM Customers 
+WHERE
+    customer_id != 0;
 
 -- Enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
@@ -271,7 +288,10 @@ WHERE base.category_id IN (
 )
 AND base.size IS NULL;
 
-select * from products;
+SELECT 
+    *
+FROM
+    products;
 -- Insert Customers
 INSERT INTO Customers (name, contact_info, address) VALUES
 ('Alice Brown', 'alice.brown@email.com', '12 Oak St, Anytown'),
@@ -281,7 +301,10 @@ INSERT INTO Customers (name, contact_info, address) VALUES
 -- Sample Purchase Entry
 INSERT INTO Purchases (supplier_id, purchase_datetime, delivery_status) VALUES
 (1, NOW(), 'received');
-select* from customers;
+SELECT 
+    *
+FROM
+    customers;
 
 
 -- Sample Purchase Item
@@ -430,4 +453,7 @@ INSERT INTO InventoryAdjustments (SKU, adjustment_datetime, quantity_change, rea
 ('COFFEEMUG_RED', NOW(), 10, 'Restock', 2),
 ('CUTLERY_SET', NOW(), -3, 'Theft Adjustment', 3);
 
-select * from customers;
+SELECT 
+    *
+FROM
+    customers;
