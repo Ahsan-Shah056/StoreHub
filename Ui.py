@@ -914,7 +914,7 @@ class POSApp:
         # Add user information and logout button at the top
         user_info_frame = ttk.Frame(self.main_frame)
         user_info_frame.grid(row=0, column=0, sticky=(tk.W), padx=5, pady=5)
-        
+        username= username.upper()
         welcome_label = ttk.Label(user_info_frame, text=f"Welcome, {username}", font=("Helvetica", 15, "bold"))
         welcome_label.pack(side=tk.LEFT, padx=5)
         

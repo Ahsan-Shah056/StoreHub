@@ -34,20 +34,13 @@ CREATE TABLE Products (
         REFERENCES Categories (category_id)
 );
 
--- Roles
-CREATE TABLE Roles (
-    role_id INT AUTO_INCREMENT PRIMARY KEY,
-    role_name VARCHAR(50) UNIQUE NOT NULL
-);
 
 -- Employees
 CREATE TABLE Employees (
     employee_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    role_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (role_id)
-        REFERENCES Roles (role_id)
+    
 );
 
 -- Customers
@@ -148,17 +141,12 @@ WHERE
 -- Enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Insert Roles
-INSERT INTO Roles (role_name) VALUES
-('Manager'),
-('Cashier'),
-('Inventory Manager');
 
 -- Insert Employees
-INSERT INTO Employees (name, role_id) VALUES
-('Ahmed Khan', (SELECT role_id FROM Roles WHERE role_name = 'Cashier')),
-('Ayesha Siddiqui', (SELECT role_id FROM Roles WHERE role_name = 'Inventory Manager')),
-('Bilal Hassan', (SELECT role_id FROM Roles WHERE role_name = 'Manager'));
+INSERT INTO Employees (name) VALUES
+('Ahmed Khan'),
+('Ayesha Siddiqui'),
+('Bilal Hassan');
 
 -- Insert Suppliers (Pakistani Companies)
 INSERT INTO Suppliers (name, contact_info, address) VALUES
@@ -181,112 +169,6 @@ INSERT INTO Categories (name) VALUES
 ('Cutlery'),
 ('Serving Dishes');
 
-
--- Insert Base Products
-INSERT INTO Products (SKU, name, base_product_id, category_id, price, stock, supplier_id, color, size)
-SELECT * FROM (
-    SELECT 
-        'DINNER_PLATE' AS SKU,
-        'Dinner Plate' AS name,
-        'DINNER_PLATE' AS base_product_id,
-        category_id,
-        12.99 AS price,
-        100 AS stock,
-        1 AS supplier_id,
-        NULL AS color,
-        NULL AS size
-    FROM Categories WHERE name = 'Plates'
-    
-    UNION ALL
-    
-    SELECT 'SALAD_PLATE', 'Salad Plate', 'SALAD_PLATE', category_id, 9.99, 150, 1, NULL, NULL
-    FROM Categories WHERE name = 'Plates'
-    
-    UNION ALL
-    
-    SELECT 'DESSERT_PLATE', 'Dessert Plate', 'DESSERT_PLATE', category_id, 11.99, 120, 1, NULL, NULL
-    FROM Categories WHERE name = 'Plates'
-    
-    UNION ALL
-    
-    SELECT 'SOUP_BOWL', 'Soup Bowl', 'SOUP_BOWL', category_id, 8.99, 80, 2, NULL, NULL
-    FROM Categories WHERE name = 'Bowls'
-    
-    UNION ALL
-    
-    SELECT 'CEREAL_BOWL', 'Cereal Bowl', 'CEREAL_BOWL', category_id, 7.99, 110, 2, NULL, NULL
-    FROM Categories WHERE name = 'Bowls'
-    
-    -- Add remaining base products following same pattern
-) AS tmp;
-
--- Insert Color Variants (Plates and Bowls)
-INSERT IGNORE INTO Products (SKU, name, base_product_id, category_id, price, stock, supplier_id, color, size)
-SELECT 
-    CONCAT(base.SKU, '_', UPPER(v.color)) AS SKU,
-    base.name,
-    base.SKU AS base_product_id,
-    base.category_id,
-    base.price,
-    base.stock,
-    base.supplier_id,
-    v.color,
-    NULL AS size
-FROM Products base
-CROSS JOIN (
-    SELECT 'White' AS color UNION SELECT 'Blue' UNION SELECT 'Floral' UNION SELECT 'Red' 
-    UNION SELECT 'Yellow' UNION SELECT 'Orange' UNION SELECT 'Black' UNION SELECT 'Golden'
-    UNION SELECT 'Green' UNION SELECT 'Patterned'
-) v
-WHERE base.base_product_id = base.SKU  -- Base products only
-AND base.category_id IN (
-    SELECT category_id FROM Categories 
-    WHERE name IN ('Plates', 'Bowls')
-);
-
--- Insert Size Variants (Serving Dishes)
-INSERT IGNORE INTO Products (SKU, name, base_product_id, category_id, price, stock, supplier_id, color, size)
-SELECT 
-    CONCAT(base.SKU, '_', UPPER(v.size)) AS SKU,
-    base.name,
-    base.SKU AS base_product_id,
-    base.category_id,
-    base.price * v.size_multiplier,
-    base.stock,
-    base.supplier_id,
-    NULL AS color,
-    v.size
-FROM Products base
-CROSS JOIN (
-    SELECT 'Small' AS size, 0.8 AS size_multiplier UNION
-    SELECT 'Medium', 1.0 UNION
-    SELECT 'Large', 1.2 UNION
-    SELECT 'Set of 4', 3.2
-) v
-WHERE base.base_product_id = base.SKU
-AND base.category_id IN (
-    SELECT category_id FROM Categories 
-    WHERE name = 'Serving Dishes'
-);
-
--- Insert Special Variants (Cutlery Sets)
-INSERT IGNORE INTO Products (SKU, name, base_product_id, category_id, price, stock, supplier_id, color, size)
-SELECT 
-    CONCAT(base.SKU, '_SET') AS SKU,
-    CONCAT(base.name, ' Set'),
-    base.SKU AS base_product_id,
-    base.category_id,
-    base.price * 4 * 0.9,  -- 10% discount for sets
-    base.stock,
-    base.supplier_id,
-    NULL AS color,
-    'Set of 4' AS size
-FROM Products base
-WHERE base.category_id IN (
-    SELECT category_id FROM Categories 
-    WHERE name = 'Cutlery'
-)
-AND base.size IS NULL;
 
 SELECT 
     *
@@ -362,39 +244,23 @@ INSERT INTO Products (SKU, name, base_product_id, category_id, price, stock, sup
 ('CASSEROLE', 'Casserole Dish', NULL, 14, 950.00, 25, 14, 'White', 'Large'),
 ('TEASAUCER', 'Tea Saucer', NULL, 15, 200.00, 150, 15, 'White', 'Small');
 
-INSERT INTO Roles (role_name) VALUES 
-('Store Manager'),
-('Cashier'),
-('Inventory Manager'),
-('Salesperson'),
-('Delivery Manager'),
-('Stock Assistant'),
-('Customer Support'),
-('Floor Supervisor'),
-('Warehouse Manager'),
-('Accounts Officer'),
-('Marketing Manager'),
-('Procurement Officer'),
-('Security Guard'),
-('Cleaning Staff'),
-('Admin Assistant');
 
-INSERT INTO Employees (name, role_id) VALUES 
-('Ahmed Raza', 1),
-('Sara Khan', 2),
-('Bilal Qureshi', 3),
-('Fatima Sheikh', 4),
-('Zain Ahmed', 5),
-('Ayesha Malik', 6),
-('Hamza Shah', 7),
-('Nida Usman', 8),
-('Waleed Rauf', 9),
-('Mehwish Asif', 10),
-('Fahad Jamil', 11),
-('Hira Aftab', 12),
-('Saad Farooq', 13),
-('Rimsha Nadeem', 14),
-('Imran Haider', 15);
+INSERT INTO Employees (name) VALUES 
+('Ahmed Raza'),
+('Sara Khan'),
+('Bilal Qureshi'),
+('Fatima Sheikh'),
+('Zain Ahmed'),
+('Ayesha Malik'),
+('Hamza Shah'),
+('Nida Usman'),
+('Waleed Rauf'),
+('Mehwish Asif'),
+('Fahad Jamil'),
+('Hira Aftab'),
+('Saad Farooq'),
+('Rimsha Nadeem'),
+('Imran Haider');
 
 
 INSERT INTO Customers (name, contact_info, address) VALUES
@@ -457,3 +323,8 @@ SELECT
     *
 FROM
     customers;
+
+
+select * from employees;
+
+

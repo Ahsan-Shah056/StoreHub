@@ -30,19 +30,14 @@ CREATE TABLE Products (
     FOREIGN KEY (category_id) REFERENCES Categories(category_id)
 );
 
--- Roles
-CREATE TABLE Roles (
-    role_id INT AUTO_INCREMENT PRIMARY KEY,
-    role_name VARCHAR(50) UNIQUE NOT NULL
-);
+
 
 -- Employees
 CREATE TABLE Employees (
     employee_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    role_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (role_id) REFERENCES Roles(role_id)
+    
 );
 
 -- Customers
