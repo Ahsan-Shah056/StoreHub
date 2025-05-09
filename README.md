@@ -1,6 +1,8 @@
 # 🚀 Storecore: Modern POS & Inventory Management System
 
-**Python Tkinter | MySQL | Modular Architecture**
+## Technologies
+
+Python Tkinter | MySQL | Modular Architecture
 
 ---
 
@@ -15,6 +17,20 @@ Storecore is a comprehensive, modular Point-of-Sale (POS) and inventory manageme
 - **Intuitive GUI:**
   - Responsive, tabbed interface (Sales, Customers, Inventory, Suppliers, Reports).
   - Consistent look and feel across all modules.
+  - Modern themed interface with custom styling for buttons and controls.
+  - **NEW**: Consistent button styling with blue theme throughout the application.
+  - **NEW**: Integrated company logo display in the top-right corner.
+- **Secure Login System:**
+  - User authentication with username and password verification.
+  - Persistent session management.
+  - Secure logout functionality with session clearing.
+  - **NEW**: User-friendly login window with centered positioning and proper sizing.
+  - **NEW**: Seamless user switching with the logout button returning to the login screen.
+- **Role-Based Access Control:**
+  - Different user roles (manager, salesperson, inventory_manager, accountant, store_admin).
+  - Dynamic UI that adapts based on user's role and permissions.
+  - Restricted access to sensitive operations based on role.
+  - **NEW**: Visual role indicator showing the current user's role in the interface.
 - **Sales Management:**
   - Add items to cart, update/remove, and checkout with real-time receipt generation.
   - Customer selection and purchase history lookup.
@@ -124,7 +140,7 @@ python main.py
 
 ## 🗂️ Project Structure
 
-```
+```plaintext
 Storecore/
 ├── main.py                # Main application (Tkinter GUI, app entrypoint)
 ├── Ui.py                  # All UI classes and logic (modular, extensible)
@@ -135,10 +151,10 @@ Storecore/
 ├── suppliers.py           # Supplier management (CRUD, search)
 ├── employees.py           # Employee management (CRUD)
 ├── reporting.py           # Business reports logic (optimized SQL)
+├── credentials.json       # User credentials and role definitions
 ├── sample_data.py         # Script to populate sample data
 ├── schema.sql             # (Legacy) MySQL schema
-├── storecore.sql          # **Recommended**: Full SQL schema for Storecore DB setup
-├── requirements.txt       # Python dependencies
+├── storecore.sql          # **Recommended**: Full SQL schema for Storecore 
 └── README.md              # Project documentation
 ```
 
@@ -150,6 +166,40 @@ Storecore/
 - Edit `database.py` to set your MySQL username, password, and database name (`store`).
 - Ensure MySQL server is running before launching the app.
 - All DB credentials are kept in code for simplicity; for production, use environment variables or a config file.
+
+## 🔐 Login System Setup
+
+The application now includes a secure login system with role-based access control:
+
+1. **Configure User Accounts:**
+   - Edit the `credentials.json` file to manage user accounts
+   - Each user entry requires a username, password, and role
+   - Example format:
+  
+     ```json
+     {
+         "users": [
+             {"username": "manager1", "password": "password123", "role": "manager"},
+             {"username": "sales1", "password": "password123", "role": "salesperson"},
+             {"username": "inventory1", "password": "password123", "role": "inventory_manager"},
+             {"username": "account1", "password": "password123", "role": "accountant"},
+             {"username": "admin1", "password": "password123", "role": "store_admin"}
+         ]
+     }
+     ```
+
+2. **Role Permissions:**
+   - `manager`: Full access to all modules and features
+   - `salesperson`: Access to Sales module and Customer view
+   - `inventory_manager`: Access to Inventory and Suppliers modules
+   - `accountant`: Access to Reports module and read-only access to other data
+   - `store_admin`: Similar access to manager but focused on inventory and suppliers
+
+3. **Login and Logout:**
+   - When the application starts, users must log in with valid credentials
+   - The interface adapts based on the user's role, showing only relevant tabs and functions
+   - Users can log out securely using the logout button, which returns to the login screen
+   - All session data is cleared during logout for security
 
 ---
 

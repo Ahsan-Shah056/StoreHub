@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-
+import os
+import json
+from PIL import Image, ImageTk
 from database import get_db, close_db
 import suppliers
 import inventory
@@ -599,14 +601,279 @@ def customer_purchase_history_callback(customer_id):
     except Exception as e:
         handle_error(f"An error occurred while generating the customer purchase history report: {e}")
 
+def load_and_verify_credentials(username, password):
+    """
+    Load the credentials from the JSON file and verify if the entered credentials match.
+    Returns the user role if credentials are valid, None otherwise.
+    """
+    try:
+        credentials_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
+        if not os.path.exists(credentials_file):
+            # Create default credentials file if it doesn't exist
+            default_credentials = {
+                "users": [
+                    {"username": "manager", "password": "manager123", "role": "manager"},
+                    {"username": "sales", "password": "sales123", "role": "salesperson"}
+                ]
+            }
+            with open(credentials_file, 'w') as f:
+                json.dump(default_credentials, f, indent=4)
+        
+        with open(credentials_file, 'r') as f:
+            credentials = json.load(f)
+        
+        for user in credentials["users"]:
+            if user["username"] == username and user["password"] == password:
+                return user["role"]
+        
+        return None
+    except Exception as e:
+        print(f"Error loading credentials: {e}")
+        return None
+
+def create_login_window(root):
+    """
+    Create a login window to authenticate users
+    """
+    # Hide the main root window until login is successful
+    root.withdraw()
+    
+    # Create alternative red button using tk.Button (more reliable for color)
+    login_window = tk.Toplevel(root)
+    login_window.title("Login - Storecore")
+    login_window.protocol("WM_DELETE_WINDOW", lambda: exit())  # Close app if login window is closed
+    login_window.resizable(False, False)
+    
+    # Set the size first, then position it
+    login_window.geometry("400x300")
+    
+    # Force update to ensure window has processed size
+    login_window.update_idletasks()
+    
+    # Center the login window
+    screen_width = login_window.winfo_screenwidth()
+    screen_height = login_window.winfo_screenheight()
+    x = (screen_width - 400) // 2
+    y = (screen_height - 300) // 2
+    login_window.geometry(f"400x300+{x}+{y}")
+    
+    # Make sure window stays on top
+    login_window.lift()
+    
+    # Create a frame for the login components
+    login_frame = ttk.Frame(login_window, padding="20")
+    login_frame.pack(fill=tk.BOTH, expand=True)
+    
+    # Add logo if it exists
+    try:
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+        if os.path.exists(logo_path):
+            logo_image = Image.open(logo_path)
+            logo_image = logo_image.resize((100, 100), Image.LANCZOS)
+            logo_photo = ImageTk.PhotoImage(logo_image)
+            logo_label = ttk.Label(login_frame, image=logo_photo)
+            logo_label.image = logo_photo  # Keep a reference
+            logo_label.pack(pady=(0, 20))
+    except Exception as e:
+        print(f"Error loading logo: {e}")
+    
+    # Title
+    title_label = ttk.Label(login_frame, text="Storecore Login", font=("TkDefaultFont", 16, "bold"))
+    title_label.pack(pady=(0, 20))
+    
+    # Username
+    username_frame = ttk.Frame(login_frame)
+    username_frame.pack(fill=tk.X, pady=5)
+    username_label = ttk.Label(username_frame, text="Username:", width=10)
+    username_label.pack(side=tk.LEFT, padx=5)
+    username_entry = ttk.Entry(username_frame)
+    username_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    
+    # Password
+    password_frame = ttk.Frame(login_frame)
+    password_frame.pack(fill=tk.X, pady=5)
+    password_label = ttk.Label(password_frame, text="Password:", width=10)
+    password_label.pack(side=tk.LEFT, padx=5)
+    password_entry = ttk.Entry(password_frame, show="*")
+    password_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    
+    # Error message label
+    error_label = ttk.Label(login_frame, text="", foreground="red")
+    error_label.pack(pady=5)
+    
+    # Login button
+    login_button = ttk.Button(login_frame, text="Login", style="TButton")
+    login_button.pack(pady=10)
+    
+    # Return data structure
+    result = {"role": None}
+    
+    def on_login():
+        username = username_entry.get()
+        password = password_entry.get()
+        
+        if not username or not password:
+            error_label.config(text="Please enter both username and password")
+            return
+        
+        role = load_and_verify_credentials(username, password)
+        if role:
+            result["role"] = role
+            result["username"] = username
+            login_window.destroy()
+        else:
+            error_label.config(text="Invalid username or password")
+    
+    login_button.config(command=on_login)
+    
+    # Bind Enter key to login button
+    login_window.bind("<Return>", lambda event: on_login())
+    
+    # Give focus to username entry
+    username_entry.focus_set()
+    
+    # Wait for the login window to be destroyed
+    login_window.wait_window()
+    
+    return result["role"], result.get("username", "")
+
 if __name__ == "__main__":
     root = ThemedTk(theme="arc")
     root.title("Storecore")
+    
+    # Function to handle logout and return to login screen
+    def handle_logout():
+        global pos_app
+        
+        # Hide the main window
+        root.withdraw()
+        
+        # Clear the cart
+        cart.clear()
+        
+        # Reset the window to default size before showing login
+        root.geometry("1200x800")
+        
+        # Make sure we have a correct style for the logout button
+        style = ttk.Style()
+        style.configure("Red.TButton", background="red", foreground="white")
+        
+        # Show login window again
+        user_role, username = create_login_window(root)
+        if not user_role:
+            exit()  # Exit if login fails
+            
+        # Show the main window again with the new user's role
+        root.deiconify()
+        
+        
+        pos_app = POSApp(
+            root,
+            add_to_cart_callback=lambda product_id_entry, quantity_entry, cart_tree, *_: add_to_cart(
+                product_id_entry.get(),
+                quantity_entry.get(),
+                cart_tree,
+                cart,
+                cursor
+            ),
+            checkout_callback=lambda cart_tree, receipt_tree, employee_id, *_: checkout(
+                receipt_tree, cart_tree, cart, db_connection, cursor, employee_id
+            ),
+            empty_cart_callback=lambda cart_tree, *_: empty_cart(cart_tree, cart, cursor),
+            remove_from_cart_callback=lambda remove_from_cart_entry, cart_tree, *_: remove_from_cart(
+                remove_from_cart_entry, cart_tree, cart, cursor
+            ),
+            update_cart_quantity_callback=lambda update_cart_sku_entry, update_cart_quantity_entry, cart_tree, *_: update_cart_quantity(
+                update_cart_sku_entry, update_cart_quantity_entry, cart_tree, cart, cursor
+            ),
+            calculate_and_display_totals_callback=lambda subtotal_label, taxes_label, total_label, *_: calculate_and_display_totals(
+                subtotal_label, taxes_label, total_label, cart, cursor
+            ),
+            select_customer_callback=lambda customer_id, *_: set_selected_customer_id(customer_id),
+            add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
+                db_connection, cursor, supplier_name_entry, supplier_contact_entry, supplier_address_entry
+            ),
+            search_suppliers_callback=lambda search_supplier_entry, *_: search_suppliers(search_supplier_entry, cursor),
+            delete_supplier_callback=lambda delete_supplier_id_entry, *_: delete_supplier(
+                db_connection, cursor, delete_supplier_id_entry
+            ),
+            add_customer_callback=lambda customer_name_entry, customer_contact_entry, customer_address_entry, *_: add_customer(
+                db_connection, cursor, customer_name_entry, customer_contact_entry, customer_address_entry
+            ),
+            delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
+                db_connection, cursor, delete_customer_id_entry
+            ),
+            add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, *_: add_item(
+                db_connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry
+            ),
+            delete_item_callback=lambda delete_sku_entry, *_: delete_item(db_connection, cursor, delete_sku_entry),
+            view_inventory_callback=lambda inventory_tree, *_: view_inventory(db_connection, cursor, inventory_tree),
+            view_employees_callback=lambda employee_tree, *_: view_employees(cursor, employee_tree),
+            view_suppliers_callback=lambda suppliers_tree, *_: view_suppliers(cursor, suppliers_tree),
+            adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
+                db_connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason
+            ),
+            low_stock_report_callback=lambda *_: low_stock_report(cursor),
+            _update_cart_display_callback=_update_cart_display,
+            _display_receipt_callback=lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
+            get_customers_callback=lambda: customers.view_customers(cursor),
+            get_employees_callback=lambda: employees.view_employees(cursor),
+            view_customers_callback=lambda customer_tree, *_: _populate_customers_treeview(customers.view_customers(cursor), customer_tree),
+            sales_by_employee_callback=sales_by_employee_callback,
+            get_suppliers_callback=lambda: suppliers.view_suppliers(cursor),
+            supplier_purchase_callback=supplier_purchase_callback,
+            adjustment_history_callback=inventory_adjustment_history_callback,
+            inventory_value_report_callback=lambda *_: inventory_value_report(cursor),
+            customer_purchase_history_callback=customer_purchase_history_callback,
+            user_role=user_role,
+            username=username
+        )
+        
+        # Set the logout callback for the new instance
+        pos_app.logout_callback = handle_logout
+    
+    # Show login window before initializing the main app
+    user_role, username = create_login_window(root)
+    if not user_role:
+        exit()  # Exit if login fails
+    
+    # Now that login is successful, show the main window
+    root.deiconify()
+    
+    # Configure main window appearance
+    root.geometry("1200x800")  # Set appropriate size
+    
+    # Create style for red logout button
+    style = ttk.Style()
+    style.theme_use('clam')  # Use clam theme which supports custom button styling
+    style.configure("Red.TButton", 
+                   background="red", 
+                   foreground="white",
+                   borderwidth=1,
+                   relief="raised")
+    style.map("Red.TButton",
+             background=[('active', '#cc0000'), ('pressed', '#990000')],
+             foreground=[('active', 'white'), ('pressed', 'white')])
+    
     # Force all widgets/dialogs to use the main root
     if hasattr(tk, '_default_root'):
         tk._default_root = root
-    print("Main root window:", root)
-
+    
+    # Display the logo in the top-right corner
+    try:
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+        if os.path.exists(logo_path):
+            logo_image = Image.open(logo_path)
+            logo_image = logo_image.resize((80, 80), Image.LANCZOS)
+            logo_photo = ImageTk.PhotoImage(logo_image)
+            logo_label = ttk.Label(root, image=logo_photo)
+            logo_label.image = logo_photo  # Keep a reference
+            logo_label.place(relx=1.0, y=0, anchor="ne")
+    except Exception as e:
+        print(f"Error loading logo for main window: {e}")
+    
+    print(f"Logged in as: {username} (Role: {user_role})")
+    
     db_connection, cursor = get_db()
     cart = []
 
@@ -702,7 +969,7 @@ if __name__ == "__main__":
             cursor,
             inventory_tree
         ),
-        view_employees_callback=lambda *_: view_employees(cursor, pos_app.customer_ui.customer_tree),
+        view_employees_callback=lambda employee_tree, *_: view_employees(cursor, employee_tree),
         view_suppliers_callback=lambda suppliers_tree, *_: _populate_suppliers_treeview(suppliers.view_suppliers(cursor), suppliers_tree),
         adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
             db_connection,
@@ -725,7 +992,12 @@ if __name__ == "__main__":
         adjustment_history_callback=inventory_adjustment_history_callback,
         inventory_value_report_callback=lambda *_: inventory_value_report(cursor),
         customer_purchase_history_callback=customer_purchase_history_callback,
+        user_role=user_role,  # Pass the user role to restrict access
+        username=username  # Pass the username for display
     )
+
+    # Set the logout callback for the POS app
+    pos_app.logout_callback = handle_logout
 
     root.mainloop()
     close_db(db_connection, cursor)

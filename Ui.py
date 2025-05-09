@@ -9,6 +9,7 @@ import customers
 import sales  
 import threading
 from PIL import Image, ImageTk
+import os
 
 
 # Ensure there is NO root = tk.Tk() or root = ThemedTk() anywhere in this file
@@ -860,22 +861,80 @@ def _populate_inventory_treeview(inventory_list, inventory_tree):
         inventory_tree.insert("", "end", values=(item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
 
 class POSApp:
-    def __init__(self, root, **callbacks):
+    def __init__(self, root,
+                 # Sales callbacks
+                 add_to_cart_callback=None,
+                 checkout_callback=None,
+                 empty_cart_callback=None,
+                 remove_from_cart_callback=None,
+                 update_cart_quantity_callback=None,
+                 calculate_and_display_totals_callback=None,
+                 select_customer_callback=None,
+                 # Supplier callbacks
+                 add_supplier_callback=None,
+                 search_suppliers_callback=None,
+                 delete_supplier_callback=None,
+                 # Customer callbacks
+                 add_customer_callback=None,
+                 delete_customer_callback=None,
+                 # Inventory callbacks
+                 add_item_callback=None,
+                 delete_item_callback=None,
+                 view_inventory_callback=None,
+                 view_employees_callback=None,
+                 view_suppliers_callback=None,
+                 adjust_stock_callback=None,
+                 low_stock_report_callback=None,
+                 # Misc callbacks
+                 _update_cart_display_callback=None,
+                 _display_receipt_callback=None,
+                 get_customers_callback=None,
+                 get_employees_callback=None,
+                 view_customers_callback=None,
+                 # Reports callbacks
+                 sales_by_employee_callback=None,
+                 get_suppliers_callback=None,
+                 supplier_purchase_callback=None,
+                 adjustment_history_callback=None,
+                 inventory_value_report_callback=None,
+                 customer_purchase_history_callback=None,
+                 # User info
+                 user_role="manager",
+                 username="Unknown"
+                 ):
         self.root = root
-        self.callbacks = callbacks
+        self.callbacks = locals()
+        self.user_role = user_role
+        self.username = username
 
         # Create a main frame to hold all UI components
         self.main_frame = ttk.Frame(self.root, padding="10")
         self.main_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
         
+        # Add user information and logout button at the top
+        user_info_frame = ttk.Frame(self.main_frame)
+        user_info_frame.grid(row=0, column=0, sticky=(tk.W), padx=5, pady=5)
+        
+        welcome_label = ttk.Label(user_info_frame, text=f"Welcome, {username}", font=("Helvetica", 15, "bold"))
+        welcome_label.pack(side=tk.LEFT, padx=5)
+        
+        role_label = ttk.Label(user_info_frame, text=f"Role: {user_role.capitalize()}", font=("Helvetica", 13))
+        role_label.pack(side=tk.LEFT, padx=5)
+        
+        # Add logout button with the same style as other buttons
+        self.logout_button = ttk.Button(user_info_frame, text="Logout", command=self._logout, style="Blue.TButton")
+        self.logout_button.pack(side=tk.LEFT, padx=20)
+        
         # Add logo to the top right corner
         try:
-            logo_img = Image.open("logo.jpeg")
-            # Resize the image to a reasonable size
-            logo_img = logo_img.resize((300, 100), Image.LANCZOS)
-            self.logo_photo = ImageTk.PhotoImage(logo_img)
-            self.logo_label = ttk.Label(self.main_frame, image=self.logo_photo)
-            self.logo_label.grid(row=0, column=2, sticky=(tk.N, tk.E), padx=5, pady=5)
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+            if os.path.exists(logo_path):
+                logo_img = Image.open(logo_path)
+                # Resize the image to a reasonable size
+                logo_img = logo_img.resize((250, 110), Image.LANCZOS)
+                self.logo_photo = ImageTk.PhotoImage(logo_img)
+                self.logo_label = ttk.Label(self.main_frame, image=self.logo_photo)
+                self.logo_label.grid(row=0, column=2, sticky=(tk.N, tk.E), padx=5, pady=5)
         except Exception as e:
             print(f"Could not load logo image: {e}")
 
@@ -897,89 +956,118 @@ class POSApp:
         self.suppliers_tab = ttk.Frame(self.notebook)
         self.reports_tab = ttk.Frame(self.notebook)
 
+        # Add tabs based on user role
         self.notebook.add(self.sales_tab, text="Sales")
+        
+        # All roles have access to the customer tab except accountants have read-only access
         self.notebook.add(self.customer_tab, text="Customers")
-        self.notebook.add(self.inventory_tab, text="Inventory")
-        self.notebook.add(self.suppliers_tab, text="Suppliers")
-        self.notebook.add(self.reports_tab, text="Reports")
+        
+        # Inventory tab access for manager, inventory_manager, and store_admin
+        if user_role in ["manager", "inventory_manager", "store_admin"]:
+            self.notebook.add(self.inventory_tab, text="Inventory")
+        
+        # Suppliers tab access for manager, inventory_manager, and store_admin
+        if user_role in ["manager", "inventory_manager", "store_admin"]:
+            self.notebook.add(self.suppliers_tab, text="Suppliers")
+        
+        # Reports tab access for manager and accountant
+        if user_role in ["manager", "accountant"]:
+            self.notebook.add(self.reports_tab, text="Reports")
 
-        # Only instantiate UI classes for each tab
+        # Always instantiate these UI classes as all roles have some form of access
         self.sales_ui = SalesUI(self.sales_tab)
         self.customer_ui = CustomerUI(self.customer_tab)
-        self.inventory_ui = InventoryUI(self.inventory_tab)
-        self.suppliers_ui = SuppliersUI(self.suppliers_tab)
-        self.reports_ui = ReportsUI(self.reports_tab)
+        
+        # Create UIs based on role permissions
+        if user_role in ["manager", "inventory_manager", "store_admin"]:
+            self.inventory_ui = InventoryUI(self.inventory_tab)
+            self.suppliers_ui = SuppliersUI(self.suppliers_tab)
+        
+        if user_role in ["manager", "accountant"]:
+            self.reports_ui = ReportsUI(self.reports_tab)
 
         # Wire up callbacks if provided
-        if 'add_to_cart_callback' in callbacks:
-            self.sales_ui.add_to_cart_callback = callbacks['add_to_cart_callback']
-        if 'remove_from_cart_callback' in callbacks:
-            self.sales_ui.remove_from_cart_callback = callbacks['remove_from_cart_callback']
-        if 'update_cart_quantity_callback' in callbacks:
-            self.sales_ui.update_cart_quantity_callback = callbacks['update_cart_quantity_callback']
-        if 'checkout_callback' in callbacks:
-            self.sales_ui.checkout_callback = callbacks['checkout_callback']
-        if 'empty_cart_callback' in callbacks:
-            self.sales_ui.empty_cart_callback = callbacks['empty_cart_callback']
-        if 'select_customer_callback' in callbacks:
-            self.sales_ui.select_customer_callback = callbacks['select_customer_callback']
-        if 'add_customer_callback' in callbacks:
-            self.customer_ui.add_customer_callback = callbacks['add_customer_callback']
-        if 'update_customer_callback' in callbacks:
-            self.customer_ui.update_customer_callback = callbacks['update_customer_callback']
-        if 'delete_customer_callback' in callbacks:
-            self.customer_ui.delete_customer_callback = callbacks['delete_customer_callback']
-        if 'view_customers_callback' in callbacks:
-            self.customer_ui.view_customers_callback = callbacks['view_customers_callback']
-        if 'add_item_callback' in callbacks:
-            self.inventory_ui.add_item_callback = callbacks['add_item_callback']
-        if 'update_item_callback' in callbacks:
-            self.inventory_ui.update_item_callback = callbacks['update_item_callback']
-        if 'delete_item_callback' in callbacks:
-            self.inventory_ui.delete_item_callback = callbacks['delete_item_callback']
-        if 'view_inventory_callback' in callbacks:
-            self.inventory_ui.view_inventory_callback = callbacks['view_inventory_callback']
-        if 'adjust_stock_callback' in callbacks:
-            self.inventory_ui.adjust_stock_callback = callbacks['adjust_stock_callback']
-        if 'add_supplier_callback' in callbacks:
-            self.suppliers_ui.add_supplier_callback = callbacks['add_supplier_callback']
-        if 'update_supplier_callback' in callbacks:
-            self.suppliers_ui.update_supplier_callback = callbacks['update_supplier_callback']
-        if 'delete_supplier_callback' in callbacks:
-            self.suppliers_ui.delete_supplier_callback = callbacks['delete_supplier_callback']
-        if 'view_suppliers_callback' in callbacks:
-            self.suppliers_ui.view_suppliers_callback = callbacks['view_suppliers_callback']
-        if 'search_suppliers_callback' in callbacks:
-            self.suppliers_ui.search_suppliers_callback = callbacks['search_suppliers_callback']
-        if 'low_stock_report_callback' in callbacks:
-            self.reports_ui.low_stock_report_callback = callbacks['low_stock_report_callback']
-        if 'get_customers_callback' in callbacks:
-            self.sales_ui.get_customers_callback = callbacks['get_customers_callback']
+        # Common callbacks for all users
+        if add_to_cart_callback:
+            self.sales_ui.add_to_cart_callback = add_to_cart_callback
+        if remove_from_cart_callback:
+            self.sales_ui.remove_from_cart_callback = remove_from_cart_callback
+        if update_cart_quantity_callback:
+            self.sales_ui.update_cart_quantity_callback = update_cart_quantity_callback
+        if checkout_callback:
+            self.sales_ui.checkout_callback = checkout_callback
+        if empty_cart_callback:
+            self.sales_ui.empty_cart_callback = empty_cart_callback
+        if select_customer_callback:
+            self.sales_ui.select_customer_callback = select_customer_callback
+            
+        # Only allow write access to customer data for roles other than accountant
+        if user_role != "accountant":
+            if add_customer_callback:
+                self.customer_ui.add_customer_callback = add_customer_callback
+            if delete_customer_callback:
+                self.customer_ui.delete_customer_callback = delete_customer_callback
+                
+        # All roles need to view customer data
+        if view_customers_callback:
+            self.customer_ui.view_customers_callback = view_customers_callback
+        if get_customers_callback:
+            self.sales_ui.get_customers_callback = get_customers_callback
             self.sales_ui._populate_customers()
-            self.reports_ui.get_customers_callback = callbacks['get_customers_callback']
-            self.reports_ui._populate_customers()
-        if 'get_employees_callback' in callbacks:
-            self.inventory_ui.get_employees_callback = callbacks['get_employees_callback']
-            self.inventory_ui._populate_employees()
-            self.sales_ui.get_employees_callback = callbacks['get_employees_callback']
+        if get_employees_callback:
+            self.sales_ui.get_employees_callback = get_employees_callback
             self.sales_ui._populate_employees()
-            self.reports_ui.get_employees_callback = callbacks['get_employees_callback']
-            self.reports_ui._populate_employees()
-        if 'sales_report_callback' in callbacks:
-            self.reports_ui.sales_report_callback = callbacks['sales_report_callback']
-        if 'sales_by_employee_callback' in callbacks:
-            self.reports_ui.sales_by_employee_callback = callbacks['sales_by_employee_callback']
-        if 'get_suppliers_callback' in callbacks:
-            self.reports_ui.get_suppliers_callback = callbacks['get_suppliers_callback']
-            self.reports_ui._populate_suppliers()
-        if 'supplier_purchase_callback' in callbacks:
-            self.reports_ui.supplier_purchase_callback = callbacks['supplier_purchase_callback']
-        if 'adjustment_history_callback' in callbacks:
-            self.reports_ui.adjustment_history_callback = callbacks['adjustment_history_callback']
-        if 'inventory_value_report_callback' in callbacks:
-            self.reports_ui.inventory_value_report_callback = callbacks['inventory_value_report_callback']
-        if 'customer_purchase_history_callback' in callbacks:
-            self.reports_ui.customer_purchase_history_callback = callbacks['customer_purchase_history_callback']
+        
+        # Inventory manager, store admin and manager callbacks
+        if user_role in ["manager", "inventory_manager", "store_admin"]:
+            if hasattr(self, 'inventory_ui'):
+                if add_item_callback:
+                    self.inventory_ui.add_item_callback = add_item_callback
+                if delete_item_callback:
+                    self.inventory_ui.delete_item_callback = delete_item_callback
+                if view_inventory_callback:
+                    self.inventory_ui.view_inventory_callback = view_inventory_callback
+                if adjust_stock_callback:
+                    self.inventory_ui.adjust_stock_callback = adjust_stock_callback
+                if get_employees_callback:
+                    self.inventory_ui.get_employees_callback = get_employees_callback
+                    self.inventory_ui._populate_employees()
+            
+            if hasattr(self, 'suppliers_ui'):
+                if add_supplier_callback:
+                    self.suppliers_ui.add_supplier_callback = add_supplier_callback
+                if delete_supplier_callback:
+                    self.suppliers_ui.delete_supplier_callback = delete_supplier_callback
+                if view_suppliers_callback:
+                    self.suppliers_ui.view_suppliers_callback = view_suppliers_callback
+                if search_suppliers_callback:
+                    self.suppliers_ui.search_suppliers_callback = search_suppliers_callback
+        
+        # Reports tab callbacks for manager and accountant
+        if user_role in ["manager", "accountant"] and hasattr(self, 'reports_ui'):
+            if get_customers_callback:
+                self.reports_ui.get_customers_callback = get_customers_callback
+                self.reports_ui._populate_customers()
+            
+            if get_employees_callback:
+                self.reports_ui.get_employees_callback = get_employees_callback
+                self.reports_ui._populate_employees()
+                
+            if low_stock_report_callback:
+                self.reports_ui.low_stock_report_callback = low_stock_report_callback
+            if sales_by_employee_callback:
+                self.reports_ui.sales_by_employee_callback = sales_by_employee_callback
+            if get_suppliers_callback:
+                self.reports_ui.get_suppliers_callback = get_suppliers_callback
+                self.reports_ui._populate_suppliers()
+            if supplier_purchase_callback:
+                self.reports_ui.supplier_purchase_callback = supplier_purchase_callback
+            if adjustment_history_callback:
+                self.reports_ui.adjustment_history_callback = adjustment_history_callback
+            if inventory_value_report_callback:
+                self.reports_ui.inventory_value_report_callback = inventory_value_report_callback
+            if customer_purchase_history_callback:
+                self.reports_ui.customer_purchase_history_callback = customer_purchase_history_callback
 
     def display_receipt(self, receipt_data):
         if self._display_receipt_callback:
@@ -994,6 +1082,11 @@ class POSApp:
         for item in cart_items:
             self.sales_ui.cart_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
         self.calculate_and_display_totals()
+
+    def _logout(self):
+        """Handle logout button click - notify main app that user wants to logout"""
+        if hasattr(self, 'logout_callback') and self.logout_callback:
+            self.logout_callback()
 
 def add_to_cart(product_listbox, add_to_cart_quantity_entry, cart_tree, cart, cursor):
     try:
