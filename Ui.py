@@ -10,6 +10,7 @@ import sales
 import threading
 from PIL import Image, ImageTk
 
+
 # Ensure there is NO root = tk.Tk() or root = ThemedTk() anywhere in this file
 # Ensure there is NO widget creation at the top level in this file
 # All widget creation should be inside class methods and only after root is created in main.py
@@ -866,8 +867,18 @@ class POSApp:
         # Create a main frame to hold all UI components
         self.main_frame = ttk.Frame(self.root, padding="10")
         self.main_frame.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        
+        # Add logo to the top right corner
+        try:
+            logo_img = Image.open("logo.jpeg")
+            # Resize the image to a reasonable size
+            logo_img = logo_img.resize((300, 100), Image.LANCZOS)
+            self.logo_photo = ImageTk.PhotoImage(logo_img)
+            self.logo_label = ttk.Label(self.main_frame, image=self.logo_photo)
+            self.logo_label.grid(row=0, column=2, sticky=(tk.N, tk.E), padx=5, pady=5)
+        except Exception as e:
+            print(f"Could not load logo image: {e}")
 
-        # Remove logo image code
         # Configure row and column weights for resizing
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
