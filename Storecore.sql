@@ -40,7 +40,6 @@ CREATE TABLE Employees (
     employee_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    
 );
 
 -- Customers
