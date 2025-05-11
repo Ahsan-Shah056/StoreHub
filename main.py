@@ -490,19 +490,17 @@ def _display_receipt(receipt_data, receipt_tree, cursor):
                     receipt_tree.insert("", "end", values=(item['SKU'], "Product Name Not Found", item['quantity'], item['price']))
     except Exception as e:
         handle_error(f"An error occurred while displaying the receipt: {e}")
-def low_stock_report(cursor):
+def low_stock_report(connection, cursor):
     try:
-        low_stock_items = inventory.check_low_stock(cursor)
+        low_stock_items = inventory.check_low_stock(connection, cursor)
         if not low_stock_items:
             raise ValueError("No items are currently low in stock.")
         columns = ("SKU", "Product Name", "Quantity")
-        # Ensure all values are strings for display
         rows = [(
             str(item.get('SKU', '')),
             str(item.get('name', '')),
             str(item.get('stock', ''))
         ) for item in low_stock_items]
-        # Call the report display with a flag for compact mode
         pos_app.reports_ui.display_report(columns, rows, compact=True)
     except Exception as e:
         handle_error(f"An error occurred while generating the Low Stock Report: {e}")
@@ -813,7 +811,7 @@ if __name__ == "__main__":
             adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
                 db_connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason
             ),
-            low_stock_report_callback=lambda *_: low_stock_report(cursor),
+            low_stock_report_callback=lambda *_: low_stock_report(db_connection, cursor),
             _update_cart_display_callback=_update_cart_display,
             _display_receipt_callback=lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
             get_customers_callback=lambda: customers.view_customers(cursor),
@@ -979,7 +977,7 @@ if __name__ == "__main__":
             employee_id,
             reason
         ),
-        low_stock_report_callback=lambda *_: low_stock_report(cursor),
+        low_stock_report_callback=lambda *_: low_stock_report(db_connection, cursor),
         _update_cart_display_callback=_update_cart_display,
         _display_receipt_callback=lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
         get_customers_callback=lambda: customers.view_customers(cursor),

@@ -1,5 +1,5 @@
 import mysql.connector
-from mysql.connector import Error
+from mysql.connector.errors import Error
 
 def get_db(host="localhost", user="root", password="Ahsan7424", database="store"):
     """

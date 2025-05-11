@@ -133,7 +133,7 @@ def view_inventory(connection, cursor):
         handle_error(connection, cursor, f"Error viewing inventory: {e}")
 
 
-def check_low_stock(cursor, threshold=None):
+def check_low_stock(connection, cursor, threshold=None):
     """Retrieves items with low stock from the inventory.
 
     
@@ -151,7 +151,7 @@ def check_low_stock(cursor, threshold=None):
             for row in results
         ]
     except Exception as e:
-        handle_error(cursor.connection, cursor, f"Error checking low stock: {e}")
+        handle_error(connection, cursor, f"Error checking low stock: {e}")
 
 
 def adjust_stock(connection, cursor, sku, quantity_change, reason, employee_id):

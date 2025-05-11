@@ -103,12 +103,13 @@ def delete_supplier(connection, cursor, supplier_id):
         handle_error(connection, cursor, e, "Error deleting supplier")
 
 
-def view_suppliers(cursor):
+def view_suppliers(cursor, connection=None):
     """
     Retrieves all suppliers from the database.
 
     Args:
         cursor: The database cursor object.
+        connection: The database connection object (optional, for error handling).
 
     Returns:
         list: A list of dictionaries, where each dictionary contains the details of a supplier.

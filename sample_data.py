@@ -34,7 +34,6 @@ def insert_sample_data():
         cursor.execute("DELETE FROM Customers WHERE customer_id != 0")
         cursor.execute("DELETE FROM Products")
         cursor.execute("DELETE FROM Categories")
-        cursor.execute("DELETE FROM Roles")
         cursor.execute("DELETE FROM Employees")
         cursor.execute("DELETE FROM Sales")
         cursor.execute("DELETE FROM SaleItems")
@@ -43,27 +42,15 @@ def insert_sample_data():
         cursor.execute("DELETE FROM InventoryAdjustments")
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 
-        # Insert Roles
-        roles = ["Manager", "Cashier", "Inventory Manager"]
-        for role in roles:
-            sql = "INSERT INTO Roles (role_name) VALUES (%s)"
-            cursor.execute(sql, (role,))
-
-        # Fetch inserted role IDs
-        cursor.execute("SELECT role_id, role_name FROM Roles")
-        roles_dict = {row[1]: row[0] for row in cursor.fetchall()}
-
-        # Insert Employees
+        # Insert Employees (no roles)
         employees = [
-            ("Ahmed Khan", "Cashier"),
-            ("Ayesha Siddiqui", "Inventory Manager"),
-            ("Bilal Hassan", "Manager")
+            ("Ahmed Khan",),
+            ("Ayesha Siddiqui",),
+            ("Bilal Hassan",)
         ]
-        for name, role_name in employees:
-            role_id = roles_dict.get(role_name)
-            if role_id:
-                sql = "INSERT INTO Employees (name, role_id) VALUES (%s, %s)"
-                cursor.execute(sql, (name, role_id))
+        for (name,) in employees:
+            sql = "INSERT INTO Employees (name) VALUES (%s)"
+            cursor.execute(sql, (name,))
 
         # Insert Suppliers
         suppliers_list = [

@@ -10,7 +10,7 @@ def handle_error(connection, cursor, error_message):
     raise ValueError(error_message)
 
 
-def add_employee(connection, cursor, name, role):
+def add_employee(connection, cursor, name):
     """
     Adds a new employee to the database.
 
@@ -18,21 +18,13 @@ def add_employee(connection, cursor, name, role):
         connection: The database connection object.
         cursor: The database cursor object.
         name (str): The name of the employee.
-        role (str): The role of the employee.
 
     Returns:
         dict: A dictionary containing the details of the added employee.
-
-    Raises:
-        ValueError: If the role does not exist.
     """
     try:
-        role_id = get_role_id(cursor, role)
-        if role_id is None:
-            raise ValueError(f"Role '{role}' not found.")
-
-        query = "INSERT INTO Employees (name, role_id) VALUES (%s, %s)"
-        cursor.execute(query, (name, role_id))
+        query = "INSERT INTO Employees (name) VALUES (%s)"
+        cursor.execute(query, (name,))
         connection.commit()
 
         employee_id = cursor.lastrowid
@@ -41,7 +33,7 @@ def add_employee(connection, cursor, name, role):
         handle_error(connection, cursor, f"Error adding employee: {e}")
 
 
-def update_employee(connection, cursor, employee_id, name, role):
+def update_employee(connection, cursor, employee_id, name):
     """
     Updates an existing employee's information in the database.
 
@@ -50,21 +42,13 @@ def update_employee(connection, cursor, employee_id, name, role):
         cursor: The database cursor object.
         employee_id (int): The ID of the employee to update.
         name (str): The new name of the employee.
-        role (str): The new role of the employee.
 
     Returns:
         dict: A dictionary containing the updated employee's details.
-
-    Raises:
-        ValueError: If the role or the employee ID does not exist.
     """
     try:
-        role_id = get_role_id(cursor, role)
-        if role_id is None:
-            raise ValueError(f"Role '{role}' not found.")
-
-        query = "UPDATE Employees SET name = %s, role_id = %s WHERE employee_id = %s"
-        cursor.execute(query, (name, role_id, employee_id))
+        query = "UPDATE Employees SET name = %s WHERE employee_id = %s"
+        cursor.execute(query, (name, employee_id))
         connection.commit()
 
         return get_employee(cursor, employee_id)
@@ -97,22 +81,19 @@ def delete_employee(connection, cursor, employee_id):
         handle_error(connection, cursor, f"Error deleting employee: {e}")
 
 
-def view_employees(cursor):
+def view_employees(cursor, connection=None):
     """
     Retrieves all employees from the database.
 
     Args:
         cursor: The database cursor object.
+        connection: The database connection object (optional, for error handling).
 
     Returns:
         list: A list of dictionaries, where each dictionary represents an employee.
     """
     try:
-        query = """
-            SELECT e.employee_id, e.name, r.role_name, e.created_at
-            FROM Employees e
-            JOIN Roles r ON e.role_id = r.role_id
-        """
+        query = "SELECT employee_id, name, created_at FROM Employees"
         cursor.execute(query)
         result = cursor.fetchall()
 
@@ -120,13 +101,12 @@ def view_employees(cursor):
             {
                 "employee_id": row["employee_id"],
                 "name": row["name"],
-                "role": row["role_name"],
                 "created_at": row["created_at"]
             }
             for row in result
         ]
     except Exception as e:
-        handle_error(cursor.connection, cursor, f"Error viewing employees: {e}")
+        handle_error(connection, cursor, f"Error viewing employees: {e}")
 
 
 def get_employee(cursor, employee_id):
@@ -144,12 +124,7 @@ def get_employee(cursor, employee_id):
         ValueError: If the employee with the given ID does not exist.
     """
     try:
-        query = """
-            SELECT e.employee_id, e.name, r.role_name, e.created_at
-            FROM Employees e
-            JOIN Roles r ON e.role_id = r.role_id
-            WHERE e.employee_id = %s
-        """
+        query = "SELECT employee_id, name, created_at FROM Employees WHERE employee_id = %s"
         cursor.execute(query, (employee_id,))
         result = cursor.fetchone()
 
@@ -159,7 +134,6 @@ def get_employee(cursor, employee_id):
         return {
             "employee_id": result["employee_id"],
             "name": result["name"],
-            "role": result["role_name"],
             "created_at": result["created_at"]
         }
     except Exception as e:
@@ -178,12 +152,7 @@ def search_employee_by_name(cursor, name):
         list: A list of dictionaries, where each dictionary represents an employee.
     """
     try:
-        query = """
-            SELECT e.employee_id, e.name, r.role_name, e.created_at
-            FROM Employees e
-            JOIN Roles r ON e.role_id = r.role_id
-            WHERE e.name LIKE %s
-        """
+        query = "SELECT employee_id, name, created_at FROM Employees WHERE name LIKE %s"
         cursor.execute(query, (f"%{name}%",))
         result = cursor.fetchall()
 
@@ -191,50 +160,9 @@ def search_employee_by_name(cursor, name):
             {
                 "employee_id": row["employee_id"],
                 "name": row["name"],
-                "role": row["role_name"],
                 "created_at": row["created_at"]
             }
             for row in result
         ]
     except Exception as e:
         handle_error(cursor.connection, cursor, f"Error searching employees: {e}")
-
-
-def get_role_id(cursor, role_name):
-    """
-    Retrieves the ID of a role from the database.
-
-    Args:
-        cursor: The database cursor object.
-        role_name (str): The name of the role.
-
-    Returns:
-        int or None: The role_id if found, otherwise None.
-    """
-    try:
-        query = "SELECT role_id FROM Roles WHERE role_name = %s"
-        cursor.execute(query, (role_name,))
-        result = cursor.fetchone()
-        return result["role_id"] if result else None
-    except Exception as e:
-        raise Exception(f"Error getting role ID: {e}")
-
-
-def get_role_name(cursor, role_id):
-    """
-    Retrieves the name of a role from the database.
-
-    Args:
-        cursor: The database cursor object.
-        role_id (int): The ID of the role.
-
-    Returns:
-        str or None: The role_name if found, otherwise None.
-    """
-    try:
-        query = "SELECT role_name FROM Roles WHERE role_id = %s"
-        cursor.execute(query, (role_id,))
-        result = cursor.fetchone()
-        return result["role_name"] if result else None
-    except Exception as e:
-        raise Exception(f"Error getting role name: {e}")
