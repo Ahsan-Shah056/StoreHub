@@ -78,7 +78,7 @@ def inventory_adjustment_history(cursor):
     """
     try:
         query = """
-            SELECT ia.adjustment_id, ia.adjustment_datetime, ia.SKU, ia.quantity_change, e.name AS employee_name
+            SELECT ia.adjustment_id, ia.adjustment_datetime, ia.SKU, ia.quantity_change, ia.reason, e.name AS employee_name
             FROM InventoryAdjustments ia
             JOIN Employees e ON ia.employee_id = e.employee_id
             ORDER BY ia.adjustment_datetime DESC
@@ -91,7 +91,8 @@ def inventory_adjustment_history(cursor):
                 "date": row["adjustment_datetime"],
                 "SKU": row["SKU"],
                 "quantity_change": row["quantity_change"],
-                "employee_name": row["employee_name"]
+                "employee_name": row["employee_name"],
+                "reason": row["reason"]
             }
             for row in results
         ] if results else []

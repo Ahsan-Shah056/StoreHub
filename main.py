@@ -555,9 +555,9 @@ def inventory_adjustment_history_callback():
     try:
         from reporting import inventory_adjustment_history
         adjustments = inventory_adjustment_history(cursor)
-        columns = ("Adjustment ID", "Date/Time", "SKU", "Quantity Change", "Employee Name")
+        columns = ("Adjustment ID", "Date/Time", "SKU", "Quantity Change", "Employee Name", "Reason")
         rows = [
-            (a['adjustment_id'], a['date'], a['SKU'], a['quantity_change'], a['employee_name'])
+            (a['adjustment_id'], a['date'], a['SKU'], a['quantity_change'], a['employee_name'], a['reason'])
             for a in adjustments
         ]
         if not rows:
