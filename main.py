@@ -11,7 +11,7 @@ import customers
 import employees
 from datetime import datetime
 import reporting
-from Ui import POSApp
+from Ui import POSApp, alternate_treeview_rows
 from ttkthemes import ThemedTk
 
 
@@ -52,6 +52,9 @@ def _update_cart_display(cart, cart_tree, cursor):
             product = sales.get_product(cursor, item['SKU'])# gets the product
             if product:
                 cart_tree.insert("", "end", values=(item['SKU'], product['name'], item['quantity'], product['price']))
+        
+        # Apply alternating row colors
+        alternate_treeview_rows(cart_tree)
     except Exception as e:
         handle_error(f"An error occurred while updating the cart display: {e}")
 
@@ -419,17 +422,20 @@ def _populate_suppliers_treeview(suppliers_list, suppliers_tree):
     suppliers_tree.delete(*suppliers_tree.get_children())
     for supplier in suppliers_list:
         suppliers_tree.insert("", "end", values=(supplier['supplier_id'], supplier['name'], supplier['contact_info'], supplier['address']))
+    alternate_treeview_rows(suppliers_tree)
 
 def _populate_inventory_treeview(inventory_list, inventory_tree):
     """Populates the inventory treeview with data."""
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
         inventory_tree.insert("", "end", values=(item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+    alternate_treeview_rows(inventory_tree)
 
 def populate_employees_treeview(employees_list, employee_tree):    
     employee_tree.delete(*employee_tree.get_children())    
     for employee in employees_list:
         employee_tree.insert("", "end", values=(employee['employee_id'], employee['name'], employee['role']))
+    alternate_treeview_rows(employee_tree)
 
 def adjust_stock(connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason):
     """Adjusts the stock level of a specific item."""
@@ -463,7 +469,8 @@ def display_receipt(receipt, receipt_tree):# function to display the receipt
     """Show a receipt in the receipt tree"""
     receipt_tree.delete(*receipt_tree.get_children())
     for item in receipt:# for every item in the receipt
-        receipt_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))        
+        receipt_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
+    alternate_treeview_rows(receipt_tree)
 
 
 def generate_receipt(cursor, sale_id): # generate a receipt
@@ -488,6 +495,9 @@ def _display_receipt(receipt_data, receipt_tree, cursor):
                   receipt_tree.insert("", "end", values=(item['SKU'], product['name'], item['quantity'], item['price']))
                 else:
                     receipt_tree.insert("", "end", values=(item['SKU'], "Product Name Not Found", item['quantity'], item['price']))
+        
+        # Apply alternating row colors
+        alternate_treeview_rows(receipt_tree)
     except Exception as e:
         handle_error(f"An error occurred while displaying the receipt: {e}")
 def low_stock_report(connection, cursor):
@@ -509,6 +519,7 @@ def _populate_customers_treeview(customers_list, customer_tree):
     customer_tree.delete(*customer_tree.get_children())
     for c in customers_list:
         customer_tree.insert("", "end", values=(c['customer_id'], c['name'], c['contact_info'], c['address']))
+    alternate_treeview_rows(customer_tree)
 
 def sales_by_employee_callback(employee_id):
     try:

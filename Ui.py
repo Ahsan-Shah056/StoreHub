@@ -40,6 +40,11 @@ def alternate_treeview_rows(treeview):
     """
     Alternate row colors for a Treeview widget.
     """
+    # Configure tags in case they're not already configured
+    treeview.tag_configure("evenrow", background="#f9f9f9")
+    treeview.tag_configure("oddrow", background="#e9e9e9")
+    
+    # Apply tags to each item
     for i, item in enumerate(treeview.get_children()):
         tag = "evenrow" if i % 2 == 0 else "oddrow"
         treeview.item(item, tags=(tag,))
@@ -178,6 +183,7 @@ class SalesUI:
         self.purchase_status.config(text=f"Added {quantity} of SKU {sku} to cart.", foreground='green')
         self.product_id_entry.delete(0, tk.END)
         self.quantity_entry.delete(0, tk.END)
+        alternate_treeview_rows(self.cart_tree)
 
     def _on_checkout(self):
         if self.checkout_callback:
@@ -185,6 +191,7 @@ class SalesUI:
             employee_id = self.employees_map.get(selected_employee)
             self.checkout_callback(self.cart_tree, self.receipt_tree, employee_id)
         self.purchase_status.config(text="Checkout complete.", foreground='green')
+        alternate_treeview_rows(self.receipt_tree)
 
     def _on_empty_cart(self):
         if self.empty_cart_callback:
@@ -294,6 +301,7 @@ class CustomerUI:
     def _on_view_customers(self):
         if self.view_customers_callback:
             self.view_customers_callback(self.customer_tree)
+            alternate_treeview_rows(self.customer_tree)
 
 class EmployeeUI:
     def __init__(self, master):
@@ -370,6 +378,7 @@ class EmployeeUI:
     def view_employees(self):
         if self.view_employees_callback:
             self.view_employees_callback(self.employee_tree)
+            alternate_treeview_rows(self.employee_tree)
     def update_employee(self):
         if self.update_employee_callback:
             self.update_employee_callback(self.update_employee_id_entry, self.update_employee_name_entry, self.update_employee_role_entry)
@@ -547,6 +556,7 @@ class InventoryUI:
     def view_inventory(self):
         if self.view_inventory_callback:
             self.view_inventory_callback(self.inventory_tree)
+            alternate_treeview_rows(self.inventory_tree)
     def adjust_stock(self):
         if self.adjust_stock_callback:
             selected_employee = self.adjust_employee_combobox.get()
@@ -725,6 +735,7 @@ class ReportsUI:
             self.report_tree.column(col, width=widths[idx], anchor='center', minwidth=50, stretch=False)
         for row in rows:
             self.report_tree.insert("", "end", values=row)
+        alternate_treeview_rows(self.report_tree)
         self.report_tree.update_idletasks()
         # Hide horizontal scrollbar for compact low stock report
         if not show_scroll:
@@ -812,6 +823,7 @@ class SuppliersUI:
     def _on_view_suppliers(self):
         if self.view_suppliers_callback:
             self.view_suppliers_callback(self.suppliers_tree)
+            alternate_treeview_rows(self.suppliers_tree)
     def _threaded_add_supplier(self):
         
         threading.Thread(target=self.add_supplier).start()
@@ -850,6 +862,8 @@ def _populate_inventory_treeview(inventory_list, inventory_tree):
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
         inventory_tree.insert("", "end", values=(item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+    alternate_treeview_rows(inventory_tree)
+    alternate_treeview_rows(inventory_tree)
 
 class POSApp:
     def __init__(self, root,
@@ -1111,6 +1125,7 @@ def _update_cart_display(cart, cart_tree, cursor):
         cart_tree.delete(*cart_tree.get_children())
         for item in cart:
             cart_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
+        alternate_treeview_rows(cart_tree)
     except Exception as e:
         handle_error(f"An error occurred while updating the cart display: {e}")
 
