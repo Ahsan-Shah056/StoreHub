@@ -31,15 +31,7 @@ def get_all_customers(cursor):
 
 def delete_customer(connection, cursor, customer_id):
     """
-    Deletes a customer from the database.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        customer_id (int): The ID of the customer to delete.
-
-    Returns:
-        list: A list of dictionaries containing the details of the deleted customer.
+    Deletes a customer from the database, but only if they have no related sales.
     """
     try:
         if customer_id == 0:
@@ -47,7 +39,11 @@ def delete_customer(connection, cursor, customer_id):
         customer = get_customer(cursor, customer_id)
         if not customer:
             raise ValueError(f"Customer with ID {customer_id} not found.")
-
+        # Check for related sales
+        cursor.execute("SELECT COUNT(*) AS sale_count FROM Sales WHERE customer_id = %s", (customer_id,))
+        result = cursor.fetchone()
+        if result and result['sale_count'] > 0:
+            raise ValueError("Cannot delete customer: This customer has related sales records. Deletion is not allowed to preserve sales history.")
         # Delete customer
         query = "DELETE FROM Customers WHERE customer_id = %s"
         cursor.execute(query, (customer_id,))
