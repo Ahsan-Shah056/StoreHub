@@ -10,6 +10,7 @@ import sales
 import threading
 from PIL import Image, ImageTk
 import os
+from Data_importing import export_treeview_to_csv
 
 
 # Ensure there is NO root = tk.Tk() or root = ThemedTk() anywhere in this file
@@ -268,6 +269,9 @@ class CustomerUI:
         # Add View Customers button to customers tab
         self.view_customers_button = ttk.Button(self.frame, text="View Customers", command=self._on_view_customers, style="Blue.TButton")
         self.view_customers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
+        # Add Import Data button next to View Customers
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
         # Do not auto-populate customer_listbox or customer_tree on init
         self.view_customers_callback = None
     def _threaded_search_customer(self):
@@ -302,6 +306,8 @@ class CustomerUI:
         if self.view_customers_callback:
             self.view_customers_callback(self.customer_tree)
             alternate_treeview_rows(self.customer_tree)
+    def _on_import_data(self):
+        export_treeview_to_csv(self.customer_tree, self.frame)
 
 class EmployeeUI:
     def __init__(self, master):
@@ -514,6 +520,8 @@ class InventoryUI:
         self.inventory_tree.grid(row=0, column=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
         self.view_inventory_button = ttk.Button(self.frame, text="View Inventory", command=self._threaded_view_inventory, style="Blue.TButton")
         self.view_inventory_button.grid(row=4, column=0, pady=10, sticky=tk.W)
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=5, column=0, pady=10, sticky=tk.W)
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
         # Do not auto-populate inventory_tree on init
@@ -567,6 +575,8 @@ class InventoryUI:
             self.adjust_quantity_entry.delete(0, tk.END)
             self.adjust_reason_entry.delete(0, tk.END)
             self.adjust_sku_entry.focus_set()
+    def _on_import_data(self):
+        export_treeview_to_csv(self.inventory_tree, self.frame)
 
 class ReportsUI:
     def __init__(self, master):
@@ -636,6 +646,25 @@ class ReportsUI:
         self.customer_combobox.grid(row=2, column=5, padx=5, pady=5, sticky="ew")
         self.customer_purchase_history_btn = ttk.Button(self.options_frame, text="Show", command=self._on_customer_purchase_history_report, style="Blue.TButton")
         self.customer_purchase_history_btn.grid(row=2, column=6, padx=5, pady=5, sticky="ew")
+
+        # Import Data button for exporting report_tree to CSV (larger, square shape)
+        style.configure("Square.TButton",
+                        background="#1976D2",
+                        foreground="white",
+                        relief="raised",
+                        borderwidth=1,
+                        focusthickness=3,
+                        focuscolor="#1976D2",
+                        width=13,
+                        height=7)
+        self.import_data_btn = ttk.Button(
+            self.options_frame,
+            text="Import Data",
+            command=self._on_import_data,
+            style="Square.TButton",
+            width=10
+        )
+        self.import_data_btn.grid(row=0, column=7, padx=10, pady=10, sticky="nsew")
 
         # Remove problematic custom style.layout for scrollbar
         # Output Report Table
@@ -744,6 +773,9 @@ class ReportsUI:
             self.report_tree_scroll_x.pack(fill='x', padx=10, pady=(0,10))
         self.report_tree.xview_moveto(0)
 
+    def _on_import_data(self):
+        export_treeview_to_csv(self.report_tree, self.frame)
+
 class SuppliersUI:
     def __init__(self, master):
         # Title and description
@@ -811,6 +843,8 @@ class SuppliersUI:
         # View Suppliers button and Treeview
         self.view_suppliers_button = ttk.Button(self.frame, text="View Suppliers", command=self._on_view_suppliers, style="Blue.TButton")
         self.view_suppliers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
         self.suppliers_tree = ttk.Treeview(self.frame, columns=('ID', 'Name', 'Contact', 'Address'), show='headings', height=10)
         self.suppliers_tree.heading('ID', text='ID')
         self.suppliers_tree.heading('Name', text='Name')
@@ -846,6 +880,8 @@ class SuppliersUI:
             self.delete_supplier_callback(self.delete_supplier_id_entry)
             self.delete_supplier_id_entry.delete(0, tk.END)
             self.delete_supplier_id_entry.focus_set()
+    def _on_import_data(self):
+        export_treeview_to_csv(self.suppliers_tree, self.frame)
 
 def view_inventory(cursor, inventory_tree):
     try:

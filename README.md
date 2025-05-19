@@ -10,6 +10,8 @@ Python Tkinter | MySQL | Modular Architecture
 
 Storecore is a comprehensive, modular Point-of-Sale (POS) and inventory management solution tailored for retail businesses, warehouses, and small enterprises. Built with Python and Tkinter for the GUI and MySQL for persistent data storage, Storecore offers a seamless experience for both end-users and developers. The system supports real-time inventory tracking, robust sales workflows, customer and supplier management, and a suite of actionable business reports. Its codebase is structured for maintainability, extensibility, and ease of integration with other systems.
 
+**NEW:** Effortlessly export any table or report to CSV for analysis, backup, or sharing—directly from the app interface!
+
 ---
 
 ## ✨ Features
@@ -56,6 +58,9 @@ Storecore is a comprehensive, modular Point-of-Sale (POS) and inventory manageme
 - **Consistent, Compact UI:**
   - All reports and dropdowns are easy to use and auto-populated.
   - Horizontal scrollbars and column widths are optimized for clarity.
+- **NEW: Export Data to CSV:**
+  - Instantly export any table (Customers, Inventory, Suppliers, Reports, etc.) to a CSV file with a single click.
+  - Export buttons are available in all major tabs for easy data backup, sharing, or analysis in Excel/Sheets.
 - **Robust Error Handling:**
   - User-friendly error popups for all operations.
   - Defensive programming: all DB operations wrapped in try/except.
