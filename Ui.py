@@ -3,14 +3,13 @@ from tkinter import ttk
 from ttkthemes import ThemedTk
 import tkinter.font as tkFont  
 from tkinter import messagebox  # For error handling
-# Import sales module
 import inventory
 import customers 
 import sales  
 import threading
 from PIL import Image, ImageTk
 import os
-from Data_importing import export_treeview_to_csv
+from Data_exporting import export_treeview_to_csv
 
 
 # Ensure there is NO root = tk.Tk() or root = ThemedTk() anywhere in this file
@@ -269,9 +268,9 @@ class CustomerUI:
         # Add View Customers button to customers tab
         self.view_customers_button = ttk.Button(self.frame, text="View Customers", command=self._on_view_customers, style="Blue.TButton")
         self.view_customers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
-        # Add Import Data button next to View Customers
-        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
-        self.import_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
+        # Add Export Data button next to View Customers
+        self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
+        self.export_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
         # Do not auto-populate customer_listbox or customer_tree on init
         self.view_customers_callback = None
     def _threaded_search_customer(self):
@@ -306,7 +305,7 @@ class CustomerUI:
         if self.view_customers_callback:
             self.view_customers_callback(self.customer_tree)
             alternate_treeview_rows(self.customer_tree)
-    def _on_import_data(self):
+    def _on_export_data(self):
         export_treeview_to_csv(self.customer_tree, self.frame)
 
 class EmployeeUI:
@@ -517,11 +516,26 @@ class InventoryUI:
         self.inventory_tree = ttk.Treeview(self.frame, columns=('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID'), show='headings')
         for col in ('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID'):
             self.inventory_tree.heading(col, text=col)
+            
+        # Set appropriate column widths
+        self.inventory_tree.column('SKU', width=80, minwidth=60)
+        self.inventory_tree.column('Name', width=180, minwidth=100)
+        self.inventory_tree.column('Category', width=120, minwidth=80)
+        self.inventory_tree.column('Price', width=80, minwidth=60)
+        self.inventory_tree.column('Stock', width=80, minwidth=60)
+        self.inventory_tree.column('Supplier ID', width=100, minwidth=80)
+        
+        # Add horizontal scrollbar
+        self.inventory_tree_scroll_x = ttk.Scrollbar(self.frame, orient='horizontal', command=self.inventory_tree.xview)
+        self.inventory_tree.configure(xscrollcommand=self.inventory_tree_scroll_x.set)
+        
+        # Grid layout for tree and scrollbar
         self.inventory_tree.grid(row=0, column=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
+        self.inventory_tree_scroll_x.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=10)
         self.view_inventory_button = ttk.Button(self.frame, text="View Inventory", command=self._threaded_view_inventory, style="Blue.TButton")
         self.view_inventory_button.grid(row=4, column=0, pady=10, sticky=tk.W)
-        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
-        self.import_data_button.grid(row=5, column=0, pady=10, sticky=tk.W)
+        self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
+        self.export_data_button.grid(row=5, column=0, pady=10, sticky=tk.W)
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
         # Do not auto-populate inventory_tree on init
@@ -575,7 +589,7 @@ class InventoryUI:
             self.adjust_quantity_entry.delete(0, tk.END)
             self.adjust_reason_entry.delete(0, tk.END)
             self.adjust_sku_entry.focus_set()
-    def _on_import_data(self):
+    def _on_export_data(self):
         export_treeview_to_csv(self.inventory_tree, self.frame)
 
 class ReportsUI:
@@ -647,7 +661,7 @@ class ReportsUI:
         self.customer_purchase_history_btn = ttk.Button(self.options_frame, text="Show", command=self._on_customer_purchase_history_report, style="Blue.TButton")
         self.customer_purchase_history_btn.grid(row=2, column=6, padx=5, pady=5, sticky="ew")
 
-        # Import Data button for exporting report_tree to CSV (larger, square shape)
+        # Export Data button for exporting report_tree to CSV (larger, square shape)
         style.configure("Square.TButton",
                         background="#1976D2",
                         foreground="white",
@@ -657,14 +671,14 @@ class ReportsUI:
                         focuscolor="#1976D2",
                         width=13,
                         height=7)
-        self.import_data_btn = ttk.Button(
+        self.export_data_btn = ttk.Button(
             self.options_frame,
-            text="Import Data",
-            command=self._on_import_data,
+            text="Export Data",
+            command=self._on_export_data,
             style="Square.TButton",
             width=10
         )
-        self.import_data_btn.grid(row=0, column=7, padx=10, pady=10, sticky="nsew")
+        self.export_data_btn.grid(row=0, column=7, padx=10, pady=10, sticky="nsew")
 
         # Remove problematic custom style.layout for scrollbar
         # Output Report Table
@@ -752,28 +766,57 @@ class ReportsUI:
     def display_report(self, columns, rows, compact=False):
         self.report_tree.delete(*self.report_tree.get_children())
         self.report_tree['columns'] = columns
-        # Use compact widths for low stock report
+        
+        # Define column widths based on content type
         if compact and columns == ("SKU", "Product Name", "Quantity"):
-            widths = [70, 160, 70]
+            # Compact view for low stock report
+            widths = [160, 160, 160]
             show_scroll = False
         else:
-            widths = [120 if col.lower() in ("sku", "quantity", "stock", "id") else 200 for col in columns]
+            # More intelligent column width assignment
+            widths = []
+            for col in columns:
+                col_lower = col.lower()
+                if col_lower in ("sku", "id", "employee_id", "supplier_id", "customer_id"):
+                    widths.append(160)  # IDs are usually short
+                elif col_lower in ("quantity", "stock", "price", "amount"):
+                    widths.append(100)  # Numeric values
+                elif col_lower in ("date", "time", "datetime", "date/time"):
+                    widths.append(180)  # Date/time fields
+                elif "name" in col_lower:
+                    widths.append(180)  # Names need more space
+                elif "address" in col_lower or "description" in col_lower or "reason" in col_lower:
+                    widths.append(250)  # Long text fields
+                else:
+                    widths.append(180)  # Default width for other columns
+            
             show_scroll = True
+        
+        # Apply column settings
         for idx, col in enumerate(columns):
             self.report_tree.heading(col, text=col)
-            self.report_tree.column(col, width=widths[idx], anchor='center', minwidth=50, stretch=False)
+            # Set width, anchor and minimum width
+            width = widths[idx] if idx < len(widths) else 120
+            anchor = 'e' if any(term in col.lower() for term in ["price", "quantity", "stock", "amount", "id"]) else 'w'
+            self.report_tree.column(col, width=width, anchor=anchor, minwidth=50, stretch=False)
+        
+        # Insert data rows
         for row in rows:
             self.report_tree.insert("", "end", values=row)
+        
+        # Finalize appearance
         alternate_treeview_rows(self.report_tree)
         self.report_tree.update_idletasks()
-        # Hide horizontal scrollbar for compact low stock report
+        
+        # Manage horizontal scrollbar visibility
         if not show_scroll:
             self.report_tree_scroll_x.pack_forget()
         else:
             self.report_tree_scroll_x.pack(fill='x', padx=10, pady=(0,10))
+        
         self.report_tree.xview_moveto(0)
 
-    def _on_import_data(self):
+    def _on_export_data(self):
         export_treeview_to_csv(self.report_tree, self.frame)
 
 class SuppliersUI:
@@ -843,8 +886,8 @@ class SuppliersUI:
         # View Suppliers button and Treeview
         self.view_suppliers_button = ttk.Button(self.frame, text="View Suppliers", command=self._on_view_suppliers, style="Blue.TButton")
         self.view_suppliers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
-        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
-        self.import_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
+        self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
+        self.export_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
         self.suppliers_tree = ttk.Treeview(self.frame, columns=('ID', 'Name', 'Contact', 'Address'), show='headings', height=10)
         self.suppliers_tree.heading('ID', text='ID')
         self.suppliers_tree.heading('Name', text='Name')
@@ -880,7 +923,7 @@ class SuppliersUI:
             self.delete_supplier_callback(self.delete_supplier_id_entry)
             self.delete_supplier_id_entry.delete(0, tk.END)
             self.delete_supplier_id_entry.focus_set()
-    def _on_import_data(self):
+    def _on_export_data(self):
         export_treeview_to_csv(self.suppliers_tree, self.frame)
 
 def view_inventory(cursor, inventory_tree):
