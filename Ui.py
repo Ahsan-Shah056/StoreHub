@@ -93,6 +93,7 @@ class SalesUI:
         self.checkout_callback = None
         self.select_customer_callback = None
         self.get_customers_callback = None  # Add this line
+        self.resend_receipt_callback = None  # Add resend receipt callback
 
     def _init_purchase_tab(self):
         # Title and description for Purchase subtab
@@ -100,48 +101,132 @@ class SalesUI:
         title.pack(pady=(10, 2), padx=10, anchor="w")
         desc = ttk.Label(self.purchase_tab, text="Add products to cart and complete sales for customers.", font=("Helvetica", 10))
         desc.pack(pady=(0, 10), padx=10, anchor="w")
-        purchase_frame = ttk.Frame(self.purchase_tab)
-        purchase_frame.pack(pady=20, padx=20, fill='x')
-        # Employee selection dropdown
-        ttk.Label(purchase_frame, text='Employee:').grid(row=0, column=4, sticky='e', padx=5, pady=5)
-        self.employee_combobox = ttk.Combobox(purchase_frame, state='readonly', width=25)
-        self.employee_combobox.grid(row=0, column=5, padx=5, pady=5)
-        self._populate_employees()
-        # Customer selection dropdown
-        ttk.Label(purchase_frame, text='Customer:').grid(row=0, column=2, sticky='e', padx=5, pady=5)
-        self.customer_combobox = ttk.Combobox(purchase_frame, state='readonly', width=25)
-        self.customer_combobox.grid(row=0, column=3, padx=5, pady=5)
+        
+        # Main container with better space management
+        main_container = ttk.Frame(self.purchase_tab)
+        main_container.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Configure main container grid weights
+        main_container.grid_rowconfigure(1, weight=1)  # Cart section will expand
+        main_container.grid_columnconfigure(0, weight=1)
+        
+        # Input section (fixed height)
+        input_frame = ttk.LabelFrame(main_container, text="Order Entry", padding=10)
+        input_frame.grid(row=0, column=0, sticky='ew', pady=(0, 5))
+        
+        # Row 1: Product SKU and Quantity
+        ttk.Label(input_frame, text='Product SKU:').grid(row=0, column=0, sticky='w', padx=(0, 5), pady=2)
+        self.product_id_entry = ttk.Entry(input_frame, width=15)
+        self.product_id_entry.grid(row=0, column=1, padx=(0, 10), pady=2, sticky='w')
+        
+        ttk.Label(input_frame, text='Quantity:').grid(row=0, column=2, sticky='w', padx=(0, 5), pady=2)
+        self.quantity_entry = ttk.Entry(input_frame, width=8)
+        self.quantity_entry.grid(row=0, column=3, padx=(0, 10), pady=2, sticky='w')
+        
+        add_to_cart_btn = ttk.Button(input_frame, text='Add to Cart', command=self._on_add_to_cart, style="Blue.TButton")
+        add_to_cart_btn.grid(row=0, column=4, padx=(0, 20), pady=2)
+        
+        # Row 2: Customer and Employee selection
+        ttk.Label(input_frame, text='Customer:').grid(row=0, column=5, sticky='w', padx=(0, 5), pady=2)
+        self.customer_combobox = ttk.Combobox(input_frame, state='readonly', width=20)
+        self.customer_combobox.grid(row=0, column=6, padx=(0, 10), pady=2, sticky='w')
         self.customer_combobox.bind('<<ComboboxSelected>>', self._on_customer_selected)
+        
+        ttk.Label(input_frame, text='Employee:').grid(row=0, column=7, sticky='w', padx=(0, 5), pady=2)
+        self.employee_combobox = ttk.Combobox(input_frame, state='readonly', width=20)
+        self.employee_combobox.grid(row=0, column=8, padx=(0, 5), pady=2, sticky='w')
+        
         self._populate_customers()
-        ttk.Label(purchase_frame, text='Product SKU:').grid(row=0, column=0, sticky='e', padx=5, pady=5)
-        self.product_id_entry = ttk.Entry(purchase_frame, width=20)
-        self.product_id_entry.grid(row=0, column=1, padx=5, pady=5)
-        ttk.Label(purchase_frame, text='Quantity:').grid(row=1, column=0, sticky='e', padx=5, pady=5)
-        self.quantity_entry = ttk.Entry(purchase_frame, width=10)
-        self.quantity_entry.grid(row=1, column=1, padx=5, pady=5)
-        add_to_cart_btn = ttk.Button(purchase_frame, text='Add to Cart', command=self._on_add_to_cart, style="Blue.TButton")
-        add_to_cart_btn.grid(row=2, column=0, columnspan=2, pady=10)
-        self.cart_tree = ttk.Treeview(self.purchase_tab, columns=('SKU', 'Name', 'Quantity', 'Price'), show='headings', height=8)
+        self._populate_employees()
+        
+        # Cart and checkout section (expandable)
+        cart_checkout_frame = ttk.Frame(main_container)
+        cart_checkout_frame.grid(row=1, column=0, sticky='nsew', pady=(0, 5))
+        cart_checkout_frame.grid_rowconfigure(0, weight=1)
+        cart_checkout_frame.grid_columnconfigure(0, weight=1)
+        
+        # Cart section
+        cart_frame = ttk.LabelFrame(cart_checkout_frame, text="Shopping Cart", padding=5)
+        cart_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
+        
+        # Cart tree with moderate height
+        cart_container = ttk.Frame(cart_frame)
+        cart_container.pack(fill='both', expand=True)
+        
+        self.cart_tree = ttk.Treeview(cart_container, columns=('SKU', 'Name', 'Quantity', 'Price', 'Total'), show='headings', height=8)
         self.cart_tree.heading('SKU', text='SKU')
         self.cart_tree.heading('Name', text='Name')
         self.cart_tree.heading('Quantity', text='Quantity')
         self.cart_tree.heading('Price', text='Price')
-        self.cart_tree.pack(padx=20, pady=10, fill='both', expand=True)
-        # Add a receipt Treeview for displaying the receipt after checkout
-        self.receipt_tree = ttk.Treeview(self.purchase_tab, columns=('SKU', 'Name', 'Quantity', 'Price'), show='headings', height=6)
+        self.cart_tree.heading('Total', text='Total')
+        
+        # Set column widths
+        self.cart_tree.column('SKU', width=100)
+        self.cart_tree.column('Name', width=200)
+        self.cart_tree.column('Quantity', width=80)
+        self.cart_tree.column('Price', width=80)
+        self.cart_tree.column('Total', width=80)
+        
+        # Add scrollbar for cart
+        cart_scrollbar = ttk.Scrollbar(cart_container, orient='vertical', command=self.cart_tree.yview)
+        self.cart_tree.configure(yscrollcommand=cart_scrollbar.set)
+        
+        self.cart_tree.pack(side='left', fill='both', expand=True)
+        cart_scrollbar.pack(side='right', fill='y')
+        
+        # Right panel for totals and actions
+        right_panel = ttk.Frame(cart_checkout_frame)
+        right_panel.grid(row=0, column=1, sticky='ns', padx=(5, 0))
+        
+        # Totals section
+        totals_frame = ttk.LabelFrame(right_panel, text="Order Total", padding=10)
+        totals_frame.pack(fill='x', pady=(0, 10))
+        
+        self.subtotal_label = ttk.Label(totals_frame, text="Subtotal: $0.00", font=("Helvetica", 10))
+        self.subtotal_label.pack(anchor='w')
+        
+        self.taxes_label = ttk.Label(totals_frame, text="Taxes: $0.00", font=("Helvetica", 10))
+        self.taxes_label.pack(anchor='w')
+        
+        self.total_label = ttk.Label(totals_frame, text="Total: $0.00", font=("Helvetica", 12, "bold"))
+        self.total_label.pack(anchor='w')
+        
+        # Actions section
+        actions_frame = ttk.LabelFrame(right_panel, text="Actions", padding=10)
+        actions_frame.pack(fill='x', pady=(0, 10))
+        
+        checkout_btn = ttk.Button(actions_frame, text='Checkout', command=self._on_checkout, style="Blue.TButton")
+        checkout_btn.pack(fill='x', pady=(0, 5))
+        
+        empty_cart_btn = ttk.Button(actions_frame, text='Empty Cart', command=self._on_empty_cart, style="Blue.TButton")
+        empty_cart_btn.pack(fill='x', pady=(0, 5))
+        
+        send_receipt_btn = ttk.Button(actions_frame, text='Resend Last Receipt', command=self._on_resend_receipt, style="Blue.TButton")
+        send_receipt_btn.pack(fill='x')
+        
+        # Status section
+        self.purchase_status = ttk.Label(right_panel, text='', font=("Helvetica", 9))
+        self.purchase_status.pack(pady=(10, 0))
+        
+        # Compact receipt section at bottom
+        receipt_frame = ttk.LabelFrame(main_container, text="Last Receipt", padding=5)
+        receipt_frame.grid(row=2, column=0, sticky='ew', pady=(5, 0))
+        
+        self.receipt_tree = ttk.Treeview(receipt_frame, columns=('SKU', 'Name', 'Quantity', 'Price', 'Total'), show='headings', height=3)
         self.receipt_tree.heading('SKU', text='SKU')
         self.receipt_tree.heading('Name', text='Name')
         self.receipt_tree.heading('Quantity', text='Quantity')
         self.receipt_tree.heading('Price', text='Price')
-        self.receipt_tree.pack(padx=20, pady=10, fill='both', expand=True)
-        actions_frame = ttk.Frame(self.purchase_tab)
-        actions_frame.pack(pady=10)
-        checkout_btn = ttk.Button(actions_frame, text='Checkout', command=self._on_checkout, style="Blue.TButton")
-        checkout_btn.pack(side='left', padx=10)
-        empty_cart_btn = ttk.Button(actions_frame, text='Empty Cart', command=self._on_empty_cart, style="Blue.TButton")
-        empty_cart_btn.pack(side='left', padx=10)
-        self.purchase_status = ttk.Label(self.purchase_tab, text='')
-        self.purchase_status.pack(pady=10)
+        self.receipt_tree.heading('Total', text='Total')
+        
+        # Set column widths for receipt tree
+        self.receipt_tree.column('SKU', width=80)
+        self.receipt_tree.column('Name', width=150)
+        self.receipt_tree.column('Quantity', width=60)
+        self.receipt_tree.column('Price', width=60)
+        self.receipt_tree.column('Total', width=60)
+        
+        self.receipt_tree.pack(fill='x')
         # Remove View Customers button and customers_tree from sales tab
 
     def _populate_customers(self):
@@ -186,9 +271,22 @@ class SalesUI:
         alternate_treeview_rows(self.cart_tree)
 
     def _on_checkout(self):
+        # Check if customer is selected
+        selected_customer = self.customer_combobox.get()
+        if not selected_customer:
+            messagebox.showerror("Error", "Please select a customer before checkout")
+            return
+            
         if self.checkout_callback:
             selected_employee = self.employee_combobox.get()
             employee_id = self.employees_map.get(selected_employee)
+            
+            # Set the customer ID before checkout
+            if self.select_customer_callback and hasattr(self, 'customers_map'):
+                customer_id = self.customers_map.get(selected_customer)
+                if customer_id:
+                    self.select_customer_callback(customer_id)
+                
             self.checkout_callback(self.cart_tree, self.receipt_tree, employee_id)
         self.purchase_status.config(text="Checkout complete.", foreground='green')
         alternate_treeview_rows(self.receipt_tree)
@@ -197,6 +295,13 @@ class SalesUI:
         if self.empty_cart_callback:
             self.empty_cart_callback(self.cart_tree)
         self.purchase_status.config(text="Cart emptied.", foreground='blue')
+
+    def _on_resend_receipt(self):
+        """Resend the last receipt to customer email"""
+        if self.resend_receipt_callback:
+            self.resend_receipt_callback()
+        else:
+            messagebox.showinfo("Feature Unavailable", "Resend receipt feature not available")
 
     def _threaded_add_to_cart(self):
         threading.Thread(target=self._on_add_to_cart).start()
@@ -954,6 +1059,7 @@ class POSApp:
                  update_cart_quantity_callback=None,
                  calculate_and_display_totals_callback=None,
                  select_customer_callback=None,
+                 resend_receipt_callback=None,
                  # Supplier callbacks
                  add_supplier_callback=None,
                  search_suppliers_callback=None,
@@ -1084,6 +1190,8 @@ class POSApp:
             self.sales_ui.empty_cart_callback = empty_cart_callback
         if select_customer_callback:
             self.sales_ui.select_customer_callback = select_customer_callback
+        if resend_receipt_callback:
+            self.sales_ui.resend_receipt_callback = resend_receipt_callback
             
         # Only allow write access to customer data for roles other than accountant
         if user_role != "accountant":

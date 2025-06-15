@@ -13,15 +13,30 @@ from datetime import datetime
 import reporting
 from Ui import POSApp, alternate_treeview_rows
 from ttkthemes import ThemedTk
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 def handle_error(error_message):
-    """
-    Displays an error message in a message box.
-    Args:
-    """
+    """Displays an error message in a message box."""
     messagebox.showerror("Error", error_message)
 
+# Global variable to store last sale info for resend functionality
+last_sale_info = {'sale_id': None, 'customer_id': None, 'receipt_text': None}
+
+def load_email_config():
+    """Load email configuration from credentials.json"""
+    try:
+        with open('credentials.json', 'r') as file:
+            data = json.load(file)
+            return {
+                'email': data.get('email', ''),
+                'password': data.get('password', '')
+            }
+    except Exception as e:
+        print(f"Error loading email config: {e}")
+        return {'email': '', 'password': ''}
 
 def get_selected_customer_id():
     if 'selected_customer_id' not in get_selected_customer_id.__dict__:
@@ -31,30 +46,41 @@ def get_selected_customer_id():
 
 
 def set_selected_customer_id(customer_id):
-    """Sets the ID of the currently selected customer."""
+    """Sets the ID or identifier of the currently selected customer."""
     get_selected_customer_id.selected_customer_id = customer_id
 
 def _update_cart_display(cart, cart_tree, cursor):
     """Updates the cart display in the UI with the current items in the cart.
-    
-    Args:
-        cart: The cart with the products
-    
-    Args:    
-        cart (list): The list of items in the cart.
-        cart_tree (ttk.Treeview): The Treeview widget to display the cart items.
-        cursor (cursor): The database cursor object.
     """
     try:
-        
         cart_tree.delete(*cart_tree.get_children())
         for item in cart:# for every item in the cart
             product = sales.get_product(cursor, item['SKU'])# gets the product
             if product:
-                cart_tree.insert("", "end", values=(item['SKU'], product['name'], item['quantity'], product['price']))
+                line_total = product['price'] * item['quantity']
+                cart_tree.insert("", "end", values=(
+                    item['SKU'], 
+                    product['name'], 
+                    item['quantity'], 
+                    f"${product['price']:.2f}",
+                    f"${line_total:.2f}"
+                ))
         
         # Apply alternating row colors
         alternate_treeview_rows(cart_tree)
+        
+        # Update totals if UI elements are available
+        try:
+            # Try to get the UI reference from the global pos_app
+            if 'pos_app' in globals() and hasattr(pos_app, 'sales_ui'):
+                if hasattr(pos_app.sales_ui, 'subtotal_label'):
+                    update_order_display(cart, cursor, 
+                                       pos_app.sales_ui.subtotal_label,
+                                       pos_app.sales_ui.taxes_label, 
+                                       pos_app.sales_ui.total_label)
+        except:
+            pass  # Silently fail if UI elements not available
+            
     except Exception as e:
         handle_error(f"An error occurred while updating the cart display: {e}")
 
@@ -167,38 +193,250 @@ def checkout(receipt_tree, cart_tree, cart, connection, cursor, employee_id):
             raise ValueError("Cart is empty. Add items before checkout.")
         if not selected_customer_id:
             raise ValueError("Please select a customer")
+            
+        # Convert customer input to customer_id if it's an email or name
+        customer_id = None
+        customer_email = None
+        try:
+            # First try as direct customer_id (integer)
+            customer_id = int(selected_customer_id)
+        except ValueError:
+            # If not integer, search by email or name
+            cursor.execute("SELECT customer_id FROM Customers WHERE contact_info = %s OR name = %s", 
+                         (selected_customer_id, selected_customer_id))
+            result = cursor.fetchone()
+            if result:
+                customer_id = result['customer_id']
+            else:
+                raise ValueError(f"Customer not found: {selected_customer_id}")
+        
+        # Get customer email for receipt sending
+        cursor.execute("SELECT contact_info FROM Customers WHERE customer_id = %s", (customer_id,))
+        customer_result = cursor.fetchone()
+        if customer_result:
+            customer_email = customer_result['contact_info']
+        
         # Calculate totals before clearing the cart
         totals = sales.calculate_totals(cart, cursor)
-        sale_id = sales.log_sale(connection, cursor, cart, employee_id, selected_customer_id)
+        sale_id = sales.log_sale(connection, cursor, cart, employee_id, customer_id)
         receipt_data = sales.generate_receipt_dict(cursor, sale_id)
+        
+        # Generate and display receipt
+        receipt_text = generate_receipt_text(cursor, sale_id, customer_id, totals)
+        show_receipt(receipt_text)
+        
+        # Store last sale info for potential resend
+        global last_sale_info
+        last_sale_info = {
+            'sale_id': sale_id,
+            'customer_id': customer_id,
+            'receipt_text': receipt_text
+        }
+        
+        # Send email receipt automatically if customer has email
+        if customer_email and '@' in customer_email:
+            send_email_receipt(customer_email, receipt_text, sale_id)
+        else:
+            messagebox.showinfo("Receipt Saved", "Receipt saved locally. Customer email not available for sending.")
+        
         _display_receipt(receipt_data, receipt_tree, cursor)
-        # Show total bill to the customer
-        messagebox.showinfo("Total Bill", f"Your total bill is: ${totals['total']:.2f}")
+        
+        # Clear cart and update display
         cart.clear()
         _update_cart_display(cart, cart_tree, cursor)
+        
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:
         handle_error(f"An error occurred while checking out: {e}")
 
-def select_customer(customer_listbox):
-    """Select a customer"""
-    try:
-        selected_index = customer_listbox.curselection()
-        if not selected_index:
-            raise ValueError("Please select a customer from the list.")
-        selected_customer = customer_listbox.get(selected_index[0])
-        customer_id = int(selected_customer.split('(ID: ')[1][:-1])
-        set_selected_customer_id(customer_id)
-        messagebox.showinfo("Customer Selected", f"Customer ID {customer_id} has been selected.")
+def generate_receipt_text(cursor, sale_id, customer_id, totals):
+    """Generate formatted receipt text"""
+    from datetime import datetime
+    
+    # Get sale details
+    cursor.execute("""
+        SELECT s.sale_datetime, si.SKU, p.name, si.quantity, si.price,
+               (si.quantity * si.price) as total_price
+        FROM Sales s
+        JOIN SaleItems si ON s.sale_id = si.sale_id
+        JOIN Products p ON si.SKU = p.SKU
+        WHERE s.sale_id = %s
+        ORDER BY p.name
+    """, (sale_id,))
+    
+    sale_items = cursor.fetchall()
+    
+    if not sale_items:
+        return "Receipt generation failed - no items found"
+    
+    sale_datetime = sale_items[0]['sale_datetime']
+    
+    # Get customer info
+    cursor.execute("SELECT name FROM Customers WHERE customer_id = %s", (customer_id,))
+    customer_result = cursor.fetchone()
+    customer_name = customer_result['name'] if customer_result else f"Customer #{customer_id}"
+    
+    receipt = f"""
+        STORECORE ENTERPRISE SYSTEM
+        {'='*45}
+        Date: {sale_datetime.strftime('%Y-%m-%d %H:%M:%S')}
+        Customer: {customer_name} (ID: {customer_id})
+        Sale ID: {sale_id}
+        {'-'*45}
+        ITEM               QTY   PRICE   TOTAL
+        {'-'*45}
+        """
+    
+    for item in sale_items:
+        item_name = item['name'][:18]  # Truncate long names
+        receipt += f"{item_name:<18} {item['quantity']:^4} ${item['price']:>5.2f} ${item['total_price']:>6.2f}\n"
+    
+    receipt += f"{'-'*45}\n"
+    receipt += f"{'SUBTOTAL:':>32} ${totals['subtotal']:>6.2f}\n"
+    receipt += f"{'TAXES:':>32} ${totals['taxes']:>6.2f}\n"
+    receipt += f"{'TOTAL:':>32} ${totals['total']:>6.2f}\n"
+    receipt += f"{'='*45}\n"
+    receipt += "Thank you for your purchase!\n"
+    receipt += "       Storecore v1.0\n"
+    
+    return receipt
 
-    except Exception as e:
-        handle_error(f"An error occurred while selecting a customer: {e}")    
-    except ValueError as ve:
-        handle_error(str(ve))
-    except Exception as e:        
+def show_receipt(receipt_text):
+    """Display receipt in a message box and save to file"""
+    messagebox.showinfo("Transaction Complete", receipt_text)
+    print_receipt_to_file(receipt_text)
+
+def print_receipt_to_file(receipt_text):
+    """Save receipt to a text file"""
+    try:
+        from datetime import datetime
+        import os
         
-        handle_error(f"An error occurred while selecting a customer: {e}")
+        # Create receipts directory if it doesn't exist
+        receipts_dir = "receipts"
+        if not os.path.exists(receipts_dir):
+            os.makedirs(receipts_dir)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{receipts_dir}/receipt_{timestamp}.txt"
+        
+        with open(filename, 'w') as f:
+            f.write(receipt_text)
+            
+        print(f"Receipt saved to: {filename}")
+        
+    except Exception as e:
+        print(f"Could not save receipt to file: {e}")
+
+def send_email_receipt(customer_email, receipt_text, sale_id, show_success_popup=True):
+    """Send receipt via email to customer"""
+    email_config = load_email_config()
+    
+    if not email_config.get("email") or not email_config.get("password"):
+        messagebox.showwarning("Email Error", "Email configuration not set up properly in credentials.json")
+        return False
+
+    if not customer_email:
+        messagebox.showwarning("Email Error", "Customer email address not available")
+        return False
+
+    try:
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = email_config['email']
+        msg['To'] = customer_email
+        msg['Subject'] = f"Your Purchase Receipt - Sale #{sale_id} - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        
+        # Create email body
+        email_body = f"""
+Dear Valued Customer,
+
+Thank you for your purchase! Please find your receipt details below:
+
+{receipt_text}
+
+If you have any questions about your purchase, please don't hesitate to contact us.
+
+Best regards,
+Storecore Team
+
+---
+This is an automated message. Please do not reply to this email.
+        """
+        
+        msg.attach(MIMEText(email_body, 'plain'))
+        
+        # Send email
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(email_config['email'], email_config['password'])
+            server.sendmail(email_config['email'], [customer_email], msg.as_string())
+            
+        if show_success_popup:
+            messagebox.showinfo("Email Sent", f"Receipt has been sent to {customer_email}")
+        return True
+        
+    except Exception as e:
+        messagebox.showerror("Email Error", f"Failed to send email: {str(e)}")
+        return False
+
+def resend_last_receipt(cursor):
+    """Resend the last receipt to customer's email"""
+    global last_sale_info
+    
+    if not last_sale_info['sale_id']:
+        messagebox.showwarning("No Receipt", "No recent receipt available to resend")
+        return
+    
+    try:
+        # Get customer email
+        cursor.execute("SELECT contact_info FROM Customers WHERE customer_id = %s", 
+                      (last_sale_info['customer_id'],))
+        customer_result = cursor.fetchone()
+        
+        if not customer_result:
+            messagebox.showerror("Error", "Customer not found")
+            return
+            
+        customer_email = customer_result['contact_info']
+        
+        if not customer_email or '@' not in customer_email:
+            messagebox.showwarning("Email Error", "Customer email address not available")
+            return
+        
+        # Send the stored receipt (suppress default success message)
+        success = send_email_receipt(customer_email, last_sale_info['receipt_text'], last_sale_info['sale_id'], show_success_popup=False)
+        
+        if success:
+            # Show specific confirmation for resend action
+            messagebox.showinfo("Receipt Resent", 
+                              f"Receipt for Sale #{last_sale_info['sale_id']} has been successfully resent to {customer_email}")
+        else:
+            messagebox.showerror("Email Error", "Failed to resend receipt")
+            
+    except Exception as e:
+        handle_error(f"Error resending receipt: {e}")
+
+def update_order_display(cart, cursor, subtotal_label, taxes_label, total_label):
+    """Update the order display with current cart contents and totals"""
+    try:
+        if not cart:
+            # Clear totals if cart is empty
+            subtotal_label.config(text="Subtotal: $0.00")
+            taxes_label.config(text="Taxes: $0.00")
+            total_label.config(text="Total: $0.00")
+            return
+            
+        # Calculate and display totals
+        totals = sales.calculate_totals(cart, cursor)
+        subtotal_label.config(text=f"Subtotal: ${totals['subtotal']:.2f}")
+        taxes_label.config(text=f"Taxes: ${totals['taxes']:.2f}")
+        total_label.config(text=f"Total: ${totals['total']:.2f}")
+        
+    except Exception as e:
+        handle_error(f"Error updating order display: {e}")
+
 # Functions for Supplier Management
 def add_supplier(connection, cursor, supplier_name_entry, supplier_contact_entry, supplier_address_entry): # function for adding a new supplier
     """Adds a new supplier to the database.
@@ -775,7 +1013,7 @@ if __name__ == "__main__":
         # Show the main window again with the new user's role
         root.deiconify()
         
-        
+        global pos_app
         pos_app = POSApp(
             root,
             add_to_cart_callback=lambda product_id_entry, quantity_entry, cart_tree, *_: add_to_cart(
@@ -799,6 +1037,7 @@ if __name__ == "__main__":
                 subtotal_label, taxes_label, total_label, cart, cursor
             ),
             select_customer_callback=lambda customer_id, *_: set_selected_customer_id(customer_id),
+            resend_receipt_callback=lambda *_: resend_last_receipt(cursor),
             add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
                 db_connection, cursor, supplier_name_entry, supplier_contact_entry, supplier_address_entry
             ),
@@ -886,6 +1125,7 @@ if __name__ == "__main__":
     db_connection, cursor = get_db()
     cart = []
 
+    global pos_app
     pos_app = POSApp(
         root,
         # --- SALES TAB CALLBACKS ---
@@ -930,6 +1170,7 @@ if __name__ == "__main__":
             cursor
         ),
         select_customer_callback=lambda customer_id, *_: set_selected_customer_id(customer_id),
+        resend_receipt_callback=lambda *_: resend_last_receipt(cursor),
         add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
             db_connection,
             cursor,
