@@ -19,7 +19,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/badge/Version-1.0-blue.svg?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.1-blue.svg?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/Status-🚀_Production_Ready-success.svg?style=for-the-badge" alt="Status">
   <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen.svg?style=for-the-badge" alt="Maintained">
 </p>
@@ -152,15 +152,18 @@
 
 </div>
 
-### 🏆 **What's New in v1.0**
+### 🏆 **What's New in v1.1**
 
 <div align="center">
 
 | Feature | Description | Impact |
 |:-------:|:------------|:------:|
-| � **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
+| 📄 **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
 | 📧 **Enhanced Email** | PDF receipts automatically attached to emails | ⭐⭐⭐⭐⭐ |
-| �📊 **CSV Export** | Export any data to Excel-compatible formats | ⭐⭐⭐⭐⭐ |
+| 📊 **CSV Export** | Export any data to Excel-compatible formats | ⭐⭐⭐⭐⭐ |
+| 📥 **Data Import** | Bulk CSV import for customers, inventory & suppliers | ⭐⭐⭐⭐⭐ |
+| ✏️ **Update Records** | Full editing capabilities for customers & suppliers | ⭐⭐⭐⭐⭐ |
+| 💰 **Enhanced Reports** | Inventory value report with grand total display | ⭐⭐⭐⭐⭐ |
 | 🤖 **Smart Automation** | AI-powered alerts and end-of-day reports | ⭐⭐⭐⭐⭐ |
 | 🎨 **Professional UI** | Modern blue theme with company branding | ⭐⭐⭐⭐ |
 | 🔐 **Advanced RBAC** | Granular role-based permission controls | ⭐⭐⭐⭐⭐ |
@@ -224,10 +227,12 @@
   - Live inventory tracking with instant updates
   - Automated stock adjustments during sales transactions
   - Comprehensive product management (add/edit/delete)
+  - **🆕 CSV Import**: Bulk inventory import with validation and duplicate detection
 - **💰 Financial Tracking**
-  - Real-time inventory valuation calculations
+  - Real-time inventory valuation calculations with **grand total display**
   - Stock level monitoring with automated alerts
   - Complete audit trail for all inventory changes
+  - **🆕 Enhanced Inventory Value Report**: Comprehensive totals with item count
 - **🔍 Smart Search & Filtering**
   - Quick product lookup by SKU or name
   - Advanced filtering options for inventory reports
@@ -242,10 +247,14 @@
   - Complete customer database with contact information
   - Purchase history tracking and analysis
   - Customer selection integration in sales process
-- **🏢 Supplier Management Portal**
+  - **� Update Customer Information**: Full edit capabilities for existing customers
+  - **📥 CSV Import**: Bulk customer import with validation and duplicate detection
+- **�🏢 Supplier Management Portal**
   - Comprehensive supplier database maintenance
   - Purchase history and relationship tracking
   - Supplier performance analytics and reporting
+  - **🆕 Update Supplier Details**: Complete supplier information editing
+  - **📥 Bulk Import**: CSV-based supplier data import with error handling
 - **🔗 Referential Integrity**
   - Prevents orphaned transactions and data inconsistencies
   - Maintains data relationships across all modules
@@ -261,7 +270,11 @@
   - **Sales Performance**: Analyze employee productivity and sales trends
   - **Supplier Analytics**: Track procurement patterns and supplier reliability
   - **Customer Insights**: Understand purchase behaviors and preferences
-- **💾 Data Export Capabilities**
+- **� Data Import & Export Capabilities**
+  - **🆕 CSV Import**: Bulk import customers, inventory, and suppliers with validation
+  - **🔍 Import Preview**: Validate data before committing to database
+  - **🛡️ Error Handling**: Skip duplicates and invalid entries automatically
+  - **📋 Sample Generation**: Create sample CSV templates for easy formatting
   - One-click CSV export for all tables and reports
   - Excel-compatible formatting for external analysis
   - Scheduled automated report generation
@@ -305,6 +318,86 @@
   - MySQL with InnoDB for ACID transaction support
   - Optimized indexing for fast query performance
   - Automated backup and recovery capabilities
+
+</details>
+
+---
+
+## 🔄 **Data Management Features**
+
+<div align="center">
+
+### 📊 **Complete Data Lifecycle Management**
+
+*Seamlessly import, update, export, and analyze your business data*
+
+</div>
+
+<details>
+<summary><strong>📥 CSV Data Import System</strong></summary>
+
+**Powerful bulk import capabilities with intelligent validation**
+
+### 🏢 **Supported Import Types**
+
+| Data Type | Features | Validation |
+|-----------|----------|------------|
+| **👥 Customers** | Name, email, phone, address | Duplicate detection, format validation |
+| **📦 Inventory** | SKU, name, quantity, price, category | Stock validation, price verification |
+| **🏭 Suppliers** | Company, contact, phone, email, address | Contact validation, duplicate prevention |
+
+### 🛡️ **Smart Import Features**
+- **🔍 Preview Mode**: Review data before committing to database
+- **⚠️ Error Handling**: Detailed error messages for invalid entries
+- **🔄 Duplicate Detection**: Automatically skip existing records
+- **📋 Sample Generation**: Create properly formatted CSV templates
+- **📊 Import Summary**: Complete report of successful and failed imports
+
+### 💡 **Import Process**
+1. **📁 Select File**: Choose your CSV file using the Import Data button
+2. **👀 Preview**: Review data structure and identify any issues
+3. **✅ Validate**: System checks for duplicates and format errors
+4. **⚡ Import**: Bulk insert validated records into database
+5. **📈 Summary**: View detailed import statistics and results
+
+</details>
+
+<details>
+<summary><strong>✏️ Record Update System</strong></summary>
+
+**Complete editing capabilities for all data types**
+
+### 🎯 **Update Features**
+- **👥 Customer Updates**: Edit all customer information including contact details
+- **🏭 Supplier Updates**: Modify supplier information and contact data
+- **🔍 Smart Search**: Quickly find records by ID, name, or other criteria
+- **💾 Instant Save**: Changes are immediately saved to database
+- **🔄 Auto Refresh**: UI updates automatically after modifications
+
+### 🖥️ **User Interface**
+- **📑 Dedicated Update Tabs**: Separate interfaces for customers and suppliers
+- **📝 Form-Based Editing**: Intuitive forms with validation
+- **🔍 Load Functionality**: Quickly populate forms with existing data
+- **✅ Save Actions**: One-click update with confirmation
+
+</details>
+
+<details>
+<summary><strong>📊 Enhanced Reporting</strong></summary>
+
+**Advanced analytics with professional formatting**
+
+### 💰 **Inventory Value Report Enhancements**
+- **🎯 Grand Total Display**: Comprehensive total with thousands separators
+- **📈 Item Count Summary**: Total number of products tracked
+- **💲 Real-time Calculations**: Instant updates as inventory changes
+- **📋 Professional Layout**: Clean, business-ready formatting
+
+### 📈 **Report Features**
+- **📤 One-Click Export**: Export any report to CSV format
+- **🔍 Real-Time Data**: Always current information
+- **💼 Business-Ready**: Professional formatting for presentations
+- **📊 Comprehensive Totals**: Summary statistics for all reports
 
 </details>
 
@@ -413,7 +506,7 @@
 <details>
 <summary><strong>📊 Inventory Value Report</strong></summary>
 
-**Real-time inventory valuation with comprehensive financial insights**
+**Real-time inventory valuation with comprehensive financial insights and grand total calculations**
 
 | Field | Description | Example |
 |-------|-------------|---------|
@@ -424,6 +517,12 @@
 | **Total Value** | Stock × Price | $562.50 |
 | **Category** | Product grouping | Beverages |
 | **Last Updated** | Stock change date | 2025-06-16 14:30 |
+
+**🆕 Enhanced Features:**
+- **Grand Total Display**: Comprehensive total inventory value with separator
+- **Item Count Summary**: Total number of products in inventory
+- **Real-time Calculations**: Instant updates as inventory changes
+- **Professional Formatting**: Clean display with thousands separators
 
 **🎯 Key Benefits:**
 - **Financial Planning**: Know your inventory investment at any time
@@ -931,6 +1030,55 @@ python sample_data.py
 
 </details>
 
+<details>
+<summary><strong>🆕 New Features Guide (v1.1)</strong></summary>
+
+### 📥 **Using the CSV Import System**
+
+1. **Access Import Features:**
+   - Navigate to Customers, Inventory, or Suppliers tabs
+   - Click the "Import Data" button in any of these sections
+
+2. **Import Process:**
+   ```bash
+   📁 Select CSV File → 👀 Preview Data → ✅ Validate → ⚡ Import → 📊 Summary
+   ```
+
+3. **CSV Format Requirements:**
+   - **Customers:** name, email, phone, address
+   - **Inventory:** sku, name, quantity, price, category  
+   - **Suppliers:** name, contact_person, phone, email, address
+
+4. **Sample CSV Generation:**
+   - Use the import dialog to generate properly formatted sample files
+   - Modify the samples with your actual data
+
+### ✏️ **Using the Update System**
+
+1. **Update Customers:**
+   - Go to Customers tab → "Update" subtab
+   - Enter customer ID and click "Load"
+   - Edit information and click "Update"
+
+2. **Update Suppliers:**
+   - Go to Suppliers tab → "Update" subtab
+   - Enter supplier ID and click "Load" 
+   - Modify details and click "Update"
+
+### 📊 **Enhanced Reporting Features**
+
+1. **Inventory Value Report:**
+   - Now displays grand total with thousands separators
+   - Shows total item count for complete overview
+   - Real-time calculations as inventory changes
+
+2. **Professional Formatting:**
+   - All reports now include summary statistics
+   - Business-ready formatting for presentations
+   - Clear totals and separators for easy reading
+
+</details>
+
 ---
 
 ### 🎯 **Quick Feature Test**
@@ -964,11 +1112,16 @@ python sample_data.py
 ### For Managers/Admins
 
 - **Inventory:** Add/delete products, adjust stock, and view inventory value.
+- **🆕 Import Data:** Use the "Import Data" buttons to bulk import inventory from CSV files with validation
+- **📊 Enhanced Reports:** Generate inventory value reports with grand totals and item counts
 - **Customers/Suppliers:** Add, delete, and view all records. Supplier and customer dropdowns are always up-to-date.
+- **🆕 Update Records:** Use the "Update" subtabs to edit existing customer and supplier information
+- **🆕 Import Data:** Bulk import customers and suppliers via CSV with duplicate detection
 - **Reports:**
   - Use the Reports tab to generate business insights (low stock, sales by employee, inventory value, customer purchase history, etc.).
   - Use dropdowns to filter by employee, supplier, or customer as needed.
   - All reports are generated via optimized SQL queries for performance.
+  - **🆕 Enhanced Formatting:** Reports now include professional formatting with grand totals and separators
 
 ### For Developers
 

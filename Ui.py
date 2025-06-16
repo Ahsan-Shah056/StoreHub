@@ -336,7 +336,47 @@ class CustomerUI:
         add_title.grid(row=0, column=2, sticky=tk.W, padx=10, pady=(10,2))
         add_desc = ttk.Label(self.add_tab, text="Enter customer details and add them to the system.", font=("Helvetica", 10))
         add_desc.grid(row=1, column=2, sticky=tk.W, padx=10, pady=(0,10))
-        # Remove Update Tab and related widgets/methods
+        
+        # Update Tab
+        self.update_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.update_tab, text="Update")
+        
+        # Customer ID field for update
+        self.update_customer_id_label = ttk.Label(self.update_tab, text="Customer ID:")
+        self.update_customer_id_label.grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_customer_id_entry = ttk.Entry(self.update_tab, width=10)
+        self.update_customer_id_entry.grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        # Load customer button
+        self.load_customer_button = ttk.Button(self.update_tab, text="Load Customer", command=self._load_customer_for_update, style="Blue.TButton")
+        self.load_customer_button.grid(row=0, column=2, padx=5, pady=2)
+        
+        # Update form fields
+        self.update_customer_name_label = ttk.Label(self.update_tab, text="Name:")
+        self.update_customer_name_label.grid(row=1, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_customer_name_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_customer_name_entry.grid(row=1, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        self.update_customer_contact_label = ttk.Label(self.update_tab, text="Contact Info:")
+        self.update_customer_contact_label.grid(row=2, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_customer_contact_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_customer_contact_entry.grid(row=2, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        self.update_customer_address_label = ttk.Label(self.update_tab, text="Address:")
+        self.update_customer_address_label.grid(row=3, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_customer_address_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_customer_address_entry.grid(row=3, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        # Update button
+        self.update_customer_button = ttk.Button(self.update_tab, text="Update Customer", command=self._threaded_update_customer, style="Blue.TButton")
+        self.update_customer_button.grid(row=4, column=0, columnspan=2, pady=5)
+        
+        # Add title and description to Update subtab
+        update_title = ttk.Label(self.update_tab, text="Update Customer", font=("Helvetica", 14, "bold"))
+        update_title.grid(row=0, column=3, sticky=tk.W, padx=10, pady=(10,2))
+        update_desc = ttk.Label(self.update_tab, text="Load a customer by ID and update their information.", font=("Helvetica", 10))
+        update_desc.grid(row=1, column=3, sticky=tk.W, padx=10, pady=(0,10))
+        
         # Delete Tab
         self.delete_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.delete_tab, text="Delete")
@@ -366,12 +406,17 @@ class CustomerUI:
         # Add Export Data button next to View Customers
         self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
         self.export_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
+        # Add Import Data button below Export Data
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=4, column=0, pady=10, sticky=tk.W)
         # Do not auto-populate customer_listbox or customer_tree on init
         self.view_customers_callback = None
     def _threaded_search_customer(self):
         threading.Thread(target=self.search_customer).start()
     def _threaded_add_customer(self):
         threading.Thread(target=self.add_customer).start()
+    def _threaded_update_customer(self):
+        threading.Thread(target=self.update_customer).start()
     def _threaded_delete_customer(self):
         threading.Thread(target=self.delete_customer).start()
     def search_customer(self):
@@ -391,6 +436,52 @@ class CustomerUI:
             self.add_customer_contact_entry.delete(0, tk.END)
             self.add_customer_address_entry.delete(0, tk.END)
             self.add_customer_name_entry.focus_set()
+    
+    def _load_customer_for_update(self):
+        """Load customer data into update form"""
+        if hasattr(self, 'load_customer_callback') and self.load_customer_callback:
+            customer_id = self.update_customer_id_entry.get().strip()
+            if customer_id:
+                try:
+                    customer_data = self.load_customer_callback(customer_id)
+                    if customer_data:
+                        # Populate the update form fields
+                        self.update_customer_name_entry.delete(0, tk.END)
+                        self.update_customer_name_entry.insert(0, customer_data.get('name', ''))
+                        
+                        self.update_customer_contact_entry.delete(0, tk.END)
+                        self.update_customer_contact_entry.insert(0, customer_data.get('contact_info', ''))
+                        
+                        self.update_customer_address_entry.delete(0, tk.END)
+                        self.update_customer_address_entry.insert(0, customer_data.get('address', ''))
+                        
+                        messagebox.showinfo("Success", f"Customer {customer_data.get('name', '')} loaded successfully!")
+                    else:
+                        messagebox.showerror("Error", f"Customer with ID {customer_id} not found.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to load customer: {str(e)}")
+            else:
+                messagebox.showwarning("Warning", "Please enter a Customer ID.")
+    
+    def update_customer(self):
+        if hasattr(self, 'update_customer_callback') and self.update_customer_callback:
+            customer_id = self.update_customer_id_entry.get().strip()
+            if customer_id:
+                self.update_customer_callback(
+                    customer_id,
+                    self.update_customer_name_entry,
+                    self.update_customer_contact_entry,
+                    self.update_customer_address_entry
+                )
+                # Clear the form after successful update
+                self.update_customer_id_entry.delete(0, tk.END)
+                self.update_customer_name_entry.delete(0, tk.END)
+                self.update_customer_contact_entry.delete(0, tk.END)
+                self.update_customer_address_entry.delete(0, tk.END)
+                self.update_customer_id_entry.focus_set()
+            else:
+                messagebox.showwarning("Warning", "Please enter a Customer ID.")
+    
     def delete_customer(self):
         if self.delete_customer_callback:
             self.delete_customer_callback(self.delete_customer_id_entry)
@@ -402,6 +493,17 @@ class CustomerUI:
             alternate_treeview_rows(self.customer_tree)
     def _on_export_data(self):
         export_treeview_to_csv(self.customer_tree, self.frame)
+    
+    def _on_import_data(self):
+        from data_importing import show_customer_import_dialog
+        # Create a refresh callback that updates the customer tree
+        def refresh_customers():
+            if self.view_customers_callback:
+                self.view_customers_callback(self.customer_tree)
+                alternate_treeview_rows(self.customer_tree)
+        
+        # Show the import dialog with refresh callback
+        show_customer_import_dialog(self.frame, refresh_customers)
 
 class EmployeeUI:
     def __init__(self, master):
@@ -631,6 +733,9 @@ class InventoryUI:
         self.view_inventory_button.grid(row=4, column=0, pady=10, sticky=tk.W)
         self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
         self.export_data_button.grid(row=5, column=0, pady=10, sticky=tk.W)
+        # Add Import Data button below Export Data
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=6, column=0, pady=10, sticky=tk.W)
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
         # Do not auto-populate inventory_tree on init
@@ -686,6 +791,17 @@ class InventoryUI:
             self.adjust_sku_entry.focus_set()
     def _on_export_data(self):
         export_treeview_to_csv(self.inventory_tree, self.frame)
+    
+    def _on_import_data(self):
+        from data_importing import show_inventory_import_dialog
+        # Create a refresh callback that updates the inventory tree
+        def refresh_inventory():
+            if self.view_inventory_callback:
+                self.view_inventory_callback(self.inventory_tree)
+                alternate_treeview_rows(self.inventory_tree)
+        
+        # Show the import dialog with refresh callback
+        show_inventory_import_dialog(self.frame, refresh_inventory)
 
 class ReportsUI:
     def __init__(self, master):
@@ -963,7 +1079,47 @@ class SuppliersUI:
         add_title.grid(row=0, column=2, sticky=tk.W, padx=10, pady=(10,2))
         add_desc = ttk.Label(self.add_tab, text="Add a new supplier to the system.", font=("Helvetica", 10))
         add_desc.grid(row=1, column=2, sticky=tk.W, padx=10, pady=(0,10))
-        # Remove Update Tab and all related widgets/methods
+        
+        # Update Tab
+        self.update_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.update_tab, text="Update")
+        
+        # Supplier ID field for update
+        self.update_supplier_id_label = ttk.Label(self.update_tab, text="Supplier ID:")
+        self.update_supplier_id_label.grid(row=0, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_supplier_id_entry = ttk.Entry(self.update_tab, width=10)
+        self.update_supplier_id_entry.grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        # Load supplier button
+        self.load_supplier_button = ttk.Button(self.update_tab, text="Load Supplier", command=self._load_supplier_for_update, style="Blue.TButton")
+        self.load_supplier_button.grid(row=0, column=2, padx=5, pady=2)
+        
+        # Update form fields
+        self.update_supplier_name_label = ttk.Label(self.update_tab, text="Name:")
+        self.update_supplier_name_label.grid(row=1, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_supplier_name_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_supplier_name_entry.grid(row=1, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        self.update_supplier_contact_label = ttk.Label(self.update_tab, text="Contact Info:")
+        self.update_supplier_contact_label.grid(row=2, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_supplier_contact_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_supplier_contact_entry.grid(row=2, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        self.update_supplier_address_label = ttk.Label(self.update_tab, text="Address:")
+        self.update_supplier_address_label.grid(row=3, column=0, sticky=tk.W, padx=2, pady=2)
+        self.update_supplier_address_entry = ttk.Entry(self.update_tab, width=20)
+        self.update_supplier_address_entry.grid(row=3, column=1, sticky=tk.W, padx=2, pady=2)
+        
+        # Update button
+        self.update_supplier_button = ttk.Button(self.update_tab, text="Update Supplier", command=self._threaded_update_supplier, style="Blue.TButton")
+        self.update_supplier_button.grid(row=4, column=0, columnspan=2, pady=5)
+        
+        # Add title and description to Update subtab
+        update_title = ttk.Label(self.update_tab, text="Update Supplier", font=("Helvetica", 14, "bold"))
+        update_title.grid(row=0, column=3, sticky=tk.W, padx=10, pady=(10,2))
+        update_desc = ttk.Label(self.update_tab, text="Load a supplier by ID and update their information.", font=("Helvetica", 10))
+        update_desc.grid(row=1, column=3, sticky=tk.W, padx=10, pady=(0,10))
+        
         # Delete Tab
         self.delete_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.delete_tab, text="Delete")
@@ -983,6 +1139,9 @@ class SuppliersUI:
         self.view_suppliers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
         self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
         self.export_data_button.grid(row=3, column=0, pady=10, sticky=tk.W)
+        # Add Import Data button below Export Data
+        self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
+        self.import_data_button.grid(row=4, column=0, pady=10, sticky=tk.W)
         self.suppliers_tree = ttk.Treeview(self.frame, columns=('ID', 'Name', 'Contact', 'Address'), show='headings', height=10)
         self.suppliers_tree.heading('ID', text='ID')
         self.suppliers_tree.heading('Name', text='Name')
@@ -999,7 +1158,11 @@ class SuppliersUI:
     def _threaded_add_supplier(self):
         
         threading.Thread(target=self.add_supplier).start()
-    def add_supplier(self):
+    def _threaded_update_supplier(self):
+        threading.Thread(target=self.update_supplier).start()
+    def _threaded_delete_supplier(self):
+        
+        threading.Thread(target=self.delete_supplier).start()
         if self.add_supplier_callback:
             self.add_supplier_callback(
                 self.add_supplier_name_entry,
@@ -1010,6 +1173,52 @@ class SuppliersUI:
             self.add_supplier_contact_entry.delete(0, tk.END)
             self.add_supplier_address_entry.delete(0, tk.END)
             self.add_supplier_name_entry.focus_set()
+    
+    def _load_supplier_for_update(self):
+        """Load supplier data into update form"""
+        if hasattr(self, 'load_supplier_callback') and self.load_supplier_callback:
+            supplier_id = self.update_supplier_id_entry.get().strip()
+            if supplier_id:
+                try:
+                    supplier_data = self.load_supplier_callback(supplier_id)
+                    if supplier_data:
+                        # Populate the update form fields
+                        self.update_supplier_name_entry.delete(0, tk.END)
+                        self.update_supplier_name_entry.insert(0, supplier_data.get('name', ''))
+                        
+                        self.update_supplier_contact_entry.delete(0, tk.END)
+                        self.update_supplier_contact_entry.insert(0, supplier_data.get('contact_info', ''))
+                        
+                        self.update_supplier_address_entry.delete(0, tk.END)
+                        self.update_supplier_address_entry.insert(0, supplier_data.get('address', ''))
+                        
+                        messagebox.showinfo("Success", f"Supplier {supplier_data.get('name', '')} loaded successfully!")
+                    else:
+                        messagebox.showerror("Error", f"Supplier with ID {supplier_id} not found.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to load supplier: {str(e)}")
+            else:
+                messagebox.showwarning("Warning", "Please enter a Supplier ID.")
+    
+    def update_supplier(self):
+        if hasattr(self, 'update_supplier_callback') and self.update_supplier_callback:
+            supplier_id = self.update_supplier_id_entry.get().strip()
+            if supplier_id:
+                self.update_supplier_callback(
+                    supplier_id,
+                    self.update_supplier_name_entry,
+                    self.update_supplier_contact_entry,
+                    self.update_supplier_address_entry
+                )
+                # Clear the form after successful update
+                self.update_supplier_id_entry.delete(0, tk.END)
+                self.update_supplier_name_entry.delete(0, tk.END)
+                self.update_supplier_contact_entry.delete(0, tk.END)
+                self.update_supplier_address_entry.delete(0, tk.END)
+                self.update_supplier_id_entry.focus_set()
+            else:
+                messagebox.showwarning("Warning", "Please enter a Supplier ID.")
+    
     def _threaded_delete_supplier(self):
         
         threading.Thread(target=self.delete_supplier).start()
@@ -1020,6 +1229,17 @@ class SuppliersUI:
             self.delete_supplier_id_entry.focus_set()
     def _on_export_data(self):
         export_treeview_to_csv(self.suppliers_tree, self.frame)
+    
+    def _on_import_data(self):
+        from data_importing import show_supplier_import_dialog
+        # Create a refresh callback that updates the suppliers tree
+        def refresh_suppliers():
+            if self.view_suppliers_callback:
+                self.view_suppliers_callback(self.suppliers_tree)
+                alternate_treeview_rows(self.suppliers_tree)
+        
+        # Show the import dialog with refresh callback
+        show_supplier_import_dialog(self.frame, refresh_suppliers)
 
 def view_inventory(cursor, inventory_tree):
     try:
@@ -1052,10 +1272,14 @@ class POSApp:
                  resend_receipt_callback=None,
                  # Supplier callbacks
                  add_supplier_callback=None,
+                 update_supplier_callback=None,
+                 load_supplier_callback=None,
                  search_suppliers_callback=None,
                  delete_supplier_callback=None,
                  # Customer callbacks
                  add_customer_callback=None,
+                 update_customer_callback=None,
+                 load_customer_callback=None,
                  delete_customer_callback=None,
                  # Inventory callbacks
                  add_item_callback=None,
@@ -1187,6 +1411,10 @@ class POSApp:
         if user_role != "accountant":
             if add_customer_callback:
                 self.customer_ui.add_customer_callback = add_customer_callback
+            if update_customer_callback:
+                self.customer_ui.update_customer_callback = update_customer_callback
+            if load_customer_callback:
+                self.customer_ui.load_customer_callback = load_customer_callback
             if delete_customer_callback:
                 self.customer_ui.delete_customer_callback = delete_customer_callback
                 
@@ -1218,6 +1446,10 @@ class POSApp:
             if hasattr(self, 'suppliers_ui'):
                 if add_supplier_callback:
                     self.suppliers_ui.add_supplier_callback = add_supplier_callback
+                if update_supplier_callback:
+                    self.suppliers_ui.update_supplier_callback = update_supplier_callback
+                if load_supplier_callback:
+                    self.suppliers_ui.load_supplier_callback = load_supplier_callback
                 if delete_supplier_callback:
                     self.suppliers_ui.delete_supplier_callback = delete_supplier_callback
                 if view_suppliers_callback:

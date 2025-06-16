@@ -114,3 +114,24 @@ def search_customer_by_name(cursor, name):
         ] if customers else []
     except Exception as e:
         raise ValueError(f"Error searching customer: {e}")
+
+def update_customer(connection, cursor, customer_id, name, contact_info, address):
+    """
+    Updates an existing customer's information in the database.
+    """
+    try:
+        # Check if customer exists
+        customer = get_customer(cursor, customer_id)
+        if not customer:
+            raise ValueError(f"Customer with ID {customer_id} not found.")
+        
+        # Update customer information
+        query = "UPDATE Customers SET name = %s, contact_info = %s, address = %s WHERE customer_id = %s"
+        cursor.execute(query, (name, contact_info, address, customer_id))
+        connection.commit()
+        
+        # Return updated customer
+        updated_customer = get_customer(cursor, customer_id)
+        return updated_customer
+    except Exception as e:        
+        raise ValueError(f"Error updating customer: {e}")

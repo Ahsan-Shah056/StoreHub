@@ -852,6 +852,41 @@ def add_supplier(connection, cursor, supplier_name_entry, supplier_contact_entry
         handle_error(f"An error occurred while adding the supplier: {e}")        
         supplier_address_entry.delete(0, tk.END)
 
+def update_supplier(connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry):
+    # Updates a supplier in the database
+    try:
+        name = supplier_name_entry.get()
+        contact_info = supplier_contact_entry.get()
+        address = supplier_address_entry.get()
+        
+        if not all([name, contact_info, address]):
+            raise ValueError("All supplier details are required.")
+        
+        supplier_id_int = int(supplier_id)
+        suppliers.update_supplier(connection, cursor, supplier_id_int, name, contact_info, address)
+        messagebox.showinfo("Success", f"Supplier with ID '{supplier_id}' updated successfully.")
+        
+        # Clear the form fields
+        supplier_name_entry.delete(0, tk.END)
+        supplier_contact_entry.delete(0, tk.END)
+        supplier_address_entry.delete(0, tk.END)
+        
+    except ValueError as ve:
+        handle_error(f"Invalid input: {ve}")
+    except Exception as e:
+        handle_error(f"An error occurred while updating the supplier: {e}")
+
+def load_supplier(cursor, supplier_id):
+    # Loads a supplier's data for updating
+    try:
+        supplier_id_int = int(supplier_id)
+        supplier_data = suppliers.get_supplier(cursor, supplier_id_int)
+        return supplier_data
+    except ValueError:
+        raise ValueError("Supplier ID must be a number.")
+    except Exception as e:
+        raise ValueError(f"Failed to load supplier: {e}")
+
 def search_suppliers(search_supplier_entry, cursor): # function for searching a supplier
     """Searches for suppliers by name.
     """
@@ -938,6 +973,41 @@ def add_customer(connection, cursor, customer_name_entry, customer_contact_entry
         customer_address_entry.delete(0, tk.END)
     except Exception as e:
         handle_error(f"An error occurred while adding the customer: {e}")
+
+def update_customer(connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry):
+    # Updates a customer in the database
+    try:
+        name = customer_name_entry.get()
+        contact_info = customer_contact_entry.get()
+        address = customer_address_entry.get()
+        
+        if not all([name, contact_info, address]):
+            raise ValueError("All customer details are required.")
+        
+        customer_id_int = int(customer_id)
+        customers.update_customer(connection, cursor, customer_id_int, name, contact_info, address)
+        messagebox.showinfo("Success", f"Customer with ID '{customer_id}' updated successfully.")
+        
+        # Clear the form fields
+        customer_name_entry.delete(0, tk.END)
+        customer_contact_entry.delete(0, tk.END)
+        customer_address_entry.delete(0, tk.END)
+        
+    except ValueError as ve:
+        handle_error(f"Invalid input: {ve}")
+    except Exception as e:
+        handle_error(f"An error occurred while updating the customer: {e}")
+
+def load_customer(cursor, customer_id):
+    # Loads a customer's data for updating
+    try:
+        customer_id_int = int(customer_id)
+        customer_data = customers.get_customer(cursor, customer_id_int)
+        return customer_data
+    except ValueError:
+        raise ValueError("Customer ID must be a number.")
+    except Exception as e:
+        raise ValueError(f"Failed to load customer: {e}")
            
 
 def delete_customer(connection, cursor, delete_customer_id_entry):
@@ -1186,17 +1256,41 @@ def inventory_value_report(cursor):
         inventory_list = inventory.view_inventory(db_connection, cursor)
         if not inventory_list:
             raise ValueError("No items found in inventory.")
+        
         columns = ("SKU", "Product Name", "Stock", "Price", "Total Value")
-        rows = [
-            (
+        rows = []
+        grand_total = 0.0
+        
+        # Process individual items and calculate grand total
+        for item in inventory_list:
+            stock = int(item.get('stock', 0))
+            price = float(item.get('price', 0))  # Convert Decimal to float
+            item_total = stock * price
+            grand_total += item_total
+            
+            rows.append((
                 str(item.get('SKU', '')),
                 str(item.get('name', '')),
-                str(item.get('stock', '')),
-                f"${item.get('price', 0):.2f}",
-                f"${item.get('stock', 0) * item.get('price', 0):.2f}"
-            )
-            for item in inventory_list
-        ]
+                str(stock),
+                f"${price:.2f}",
+                f"${item_total:.2f}"
+            ))
+        
+        # Add a separator row and grand total row
+        if rows:
+            # Add separator row
+            rows.append(("", "", "", "", ""))
+            rows.append(("─" * 15, "─" * 20, "─" * 8, "─" * 10, "─" * 12))
+            
+            # Add grand total row
+            rows.append((
+                "GRAND TOTAL",
+                f"{len(inventory_list)} items",
+                "",
+                "",
+                f"${grand_total:.2f}"
+            ))
+        
         pos_app.reports_ui.display_report(columns, rows)
     except Exception as e:
         handle_error(f"An error occurred while generating the Inventory Value Report: {e}")
@@ -1423,6 +1517,10 @@ if __name__ == "__main__":
             add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
                 db_connection, cursor, supplier_name_entry, supplier_contact_entry, supplier_address_entry
             ),
+            update_supplier_callback=lambda supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: update_supplier(
+                db_connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry
+            ),
+            load_supplier_callback=lambda supplier_id, *_: load_supplier(cursor, supplier_id),
             search_suppliers_callback=lambda search_supplier_entry, *_: search_suppliers(search_supplier_entry, cursor),
             delete_supplier_callback=lambda delete_supplier_id_entry, *_: delete_supplier(
                 db_connection, cursor, delete_supplier_id_entry
@@ -1430,6 +1528,10 @@ if __name__ == "__main__":
             add_customer_callback=lambda customer_name_entry, customer_contact_entry, customer_address_entry, *_: add_customer(
                 db_connection, cursor, customer_name_entry, customer_contact_entry, customer_address_entry
             ),
+            update_customer_callback=lambda customer_id, customer_name_entry, customer_contact_entry, customer_address_entry, *_: update_customer(
+                db_connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry
+            ),
+            load_customer_callback=lambda customer_id, *_: load_customer(cursor, customer_id),
             delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
                 db_connection, cursor, delete_customer_id_entry
             ),
@@ -1560,6 +1662,10 @@ if __name__ == "__main__":
             supplier_contact_entry,
             supplier_address_entry
         ),
+        update_supplier_callback=lambda supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: update_supplier(
+            db_connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry
+        ),
+        load_supplier_callback=lambda supplier_id, *_: load_supplier(cursor, supplier_id),
         search_suppliers_callback=lambda search_supplier_entry, *_: search_suppliers(
             search_supplier_entry,
             cursor
@@ -1576,6 +1682,10 @@ if __name__ == "__main__":
             customer_contact_entry,
             customer_address_entry
         ),
+        update_customer_callback=lambda customer_id, customer_name_entry, customer_contact_entry, customer_address_entry, *_: update_customer(
+            db_connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry
+        ),
+        load_customer_callback=lambda customer_id, *_: load_customer(cursor, customer_id),
         delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
             db_connection,
             cursor,
