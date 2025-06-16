@@ -42,7 +42,7 @@
       <br><sub>Uptime</sub>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Lightning%20Bolt.png" width="40" alt="Lightning Bolt">
+      <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/High%20Voltage.png" width="40" alt="High Voltage">
       <br><strong>&lt;2s</strong>
       <br><sub>Response Time</sub>
     </td>
@@ -52,7 +52,7 @@
       <br><sub>Security</sub>
     </td>
     <td align="center">
-      <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Globe%20Showing%20Europe-Africa.png" width="40" alt="Globe">
+      <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Globe%20with%20Meridians.png" width="40" alt="Globe with Meridians">
       <br><strong>24/7</strong>
       <br><sub>Support</sub>
     </td>
@@ -158,10 +158,13 @@
 
 | Feature | Description | Impact |
 |:-------:|:------------|:------:|
-| 📊 **CSV Export** | Export any data to Excel-compatible formats | ⭐⭐⭐⭐⭐ |
+| � **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
+| 📧 **Enhanced Email** | PDF receipts automatically attached to emails | ⭐⭐⭐⭐⭐ |
+| �📊 **CSV Export** | Export any data to Excel-compatible formats | ⭐⭐⭐⭐⭐ |
 | 🤖 **Smart Automation** | AI-powered alerts and end-of-day reports | ⭐⭐⭐⭐⭐ |
 | 🎨 **Professional UI** | Modern blue theme with company branding | ⭐⭐⭐⭐ |
 | 🔐 **Advanced RBAC** | Granular role-based permission controls | ⭐⭐⭐⭐⭐ |
+| 🧹 **Clean Code** | Consolidated imports and improved maintainability | ⭐⭐⭐⭐ |
 
 </div>
 
@@ -740,6 +743,32 @@
 
 ---
 
+## 📄 **Professional PDF Receipts**
+
+<div align="center">
+
+### 🎨 **Enterprise-Grade Receipt Generation**
+
+*Professional PDF receipts with logo integration and email delivery*
+
+</div>
+
+### ✨ **New PDF Features**
+
+- **🏢 Brand Integration**: Company logo automatically included in every receipt
+- **📧 Email Enhancement**: PDF receipts attached to customer emails  
+- **🎨 Professional Layout**: Clean formatting with tables and branded styling
+- **📁 Organized Storage**: Receipts saved as both `.txt` and `.pdf` formats
+- **⚙️ Auto Setup**: ReportLab integration with automatic installation
+- **🛡️ Reliable**: Graceful fallback and error handling
+
+### 📋 **Requirements**
+
+- Place your `logo.jpeg` file in the main directory (optional)
+- ReportLab library (auto-installed via `requirements.txt`)
+
+---
+
 ## ⚡ **Quick Start**
 
 <div align="center">
@@ -801,6 +830,9 @@ python3 -m venv storecore_env
 source storecore_env/bin/activate
 # On Windows:
 storecore_env\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 <div align="center">
@@ -845,6 +877,7 @@ python main.py
 <summary><strong>🔐 Configure User Accounts</strong></summary>
 
 1. **Edit credentials.json** to add your users:
+
 ```json
 {
   "email": "your-business@gmail.com",
