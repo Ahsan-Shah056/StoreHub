@@ -9,6 +9,7 @@ CREATE TABLE Suppliers (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+
 -- Categories
 CREATE TABLE Categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,

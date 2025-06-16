@@ -11,6 +11,33 @@ from PIL import Image, ImageTk
 import os
 from Data_exporting import export_treeview_to_csv
 
+# Import formatting functions from main
+try:
+    from main import format_treeview_values, format_treeview_text, handle_error
+except ImportError:
+    # Fallback functions if import fails
+    def format_treeview_text(value):
+        if value is None:
+            return ""
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            text = str(value).strip()
+            if text.upper() in ['SKU', 'ID', 'N/A', 'USA', 'UK', 'CA']:
+                return text.upper()
+            if '@' in text and '.' in text:
+                return text.lower()
+            if any(char in text for char in ['-', '(', ')', '+']) and any(char.isdigit() for char in text):
+                return text
+            return text.title()
+        return str(value)
+    
+    def format_treeview_values(values):
+        return tuple(format_treeview_text(value) for value in values)
+    
+    def handle_error(error_message):
+        messagebox.showerror("Error", error_message)
+
 
 # Ensure there is NO root = tk.Tk() or root = ThemedTk() anywhere in this file
 # Ensure there is NO widget creation at the top level in this file
@@ -1013,7 +1040,8 @@ class ReportsUI:
         
         # Insert data rows
         for row in rows:
-            self.report_tree.insert("", "end", values=row)
+            formatted_values = format_treeview_values(row)
+            self.report_tree.insert("", "end", values=formatted_values)
         
         # Finalize appearance
         alternate_treeview_rows(self.report_tree)
@@ -1255,8 +1283,8 @@ def view_inventory(cursor, inventory_tree):
 def _populate_inventory_treeview(inventory_list, inventory_tree):
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
-        inventory_tree.insert("", "end", values=(item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
-    alternate_treeview_rows(inventory_tree)
+        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+        inventory_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(inventory_tree)
 
 class POSApp:
@@ -1494,7 +1522,8 @@ class POSApp:
     def update_cart_treeview(self, cart_items):
         self.sales_ui.cart_tree.delete(*self.sales_ui.cart_tree.get_children())
         for item in cart_items:
-            self.sales_ui.cart_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
+            formatted_values = format_treeview_values((item['SKU'], item['name'], item['quantity'], item['price']))
+            self.sales_ui.cart_tree.insert("", "end", values=formatted_values)
         self.calculate_and_display_totals()
 
     def _logout(self):
@@ -1533,7 +1562,8 @@ def _update_cart_display(cart, cart_tree, cursor):
     try:
         cart_tree.delete(*cart_tree.get_children())
         for item in cart:
-            cart_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
+            formatted_values = format_treeview_values((item['SKU'], item['name'], item['quantity'], item['price']))
+            cart_tree.insert("", "end", values=formatted_values)
         alternate_treeview_rows(cart_tree)
     except Exception as e:
         handle_error(f"An error occurred while updating the cart display: {e}")

@@ -38,6 +38,39 @@ import inventory
 import sales
 import customers
 import employees
+
+# Helper function for consistent TreeView text formatting
+def format_treeview_text(value):
+    """
+    Formats text for consistent display in TreeViews.
+    - Applies title case to string values
+    - Preserves numeric values as-is
+    - Handles None values gracefully
+    """
+    if value is None:
+        return ""
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        # Apply title case but preserve certain patterns
+        text = str(value).strip()
+        if text.upper() in ['SKU', 'ID', 'N/A', 'USA', 'UK', 'CA']:  # Preserve common abbreviations
+            return text.upper()
+        # Check if it's an email address - keep lowercase
+        if '@' in text and '.' in text:
+            return text.lower()
+        # Check if it's a phone number pattern - keep as-is
+        if any(char in text for char in ['-', '(', ')', '+']) and any(char.isdigit() for char in text):
+            return text
+        # Apply title case for regular text
+        return text.title()
+    return str(value)
+
+def format_treeview_values(values):
+    """
+    Formats a tuple/list of values for TreeView insertion.
+    """
+    return tuple(format_treeview_text(value) for value in values)
 import reporting
 from reporting import (
     sales_by_employee,
@@ -96,13 +129,14 @@ def _update_cart_display(cart, cart_tree, cursor):
             product = sales.get_product(cursor, item['SKU'])# gets the product
             if product:
                 line_total = product['price'] * item['quantity']
-                cart_tree.insert("", "end", values=(
+                formatted_values = format_treeview_values((
                     item['SKU'], 
                     product['name'], 
                     item['quantity'], 
                     f"${product['price']:.2f}",
                     f"${line_total:.2f}"
                 ))
+                cart_tree.insert("", "end", values=formatted_values)
         
         # Apply alternating row colors
         alternate_treeview_rows(cart_tree)
@@ -1112,20 +1146,23 @@ def view_employees(cursor, employee_tree): # function to view all the employees
 def _populate_suppliers_treeview(suppliers_list, suppliers_tree):
     suppliers_tree.delete(*suppliers_tree.get_children())
     for supplier in suppliers_list:
-        suppliers_tree.insert("", "end", values=(supplier['supplier_id'], supplier['name'], supplier['contact_info'], supplier['address']))
+        formatted_values = format_treeview_values((supplier['supplier_id'], supplier['name'], supplier['contact_info'], supplier['address']))
+        suppliers_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(suppliers_tree)
 
 def _populate_inventory_treeview(inventory_list, inventory_tree):
     """Populates the inventory treeview with data."""
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
-        inventory_tree.insert("", "end", values=(item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+        inventory_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(inventory_tree)
 
 def populate_employees_treeview(employees_list, employee_tree):    
     employee_tree.delete(*employee_tree.get_children())    
     for employee in employees_list:
-        employee_tree.insert("", "end", values=(employee['employee_id'], employee['name'], employee['role']))
+        formatted_values = format_treeview_values((employee['employee_id'], employee['name'], employee['role']))
+        employee_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(employee_tree)
 
 def adjust_stock(connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason):
@@ -1160,7 +1197,8 @@ def display_receipt(receipt, receipt_tree):# function to display the receipt
     """Show a receipt in the receipt tree"""
     receipt_tree.delete(*receipt_tree.get_children())
     for item in receipt:# for every item in the receipt
-        receipt_tree.insert("", "end", values=(item['SKU'], item['name'], item['quantity'], item['price']))
+        formatted_values = format_treeview_values((item['SKU'], item['name'], item['quantity'], item['price']))
+        receipt_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(receipt_tree)
 
 
@@ -1179,9 +1217,11 @@ def _display_receipt(receipt_data, receipt_tree, cursor):
         for item in receipt_data:            
                 product = sales.get_product(cursor, item['SKU'])
                 if product:
-                  receipt_tree.insert("", "end", values=(item['SKU'], product['name'], item['quantity'], item['price']))
+                    formatted_values = format_treeview_values((item['SKU'], product['name'], item['quantity'], item['price']))
+                    receipt_tree.insert("", "end", values=formatted_values)
                 else:
-                    receipt_tree.insert("", "end", values=(item['SKU'], "Product Name Not Found", item['quantity'], item['price']))
+                    formatted_values = format_treeview_values((item['SKU'], "Product Name Not Found", item['quantity'], item['price']))
+                    receipt_tree.insert("", "end", values=formatted_values)
         
         # Apply alternating row colors
         alternate_treeview_rows(receipt_tree)
@@ -1205,19 +1245,43 @@ def low_stock_report(connection, cursor):
 def _populate_customers_treeview(customers_list, customer_tree):
     customer_tree.delete(*customer_tree.get_children())
     for c in customers_list:
-        customer_tree.insert("", "end", values=(c['customer_id'], c['name'], c['contact_info'], c['address']))
+        formatted_values = format_treeview_values((c['customer_id'], c['name'], c['contact_info'], c['address']))
+        customer_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(customer_tree)
 
 def sales_by_employee_callback(employee_id):
     try:
         sales_list = sales_by_employee(cursor, employee_id)
         columns = ("Sale ID", "Date/Time", "Total", "Customer ID", "Customer Name")
-        rows = [
-            (sale['sale_id'], sale['sale_datetime'], f"${sale['total']:.2f}", sale['customer_id'], sale['customer_name'])
-            for sale in sales_list
-        ]
+        rows = []
+        grand_total = 0.0
+        
+        # Process individual sales and calculate grand total
+        for sale in sales_list:
+            sale_total = float(sale['total'])
+            grand_total += sale_total
+            rows.append((
+                sale['sale_id'], 
+                sale['sale_datetime'], 
+                f"${sale_total:.2f}", 
+                sale['customer_id'], 
+                sale['customer_name']
+            ))
+        
         if not rows:
             rows = [("No sales found for this employee.", "", "", "", "")]
+        else:
+            # Add separator row and grand total row
+            rows.append(("", "", "", "", ""))
+            rows.append(("─" * 10, "─" * 15, "─" * 12, "─" * 12, "─" * 15))
+            rows.append((
+                "GRAND TOTAL",
+                f"{len(sales_list)} sales",
+                f"${grand_total:.2f}",
+                "",
+                ""
+            ))
+        
         pos_app.reports_ui.display_report(columns, rows)
     except Exception as e:
         handle_error(f"An error occurred while generating the sales by employee report: {e}")
@@ -1226,12 +1290,43 @@ def supplier_purchase_callback(supplier_id):
     try:
         purchases = supplier_purchase_report(cursor, supplier_id)
         columns = ("Purchase ID", "Date/Time", "SKU", "Product Name", "Quantity", "Price", "Line Total")
-        rows = [
-            (p['purchase_id'], p['purchase_date'], p['SKU'], p['product_name'], p['quantity'], f"${p['price']:.2f}", f"${p['line_total']:.2f}")
-            for p in purchases
-        ]
+        rows = []
+        grand_total = 0.0
+        total_quantity = 0
+        
+        # Process individual purchases and calculate grand total
+        for p in purchases:
+            line_total = float(p['line_total'])
+            quantity = int(p['quantity'])
+            grand_total += line_total
+            total_quantity += quantity
+            
+            rows.append((
+                p['purchase_id'], 
+                p['purchase_date'], 
+                p['SKU'], 
+                p['product_name'], 
+                quantity,
+                f"${p['price']:.2f}", 
+                f"${line_total:.2f}"
+            ))
+        
         if not rows:
             rows = [("No purchases found for this supplier.", "", "", "", "", "", "")]
+        else:
+            # Add separator row and grand total row
+            rows.append(("", "", "", "", "", "", ""))
+            rows.append(("─" * 12, "─" * 15, "─" * 8, "─" * 15, "─" * 8, "─" * 10, "─" * 12))
+            rows.append((
+                "GRAND TOTAL",
+                f"{len(purchases)} purchases",
+                "",
+                "",
+                str(total_quantity),
+                "",
+                f"${grand_total:.2f}"
+            ))
+        
         pos_app.reports_ui.display_report(columns, rows)
     except Exception as e:
         handle_error(f"An error occurred while generating the supplier purchase report: {e}")
@@ -1240,12 +1335,41 @@ def inventory_adjustment_history_callback():
     try:
         adjustments = inventory_adjustment_history(cursor)
         columns = ("Adjustment ID", "Date/Time", "SKU", "Quantity Change", "Employee Name", "Reason")
-        rows = [
-            (a['adjustment_id'], a['date'], a['SKU'], a['quantity_change'], a['employee_name'], a['reason'])
-            for a in adjustments
-        ]
+        rows = []
+        net_change = 0
+        
+        # Process individual adjustments and calculate net change
+        for a in adjustments:
+            quantity_change = int(a['quantity_change'])
+            net_change += quantity_change
+            
+            rows.append((
+                a['adjustment_id'], 
+                a['date'], 
+                a['SKU'], 
+                quantity_change, 
+                a['employee_name'], 
+                a['reason']
+            ))
+        
         if not rows:
-            rows = [("No adjustments found.", "", "", "", "")]
+            rows = [("No adjustments found.", "", "", "", "", "")]
+        else:
+            # Add separator row and summary row
+            rows.append(("", "", "", "", "", ""))
+            rows.append(("─" * 12, "─" * 15, "─" * 8, "─" * 12, "─" * 15, "─" * 15))
+            
+            # Show net change (positive = additions, negative = reductions)
+            net_change_str = f"+{net_change}" if net_change > 0 else str(net_change)
+            rows.append((
+                "SUMMARY",
+                f"{len(adjustments)} adjustments",
+                "",
+                net_change_str,
+                "Net Change",
+                ""
+            ))
+        
         pos_app.reports_ui.display_report(columns, rows)
     except Exception as e:
         handle_error(f"An error occurred while generating the inventory adjustment history: {e}")
@@ -1299,20 +1423,43 @@ def customer_purchase_history_callback(customer_id):
     try:
         purchases = customer_purchase_history(cursor, customer_id)
         columns = ("Sale ID", "Date/Time", "SKU", "Product Name", "Quantity", "Price", "Total")
-        rows = [
-            (
+        rows = []
+        grand_total = 0.0
+        total_quantity = 0
+        
+        # Process individual purchases and calculate grand total
+        for p in purchases:
+            purchase_total = float(p['total'])
+            quantity = int(p['quantity'])
+            grand_total += purchase_total
+            total_quantity += quantity
+            
+            rows.append((
                 p['sale_id'],
                 p['sale_datetime'],
                 p['SKU'],
                 p['product_name'],
-                p['quantity'],
+                quantity,
                 f"${p['price']:.2f}",
-                f"${p['total']:.2f}"
-            )
-            for p in purchases
-        ]
+                f"${purchase_total:.2f}"
+            ))
+        
         if not rows:
             rows = [("No purchases found for this customer.", "", "", "", "", "", "")]
+        else:
+            # Add separator row and grand total row
+            rows.append(("", "", "", "", "", "", ""))
+            rows.append(("─" * 10, "─" * 15, "─" * 8, "─" * 15, "─" * 8, "─" * 10, "─" * 12))
+            rows.append((
+                "GRAND TOTAL",
+                f"{len(purchases)} purchases",
+                "",
+                "",
+                str(total_quantity),
+                "",
+                f"${grand_total:.2f}"
+            ))
+        
         pos_app.reports_ui.display_report(columns, rows)
     except Exception as e:
         handle_error(f"An error occurred while generating the customer purchase history report: {e}")

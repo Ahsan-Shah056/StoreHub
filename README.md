@@ -347,6 +347,7 @@
 | **🏭 Suppliers** | Company, contact, phone, email, address | Contact validation, duplicate prevention |
 
 ### 🛡️ **Smart Import Features**
+
 - **🔍 Preview Mode**: Review data before committing to database
 - **⚠️ Error Handling**: Detailed error messages for invalid entries
 - **🔄 Duplicate Detection**: Automatically skip existing records
@@ -354,6 +355,7 @@
 - **📊 Import Summary**: Complete report of successful and failed imports
 
 ### 💡 **Import Process**
+
 1. **📁 Select File**: Choose your CSV file using the Import Data button
 2. **👀 Preview**: Review data structure and identify any issues
 3. **✅ Validate**: System checks for duplicates and format errors
@@ -368,6 +370,7 @@
 **Complete editing capabilities for all data types**
 
 ### 🎯 **Update Features**
+
 - **👥 Customer Updates**: Edit all customer information including contact details
 - **🏭 Supplier Updates**: Modify supplier information and contact data
 - **🔍 Smart Search**: Quickly find records by ID, name, or other criteria
@@ -375,6 +378,7 @@
 - **🔄 Auto Refresh**: UI updates automatically after modifications
 
 ### 🖥️ **User Interface**
+
 - **📑 Dedicated Update Tabs**: Separate interfaces for customers and suppliers
 - **📝 Form-Based Editing**: Intuitive forms with validation
 - **🔍 Load Functionality**: Quickly populate forms with existing data
@@ -388,12 +392,14 @@
 **Advanced analytics with professional formatting**
 
 ### 💰 **Inventory Value Report Enhancements**
+
 - **🎯 Grand Total Display**: Comprehensive total with thousands separators
 - **📈 Item Count Summary**: Total number of products tracked
 - **💲 Real-time Calculations**: Instant updates as inventory changes
 - **📋 Professional Layout**: Clean, business-ready formatting
 
 ### 📈 **Report Features**
+
 - **📤 One-Click Export**: Export any report to CSV format
 - **🔍 Real-Time Data**: Always current information
 - **💼 Business-Ready**: Professional formatting for presentations
@@ -425,12 +431,14 @@
 <img src="https://img.shields.io/badge/Status-🟢_Real--time-brightgreen?style=flat-square" alt="Real-time"> <img src="https://img.shields.io/badge/Priority-🔴_Critical-red?style=flat-square" alt="Critical">
 
 **📋 What it shows:**
+
 - Products below restock threshold (25 units)
 - Current stock levels and pricing
 - Supplier contact information for quick reordering
 - Product categories and SKU details
 
 **⚡ Use cases:**
+
 - Prevent stockouts and lost sales
 - Optimize inventory purchasing decisions
 - Maintain optimal stock levels
@@ -440,15 +448,18 @@
 <td width="50%">
 
 #### 👥 **Sales Performance by Employee**
+
 <img src="https://img.shields.io/badge/Frequency-📅_Daily-blue?style=flat-square" alt="Daily"> <img src="https://img.shields.io/badge/Type-📊_Performance-purple?style=flat-square" alt="Performance">
 
 **📋 What it shows:**
+
 - Individual sales metrics per staff member
 - Transaction counts and revenue totals
 - Performance rankings and comparisons
 - Time period analysis (daily/weekly/monthly)
 
 **⚡ Use cases:**
+
 - Track employee productivity
 - Identify top performers for recognition
 - Set sales targets and goals
@@ -463,15 +474,18 @@
 <td width="50%">
 
 #### 🏭 **Supplier Purchase Analysis**
+
 <img src="https://img.shields.io/badge/Scope-🌐_Comprehensive-orange?style=flat-square" alt="Comprehensive"> <img src="https://img.shields.io/badge/Insights-💡_Strategic-yellow?style=flat-square" alt="Strategic">
 
 **📋 What it shows:**
+
 - Purchase history by supplier
 - Product categories and volumes
 - Supplier reliability metrics
 - Cost analysis and trends
 
 **⚡ Use cases:**
+
 - Evaluate supplier performance
 - Negotiate better pricing terms
 - Diversify supplier portfolio
@@ -481,15 +495,18 @@
 <td width="50%">
 
 #### 📦 **Inventory Adjustment History**
+
 <img src="https://img.shields.io/badge/Tracking-🔍_Complete_Audit-green?style=flat-square" alt="Complete Audit"> <img src="https://img.shields.io/badge/Compliance-✅_Full_Trail-success?style=flat-square" alt="Full Trail">
 
 **📋 What it shows:**
+
 - All stock adjustments with timestamps
 - Reasons for adjustments (damage, theft, correction)
 - Employee responsible for changes
 - Before/after stock levels
 
 **⚡ Use cases:**
+
 - Maintain audit compliance
 - Track inventory shrinkage
 - Identify adjustment patterns
@@ -519,12 +536,14 @@
 | **Last Updated** | Stock change date | 2025-06-16 14:30 |
 
 **🆕 Enhanced Features:**
+
 - **Grand Total Display**: Comprehensive total inventory value with separator
 - **Item Count Summary**: Total number of products in inventory
 - **Real-time Calculations**: Instant updates as inventory changes
 - **Professional Formatting**: Clean display with thousands separators
 
 **🎯 Key Benefits:**
+
 - **Financial Planning**: Know your inventory investment at any time
 - **Insurance Claims**: Accurate valuations for coverage purposes
 - **Tax Reporting**: Precise inventory values for accounting
@@ -538,6 +557,7 @@
 **Detailed customer behavior analysis and purchase tracking**
 
 **📈 Customer Insights Dashboard:**
+
 - **Purchase Frequency**: How often customers shop
 - **Average Transaction Value**: Spending patterns per visit
 - **Product Preferences**: Most purchased items by customer
@@ -545,6 +565,7 @@
 - **Loyalty Metrics**: Customer retention and repeat purchase rates
 
 **💡 Business Applications:**
+
 - **Personalized Marketing**: Target customers with relevant offers
 - **Inventory Planning**: Stock products based on customer demand
 - **Customer Service**: Understand purchase history for better support
@@ -654,6 +675,7 @@
 | 5 | SKU-1067 | Specialty Sandwiches | 98 | $1,470.00 | 28% |
 
 **📊 Quick Insights:**
+
 - **Top Category**: Beverages (Coffee & Tea) dominate sales
 - **High Margin Products**: Coffee beans offer best profit margins
 - **Growth Opportunity**: Bakery items show consistent demand
@@ -680,20 +702,24 @@
 <td width="50%">
 
 #### 📧 **Low Stock Alert System**
+
 <img src="https://img.shields.io/badge/Status-🟢_Active-brightgreen?style=flat-square" alt="Active"> <img src="https://img.shields.io/badge/Trigger-Real--time-blue?style=flat-square" alt="Real-time">
 
 **🔍 What it monitors:**
+
 - Continuous inventory level surveillance
 - Real-time stock depletion tracking
 - Cross-reference with sales velocity
 
 **⚡ When it triggers:**
+
 - Stock falls below **25 units** threshold
 - During sales transactions
 - Manual inventory adjustments
 - Bulk stock operations
 
 **📬 Notification details:**
+
 - **Recipient:** Store Manager (auto-detected)
 - **Content:** Product name, SKU, current stock, timestamp
 - **Format:** Professional email with actionable insights
@@ -703,19 +729,23 @@
 <td width="50%">
 
 #### 💰 **Large Transaction Alert System**
+
 <img src="https://img.shields.io/badge/Status-🟢_Active-brightgreen?style=flat-square" alt="Active"> <img src="https://img.shields.io/badge/Security-🔒_Fraud_Detection-red?style=flat-square" alt="Fraud Detection">
 
 **🔍 What it monitors:**
+
 - All sales transaction amounts
 - Unusual purchase patterns
 - High-value customer activities
 
 **⚡ When it triggers:**
+
 - Transactions exceeding **$10,000**
 - Suspicious transaction patterns
 - Multiple large transactions
 
 **📬 Notification details:**
+
 - **Recipient:** Store Manager + Security Team
 - **Content:** Sale ID, amount, employee, customer, timestamp
 - **Format:** Security-focused alert with transaction details
@@ -732,6 +762,7 @@
 <div align="center">
 
 #### 🌅 **End-of-Day Business Reports**
+
 *Comprehensive daily analytics delivered automatically to management*
 
 </div>
@@ -740,12 +771,14 @@
 <summary><strong>📈 Daily Sales Performance Dashboard</strong></summary>
 
 **📊 Sales Summary Analytics:**
+
 - Total daily transactions and revenue
 - Average transaction value and quantity
 - Performance comparison vs. previous day (with %)
 - Sales trend analysis and insights
 
 **🏆 Top Performing Products:**
+
 - Best-selling items by quantity sold
 - Highest revenue-generating products
 - Product performance rankings
@@ -757,12 +790,14 @@
 <summary><strong>👥 Employee Performance Metrics</strong></summary>
 
 **📈 Individual Performance Tracking:**
+
 - Sales metrics by staff member
 - Transaction count and revenue per employee
 - Performance rankings and comparisons
 - Productivity insights and recommendations
 
 **🎯 Team Performance Overview:**
+
 - Department-wise performance analysis
 - Top performers identification
 - Training needs assessment
@@ -774,12 +809,14 @@
 <summary><strong>📦 Inventory Intelligence Report</strong></summary>
 
 **🚨 Stock Status Alerts:**
+
 - Complete list of items below stock threshold
 - Critical inventory requiring immediate attention
 - Reorder recommendations with quantities
 - Supplier contact information for quick restocking
 
 **📝 Daily Inventory Activity Log:**
+
 - All stock adjustments made during the day
 - Adjustment reasons and responsible employees
 - Before/after stock levels for audit trail
@@ -1040,6 +1077,7 @@ python sample_data.py
    - Click the "Import Data" button in any of these sections
 
 2. **Import Process:**
+
    ```bash
    📁 Select CSV File → 👀 Preview Data → ✅ Validate → ⚡ Import → 📊 Summary
    ```
