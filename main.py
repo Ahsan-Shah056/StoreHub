@@ -1093,7 +1093,7 @@ def empty_cart(cart_tree, cart, cursor):
     # Empties the cart and updates the display
     cart.clear()
     _update_cart_display(cart_tree, cart, cursor)
-def add_item(connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry):
+def add_item(connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry=None):
     try:
         sku = sku_entry.get()
         name = item_name_entry.get()
@@ -1101,14 +1101,28 @@ def add_item(connection, cursor, sku_entry, item_name_entry, category_entry, pri
         price_str = price_entry.get()
         stock_str = stock_entry.get()
         supplier_id_str = supplier_id_entry.get()
+        cost_str = cost_entry.get() if cost_entry else "0.00"
+        
         if not all([sku, name, category, price_str, stock_str, supplier_id_str]):
-            raise ValueError("All fields must be filled out to add an item.")
+            raise ValueError("All required fields must be filled out to add an item.")
         if not is_valid_number(price_str) or not is_valid_number(stock_str):
             raise ValueError("Price and stock must be valid numbers.")
+        if cost_str and not is_valid_number(cost_str):
+            raise ValueError("Cost must be a valid number.")
+            
         price = float(price_str)
         stock = int(stock_str)
         supplier_id = int(supplier_id_str)
-        inventory.add_item(connection, cursor, sku, name, category, price, stock, supplier_id)
+        cost = float(cost_str) if cost_str else 0.00
+        
+        # Convert category name to category_id
+        cursor.execute("SELECT category_id FROM Categories WHERE name = %s", (category,))
+        category_result = cursor.fetchone()
+        if not category_result:
+            raise ValueError(f"Category '{category}' does not exist. Please select a valid category.")
+        category_id = category_result['category_id']
+        
+        inventory.add_item(connection, cursor, sku, name, category_id, price, stock, supplier_id, cost)
         messagebox.showinfo("Success", f"Item '{name}' added successfully.")
     except ValueError as ve:
         handle_error(str(ve))
@@ -1154,7 +1168,7 @@ def _populate_inventory_treeview(inventory_list, inventory_tree):
     """Populates the inventory treeview with data."""
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
-        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id'], item['cost']))
         inventory_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(inventory_tree)
 
@@ -1381,22 +1395,22 @@ def inventory_value_report(cursor):
         if not inventory_list:
             raise ValueError("No items found in inventory.")
         
-        columns = ("SKU", "Product Name", "Stock", "Price", "Total Value")
+        columns = ("SKU", "Product Name", "Stock", "Cost", "Total Value")
         rows = []
         grand_total = 0.0
         
         # Process individual items and calculate grand total
         for item in inventory_list:
             stock = int(item.get('stock', 0))
-            price = float(item.get('price', 0))  # Convert Decimal to float
-            item_total = stock * price
+            cost = float(item.get('cost', 0))  # Use cost instead of price for inventory valuation
+            item_total = stock * cost
             grand_total += item_total
             
             rows.append((
                 str(item.get('SKU', '')),
                 str(item.get('name', '')),
                 str(stock),
-                f"${price:.2f}",
+                f"${cost:.2f}",
                 f"${item_total:.2f}"
             ))
         
@@ -1682,8 +1696,8 @@ if __name__ == "__main__":
             delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
                 db_connection, cursor, delete_customer_id_entry
             ),
-            add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, *_: add_item(
-                db_connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry
+            add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry, *_: add_item(
+                db_connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry
             ),
             delete_item_callback=lambda delete_sku_entry, *_: delete_item(db_connection, cursor, delete_sku_entry),
             view_inventory_callback=lambda inventory_tree, *_: view_inventory(db_connection, cursor, inventory_tree),
@@ -1838,7 +1852,7 @@ if __name__ == "__main__":
             cursor,
             delete_customer_id_entry
         ),
-        add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, *_: add_item(
+        add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry, *_: add_item(
             db_connection,
             cursor,
             sku_entry,
@@ -1846,7 +1860,8 @@ if __name__ == "__main__":
             category_entry,
             price_entry,
             stock_entry,
-            supplier_id_entry
+            supplier_id_entry,
+            cost_entry
         ),
         delete_item_callback=lambda delete_sku_entry, *_: delete_item(
             db_connection,

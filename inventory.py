@@ -11,28 +11,27 @@ def handle_error(connection, cursor, e):
     raise ValueError(str(e))
 
 
-def add_item(connection, cursor, sku, name, category, price, stock, supplier_id):
+def add_item(connection, cursor, sku, name, category_id, price, stock, supplier_id, cost=0.00):
     # Add new item to inventory
     try:
         if price <= 0 or stock < 0:
             raise ValueError("Price must be greater than 0 and stock cannot be negative.")
 
         # Check if category exists
-        cursor.execute("SELECT category_id FROM Categories WHERE name = %s", (category,))
-        category_id_result = cursor.fetchone()
-        if not category_id_result:
-            raise ValueError(f"Category with name '{category}' does not exist.")
-        category_id = category_id_result['category_id']
-
-        # Check if supplier exists
-        cursor.execute("SELECT supplier_id FROM Suppliers WHERE supplier_id = %s", (supplier_id,))
+        cursor.execute("SELECT category_id FROM Categories WHERE category_id = %s", (category_id,))
         if not cursor.fetchone():
-            raise ValueError(f"Supplier with ID '{supplier_id}' does not exist.")
+            raise ValueError(f"Category with ID '{category_id}' does not exist.")
+
+        # Check if supplier exists (supplier_id can be NULL)
+        if supplier_id:
+            cursor.execute("SELECT supplier_id FROM Suppliers WHERE supplier_id = %s", (supplier_id,))
+            if not cursor.fetchone():
+                raise ValueError(f"Supplier with ID '{supplier_id}' does not exist.")
 
         # Insert the product
         cursor.execute(
-            "INSERT INTO Products (SKU, name, category_id, price, stock, supplier_id) VALUES (%s, %s, %s, %s, %s, %s)",
-            (sku, name, category_id, price, stock, supplier_id)
+            "INSERT INTO Products (SKU, name, category_id, price, stock, supplier_id, cost) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (sku, name, category_id, price, stock, supplier_id, cost)
         )
         connection.commit()
         return get_item(connection, cursor, sku)
@@ -83,7 +82,7 @@ def view_inventory(connection, cursor):
     # Get all inventory items
     try:
         cursor.execute(
-            "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id "
+            "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id, p.cost "
             "FROM Products p JOIN Categories c ON c.category_id = p.category_id"
         )
         results = cursor.fetchall()
@@ -95,6 +94,7 @@ def view_inventory(connection, cursor):
                 "price": row["price"],
                 "stock": row["stock"],
                 "supplier_id": row["supplier_id"],
+                "cost": row["cost"],
             }
             for row in results
         ]

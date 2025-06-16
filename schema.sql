@@ -14,20 +14,21 @@ CREATE TABLE Categories (
 );
 
 -- Products
+-- Products
 CREATE TABLE Products (
     SKU VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    base_product_id VARCHAR(255),
     category_id INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price > 0),
+    price DECIMAL(10 , 2 ) NOT NULL CHECK (price > 0),
     stock INT NOT NULL CHECK (stock >= 0),
     low_stock_threshold INT DEFAULT 5,
     supplier_id INT,
-    color VARCHAR(50),
-    size VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id),
-    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+    FOREIGN KEY (supplier_id)
+        REFERENCES Suppliers (supplier_id),
+    FOREIGN KEY (category_id)
+        REFERENCES Categories (category_id),
+        cost DECIMAL(10,2) DEFAULT 0.00
 );
 
 

@@ -10,6 +10,7 @@ import threading
 from PIL import Image, ImageTk
 import os
 from Data_exporting import export_treeview_to_csv
+from dashboard_ui import DashboardUI
 
 # Import formatting functions from main
 try:
@@ -684,8 +685,13 @@ class InventoryUI:
         self.supplier_id_label.grid(row=5, column=0, sticky=tk.W, padx=2, pady=2)
         self.supplier_id_entry = ttk.Entry(self.add_tab, width=15)
         self.supplier_id_entry.grid(row=5, column=1, sticky=tk.W, padx=2, pady=2)
+        self.cost_label = ttk.Label(self.add_tab, text="Cost:")
+        self.cost_label.grid(row=6, column=0, sticky=tk.W, padx=2, pady=2)
+        self.cost_entry = ttk.Entry(self.add_tab, width=15)
+        self.cost_entry.grid(row=6, column=1, sticky=tk.W, padx=2, pady=2)
+        self.cost_entry.insert(0, "0.00")  # Default value
         self.add_item_button = ttk.Button(self.add_tab, text="Add Item", command=self._threaded_add_item, style="Blue.TButton")
-        self.add_item_button.grid(row=6, column=0, columnspan=2, pady=5)
+        self.add_item_button.grid(row=7, column=0, columnspan=2, pady=5)
         # Add title and description to Add subtab
         add_title = ttk.Label(self.add_tab, text="Add Item", font=("Helvetica", 14, "bold"))
         add_title.grid(row=0, column=2, sticky=tk.W, padx=10, pady=(10,2))
@@ -737,8 +743,8 @@ class InventoryUI:
         adj_desc = ttk.Label(self.adjust_tab, text="Increase the stock quantity for a product.", font=("Helvetica", 10))
         adj_desc.grid(row=1, column=2, sticky=tk.W, padx=10, pady=(0,10))
         # Inventory Treeview (always visible)
-        self.inventory_tree = ttk.Treeview(self.frame, columns=('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID'), show='headings')
-        for col in ('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID'):
+        self.inventory_tree = ttk.Treeview(self.frame, columns=('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID', 'Cost'), show='headings')
+        for col in ('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID', 'Cost'):
             self.inventory_tree.heading(col, text=col)
             
         # Set appropriate column widths
@@ -748,6 +754,7 @@ class InventoryUI:
         self.inventory_tree.column('Price', width=80, minwidth=60)
         self.inventory_tree.column('Stock', width=80, minwidth=60)
         self.inventory_tree.column('Supplier ID', width=100, minwidth=80)
+        self.inventory_tree.column('Cost', width=80, minwidth=60)
         
         # Add horizontal scrollbar
         self.inventory_tree_scroll_x = ttk.Scrollbar(self.frame, orient='horizontal', command=self.inventory_tree.xview)
@@ -788,11 +795,15 @@ class InventoryUI:
     def add_item(self):
         if self.add_item_callback:
             self.add_item_callback(
-                self.sku_entry, self.item_name_entry, self.category_entry, self.price_entry, self.stock_entry, self.supplier_id_entry
+                self.sku_entry, self.item_name_entry, self.category_entry, self.price_entry, self.stock_entry, self.supplier_id_entry, self.cost_entry
             )
             self.sku_entry.delete(0, tk.END)
             self.item_name_entry.delete(0, tk.END)
             self.category_entry.delete(0, tk.END)
+            self.price_entry.delete(0, tk.END)
+            self.stock_entry.delete(0, tk.END)
+            self.supplier_id_entry.delete(0, tk.END)
+            self.cost_entry.delete(0, tk.END)
             self.price_entry.delete(0, tk.END)
             self.stock_entry.delete(0, tk.END)
             self.supplier_id_entry.delete(0, tk.END)
@@ -986,18 +997,27 @@ class ReportsUI:
     def _on_customer_purchase_history_report(self):
         if hasattr(self, 'customer_purchase_history_callback') and self.customer_purchase_history_callback:
             selected_customer = self.customer_combobox.get()
+            print(f"Debug: Selected customer: {selected_customer}")
             customer_id = self.customers_map.get(selected_customer) if hasattr(self, 'customers_map') else None
+            print(f"Debug: Customer ID: {customer_id}")
+            print(f"Debug: customers_map keys: {list(self.customers_map.keys()) if hasattr(self, 'customers_map') else 'No customers_map'}")
             if customer_id:
                 self.customer_purchase_history_callback(customer_id)
+            else:
+                print("Debug: No customer_id found or no customer selected")
 
     def _populate_customers(self):
         if self.get_customers_callback:
             customers_list = self.get_customers_callback()
+            print(f"Debug: Retrieved {len(customers_list)} customers")
             self.customers_map = {f"{c['name']} (ID: {c['customer_id']})": c['customer_id'] for c in customers_list}
+            print(f"Debug: customers_map: {self.customers_map}")
             self.customer_combobox['values'] = list(self.customers_map.keys())
             if self.customer_combobox['values']:
                 self.customer_combobox.current(0)
+                print(f"Debug: Set default customer to: {self.customer_combobox.get()}")
         else:
+            print("Debug: No get_customers_callback available")
             self.customers_map = {}
             self.customer_combobox['values'] = []
 
@@ -1283,7 +1303,7 @@ def view_inventory(cursor, inventory_tree):
 def _populate_inventory_treeview(inventory_list, inventory_tree):
     inventory_tree.delete(*inventory_tree.get_children())
     for item in inventory_list:
-        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id']))
+        formatted_values = format_treeview_values((item['SKU'], item['name'], item['category'], item['price'], item['stock'], item['supplier_id'], item['cost']))
         inventory_tree.insert("", "end", values=formatted_values)
     alternate_treeview_rows(inventory_tree)
 
@@ -1382,6 +1402,7 @@ class POSApp:
         self.notebook = ttk.Notebook(self.main_frame)
         self.notebook.grid(row=1, column=0, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S))
 
+        self.dashboard_tab = ttk.Frame(self.notebook)
         self.sales_tab = ttk.Frame(self.notebook)
         self.customer_tab = ttk.Frame(self.notebook)
         self.inventory_tab = ttk.Frame(self.notebook)
@@ -1389,6 +1410,10 @@ class POSApp:
         self.reports_tab = ttk.Frame(self.notebook)
 
         # Add tabs based on user role
+        # Dashboard tab access for manager and accountant (business intelligence users)
+        if user_role in ["manager", "accountant"]:
+            self.notebook.add(self.dashboard_tab, text="📊 Dashboard")
+        
         self.notebook.add(self.sales_tab, text="Sales")
         
         # All roles have access to the customer tab except accountants have read-only access
@@ -1411,12 +1436,23 @@ class POSApp:
         self.customer_ui = CustomerUI(self.customer_tab)
         
         # Create UIs based on role permissions
+        if user_role in ["manager", "accountant"]:
+            # Create dashboard UI with all callbacks
+            dashboard_callbacks = {
+                'get_employees_callback': get_employees_callback,
+                'get_suppliers_callback': get_suppliers_callback,
+                'get_customers_callback': get_customers_callback,
+                'sales_by_employee_callback': sales_by_employee_callback,
+                'supplier_purchase_callback': supplier_purchase_callback,
+                'inventory_value_report_callback': inventory_value_report_callback,
+                'customer_purchase_history_callback': customer_purchase_history_callback
+            }
+            self.dashboard_ui = DashboardUI(self.dashboard_tab, **dashboard_callbacks)
+            self.reports_ui = ReportsUI(self.reports_tab)
+        
         if user_role in ["manager", "inventory_manager", "store_admin"]:
             self.inventory_ui = InventoryUI(self.inventory_tab)
             self.suppliers_ui = SuppliersUI(self.suppliers_tab)
-        
-        if user_role in ["manager", "accountant"]:
-            self.reports_ui = ReportsUI(self.reports_tab)
 
         # Wire up callbacks if provided
         # Common callbacks for all users

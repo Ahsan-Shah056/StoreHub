@@ -49,7 +49,7 @@ def validate_csv_structure(file_path):
     sample_data = []
     
     try:
-        with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             # Try to detect CSV dialect
             sample = csvfile.read(1024)
             csvfile.seek(0)
@@ -148,7 +148,7 @@ def import_customers_from_csv(file_path, parent_window=None, skip_duplicates=Tru
         connection, cursor = get_db()
         
         try:
-            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+            with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
                 reader = csv.reader(csvfile)
                 
                 # Skip header row
@@ -243,11 +243,17 @@ class ImportPreviewDialog:
         """Create the preview dialog window."""
         self.dialog = tk.Toplevel(self.parent_window)
         self.dialog.title("Import Preview - Customer Data")
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("700x600")
+        self.dialog.minsize(600, 400)
         self.dialog.resizable(True, True)
         
         # Make dialog modal
         self.dialog.transient(self.parent_window)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (self.parent_window.winfo_rootx() + 50, 
+                                       self.parent_window.winfo_rooty() + 50))
         self.dialog.grab_set()
         
         # Center the dialog
@@ -319,22 +325,26 @@ class ImportPreviewDialog:
             
             tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Buttons
-        button_frame = tk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-        
         # Options
+        options_frame = tk.Frame(self.dialog)
+        options_frame.pack(fill='x', padx=10, pady=5)
+        
         self.skip_duplicates_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(button_frame, text="Skip duplicate customers", variable=self.skip_duplicates_var).pack(anchor=tk.W)
+        tk.Checkbutton(options_frame, text="Skip duplicate customers (same name)", 
+                      variable=self.skip_duplicates_var).pack(anchor='w')
         
-        # Action buttons
-        action_frame = tk.Frame(button_frame)
-        action_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        tk.Button(action_frame, text="Cancel", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=(5, 0))
+        # Buttons
+        button_frame = tk.Frame(self.dialog)
+        button_frame.pack(fill='x', padx=10, pady=10)
         
         if self.is_valid:
-            tk.Button(action_frame, text="Import Data", command=self.import_data, bg="green", fg="white").pack(side=tk.RIGHT)
+            import_btn = tk.Button(button_frame, text="Import Data", command=self.import_data,
+                                 bg="#4CAF50", fg="white", font=('Arial', 10, 'bold'))
+            import_btn.pack(side='right', padx=5)
+        
+        cancel_btn = tk.Button(button_frame, text="Cancel", command=self.dialog.destroy,
+                             bg="#f44336", fg="white", font=('Arial', 10))
+        cancel_btn.pack(side='right', padx=5)
     
     def import_data(self):
         """Perform the actual data import."""
@@ -394,16 +404,16 @@ def show_customer_import_dialog(parent_window=None, refresh_callback=None):
 def validate_inventory_row(row, row_number):
     """
     Validate a single inventory row from CSV data.
-    Expected columns: sku, name, category, price, stock, supplier_id
+    Expected columns: sku, name, category_id, price, stock, supplier_id, cost
     """
     errors = []
     
     # Check if row has the correct number of columns
-    if len(row) < 6:
-        errors.append(f"Row {row_number}: Insufficient columns. Expected: sku, name, category, price, stock, supplier_id")
+    if len(row) < 7:
+        errors.append(f"Row {row_number}: Insufficient columns. Expected: sku, name, category_id, price, stock, supplier_id, cost")
         return errors
     
-    sku, name, category, price, stock, supplier_id = row[0:6]
+    sku, name, category_id, price, stock, supplier_id, cost = row[0:7]
     
     # Validate SKU (required)
     if not sku or not sku.strip():
@@ -417,11 +427,13 @@ def validate_inventory_row(row, row_number):
     elif len(name.strip()) > 255:
         errors.append(f"Row {row_number}: Name is too long (max 255 characters)")
     
-    # Validate category (required)
-    if not category or not category.strip():
-        errors.append(f"Row {row_number}: Category is required and cannot be empty")
-    elif len(category.strip()) > 50:
-        errors.append(f"Row {row_number}: Category is too long (max 50 characters)")
+    # Validate category_id (required, must be positive integer)
+    try:
+        category_id_val = int(category_id.strip()) if category_id.strip() else 0
+        if category_id_val <= 0:
+            errors.append(f"Row {row_number}: Category ID must be a positive integer")
+    except ValueError:
+        errors.append(f"Row {row_number}: Category ID must be a valid integer")
     
     # Validate price (required, must be positive number)
     try:
@@ -439,13 +451,23 @@ def validate_inventory_row(row, row_number):
     except ValueError:
         errors.append(f"Row {row_number}: Stock must be a valid integer")
     
-    # Validate supplier_id (required, must be positive integer)
-    try:
-        supplier_id_val = int(supplier_id.strip()) if supplier_id.strip() else 0
-        if supplier_id_val <= 0:
-            errors.append(f"Row {row_number}: Supplier ID must be a positive integer")
-    except ValueError:
-        errors.append(f"Row {row_number}: Supplier ID must be a valid integer")
+    # Validate supplier_id (optional, but if provided must be positive integer)
+    if supplier_id and supplier_id.strip():
+        try:
+            supplier_id_val = int(supplier_id.strip())
+            if supplier_id_val <= 0:
+                errors.append(f"Row {row_number}: Supplier ID must be a positive integer")
+        except ValueError:
+            errors.append(f"Row {row_number}: Supplier ID must be a valid integer")
+    
+    # Validate cost (optional, but if provided must be non-negative number)
+    if cost and cost.strip():
+        try:
+            cost_val = float(cost.strip())
+            if cost_val < 0:
+                errors.append(f"Row {row_number}: Cost cannot be negative")
+        except ValueError:
+            errors.append(f"Row {row_number}: Cost must be a valid number")
     
     return errors
 
@@ -459,21 +481,22 @@ def validate_inventory_csv_structure(file_path):
     sample_data = []
     
     try:
-        with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.reader(csvfile)
             
             # Check header row
             try:
                 header = next(reader)
-                expected_headers = ['sku', 'name', 'category', 'price', 'stock', 'supplier_id']
+                expected_headers = ['sku', 'name', 'category_id', 'price', 'stock', 'supplier_id', 'cost']
                 
                 if len(header) < len(expected_headers):
                     errors.append(f"Missing columns. Expected: {', '.join(expected_headers)}")
                     return False, errors, 0, []
                 
                 # Check if headers match (case insensitive)
-                header_lower = [h.strip().lower() for h in header[:len(expected_headers)]]
-                if header_lower != expected_headers:
+                # Strip BOM and whitespace from headers
+                header_clean = [h.strip().lower().replace('\ufeff', '') for h in header[:len(expected_headers)]]
+                if header_clean != expected_headers:
                     errors.append(f"Header mismatch. Expected: {', '.join(expected_headers)}, Found: {', '.join(header[:len(expected_headers)])}")
             
             except StopIteration:
@@ -498,10 +521,11 @@ def validate_inventory_csv_structure(file_path):
                     sample_data.append({
                         'sku': row[0].strip() if len(row) > 0 else '',
                         'name': row[1].strip() if len(row) > 1 else '',
-                        'category': row[2].strip() if len(row) > 2 else '',
+                        'category_id': row[2].strip() if len(row) > 2 else '',
                         'price': row[3].strip() if len(row) > 3 else '',
                         'stock': row[4].strip() if len(row) > 4 else '',
-                        'supplier_id': row[5].strip() if len(row) > 5 else ''
+                        'supplier_id': row[5].strip() if len(row) > 5 else '',
+                        'cost': row[6].strip() if len(row) > 6 else '0.00'
                     })
     
     except Exception as e:
@@ -545,7 +569,7 @@ def import_inventory_from_csv(file_path, parent_window=None, skip_duplicates=Tru
         connection, cursor = get_db()
         
         try:
-            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+            with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
                 reader = csv.reader(csvfile)
                 
                 # Skip header row
@@ -561,21 +585,24 @@ def import_inventory_from_csv(file_path, parent_window=None, skip_duplicates=Tru
                         # Extract data
                         sku = row[0].strip() if len(row) > 0 else ''
                         name = row[1].strip() if len(row) > 1 else ''
-                        category = row[2].strip() if len(row) > 2 else ''
+                        category_id = row[2].strip() if len(row) > 2 else ''
                         price = row[3].strip() if len(row) > 3 else ''
                         stock = row[4].strip() if len(row) > 4 else ''
                         supplier_id = row[5].strip() if len(row) > 5 else ''
+                        cost = row[6].strip() if len(row) > 6 else '0.00'
                         
-                        if not all([sku, name, category, price, stock, supplier_id]):
-                            errors.append(f"Row {row_num}: Skipped - All fields are required")
+                        if not all([sku, name, category_id, price, stock]):
+                            errors.append(f"Row {row_num}: Skipped - Required fields are missing")
                             error_count += 1
                             continue
                         
-                        # Convert price and stock to appropriate types
+                        # Convert values to appropriate types
                         try:
+                            category_id_val = int(category_id)
                             price_val = float(price)
                             stock_val = int(stock)
-                            supplier_id_val = int(supplier_id)
+                            supplier_id_val = int(supplier_id) if supplier_id else None
+                            cost_val = float(cost) if cost else 0.00
                         except ValueError as ve:
                             errors.append(f"Row {row_num}: Invalid data format - {str(ve)}")
                             error_count += 1
@@ -591,7 +618,7 @@ def import_inventory_from_csv(file_path, parent_window=None, skip_duplicates=Tru
                         
                         # Add item to database using inventory module
                         import inventory
-                        inventory.add_item(connection, cursor, sku, name, category, price_val, stock_val, supplier_id_val)
+                        inventory.add_item(connection, cursor, sku, name, category_id_val, price_val, stock_val, supplier_id_val, cost_val)
                         success_count += 1
                         
                     except Exception as e:
@@ -652,7 +679,7 @@ def validate_supplier_csv_structure(file_path):
     sample_data = []
     
     try:
-        with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.reader(csvfile)
             
             # Check header row
@@ -665,8 +692,9 @@ def validate_supplier_csv_structure(file_path):
                     return False, errors, 0, []
                 
                 # Check if headers match (case insensitive)
-                header_lower = [h.strip().lower() for h in header[:len(expected_headers)]]
-                if header_lower != expected_headers:
+                # Strip BOM and whitespace from headers
+                header_clean = [h.strip().lower().replace('\ufeff', '') for h in header[:len(expected_headers)]]
+                if header_clean != expected_headers:
                     errors.append(f"Header mismatch. Expected: {', '.join(expected_headers)}, Found: {', '.join(header[:len(expected_headers)])}")
             
             except StopIteration:
@@ -735,7 +763,7 @@ def import_suppliers_from_csv(file_path, parent_window=None, skip_duplicates=Tru
         connection, cursor = get_db()
         
         try:
-            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+            with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
                 reader = csv.reader(csvfile)
                 
                 # Skip header row
@@ -860,12 +888,17 @@ class InventoryImportPreviewDialog(ImportPreviewDialog):
         """Create the preview dialog window."""
         self.dialog = tk.Toplevel(self.parent_window)
         self.dialog.title("Import Preview - Inventory Data")
-        self.dialog.geometry("700x500")
+        self.dialog.geometry("800x600")
+        self.dialog.minsize(700, 450)
         self.dialog.resizable(True, True)
         
         # Make dialog modal
         self.dialog.transient(self.parent_window)
         self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (self.parent_window.winfo_rootx() + 50, 
+                                       self.parent_window.winfo_rooty() + 50))
         
         # File info
         info_frame = tk.Frame(self.dialog)
@@ -892,7 +925,7 @@ class InventoryImportPreviewDialog(ImportPreviewDialog):
         preview_frame.pack(fill='both', expand=True, padx=10, pady=5)
         
         # Create treeview for preview
-        columns = ('SKU', 'Name', 'Category', 'Price', 'Stock', 'Supplier ID')
+        columns = ('SKU', 'Name', 'Category ID', 'Price', 'Stock', 'Supplier ID', 'Cost')
         preview_tree = ttk.Treeview(preview_frame, columns=columns, show='headings', height=8)
         
         # Configure columns
@@ -903,8 +936,8 @@ class InventoryImportPreviewDialog(ImportPreviewDialog):
         # Add sample data
         for item in self.sample_data:
             preview_tree.insert('', 'end', values=(
-                item['sku'], item['name'], item['category'], 
-                item['price'], item['stock'], item['supplier_id']
+                item['sku'], item['name'], item['category_id'], 
+                item['price'], item['stock'], item['supplier_id'], item['cost']
             ))
         
         preview_tree.pack(fill='both', expand=True, padx=5, pady=5)
@@ -1005,12 +1038,17 @@ class SupplierImportPreviewDialog(ImportPreviewDialog):
         """Create the preview dialog window."""
         self.dialog = tk.Toplevel(self.parent_window)
         self.dialog.title("Import Preview - Supplier Data")
-        self.dialog.geometry("600x500")
+        self.dialog.geometry("700x600")
+        self.dialog.minsize(600, 400)
         self.dialog.resizable(True, True)
         
         # Make dialog modal
         self.dialog.transient(self.parent_window)
         self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (self.parent_window.winfo_rootx() + 50, 
+                                       self.parent_window.winfo_rooty() + 50))
         
         # File info
         info_frame = tk.Frame(self.dialog)

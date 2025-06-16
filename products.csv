@@ -1,0 +1,52 @@
+﻿sku,name,category_id,price,stock,supplier_id,cost
+WB001,White Bread,1,150,850,1,100
+BB002,Bran Bread,1,160,720,2,110
+SB003,Sandwich Bread,1,180,910,3,120
+MB004,Milky Bread,1,190,640,4,130
+SBUN005,Small Buns,2,130,770,5,80
+BBUN006,Bran Buns,2,140,600,6,90
+FBUN007,Fruit buns,2,150,890,7,100
+SPG008,Spaghetti,3,180,1000,8,120
+PEN009,Penne,3,190,950,9,130
+RAV010,Ravioli,3,220,870,10,150
+MAC011,Macaroni,3,160,760,11,100
+LAS012,Lasagna,3,240,800,12,160
+GD013,Glazed doughnuts,4,120,990,13,70
+CD014,Chocolate-filled doughnuts,4,130,880,14,80
+JD015,Cream/jelly-filled doughnuts,4,140,940,15,90
+MD016,Mini doughnuts,4,100,730,16,60
+IN017,Instant noodles,5,70,970,17,40
+EN018,Egg noodles,5,120,890,18,80
+RP019,Ramen packs,5,160,930,19,100
+SBIS020,Sweet biscuits,6,100,920,20,60
+CBIS021,Cream-filled biscuits,6,110,810,21,70
+DBIS022,Digestive biscuits,6,120,980,22,80
+BBIS023,Biscuit bars,6,140,860,23,90
+BRBIS024,Breakfast biscuits,6,140,870,24,90
+CF025,Cornflakes,7,220,790,25,150
+BF026,Bran flakes,7,230,850,26,160
+CHC027,Chocolate cereals,7,260,910,27,180
+OAT028,Oatmeal,7,180,880,28,120
+DJ029,Denim jeans,8,1200,550,29,700
+DJK030,Denim jackets,8,1500,480,30,900
+DBAG031,Denim Bags,8,1000,530,31,600
+CTS032,Casual T-shirts,9,700,650,32,400
+FDS033,Formal dress shirts,9,1000,600,33,600
+PS034,Polo shirts,9,900,580,34,500
+FT035,Formal trousers,10,1200,500,35,700
+CCP036,Casual cotton pants,10,1000,520,36,600
+CP037,Cargo pants,10,1300,490,37,750
+CB038,Carbonated beverages,11,80,1000,38,40
+ED039,Energy drinks,11,180,930,39,100
+FS040,Flavored sodas,11,100,960,40,60
+CHS041,Chocolate syrup,12,260,720,41,180
+STS042,Strawberry syrup,12,250,710,42,170
+OJ043,Orange juice,13,200,950,43,130
+AJ044,Apple juice,13,210,970,44,140
+MJ045,Mango juice,13,200,940,45,130
+LOL046,Lollipops,14,80,990,46,50
+CHCND047,Chocolate candies,14,150,900,47,100
+GUM048,Gummy candies,14,140,880,48,90
+SCND049,Sour candies,14,140,910,49,90
+GF050,Gluten-free baking flour,15,260,870,50,180
+RN051,Rice noodles,15,220,890,51,150

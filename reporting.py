@@ -85,6 +85,7 @@ def customer_purchase_history(cursor, customer_id):
     Columns: Sale ID, Date/Time, SKU, Product Name, Quantity, Price, Total
     """
     try:
+        print(f"Debug: customer_purchase_history called with customer_id: {customer_id}")
         query = '''
             SELECT s.sale_id, s.sale_datetime, si.SKU, p.name AS product_name, si.quantity, si.price, s.total
             FROM Sales s
@@ -95,6 +96,7 @@ def customer_purchase_history(cursor, customer_id):
         '''
         cursor.execute(query, (customer_id,))
         results = cursor.fetchall()
+        print(f"Debug: Query returned {len(results) if results else 0} results")
         return [
             {
                 "sale_id": row["sale_id"],
