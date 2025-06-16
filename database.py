@@ -2,21 +2,7 @@ import mysql.connector
 from mysql.connector.errors import Error
 
 def get_db(host="localhost", user="root", password="Ahsan7424", database="store"):
-    """
-    Establishes a connection to the MySQL database and returns the connection and cursor.
-
-    Args:
-        host (str): The hostname of the MySQL server.
-        user (str): The username for the MySQL server.
-        password (str): The password for the MySQL server.
-        database (str): The name of the database to connect to.
-
-    Returns:
-        tuple: A tuple containing the database connection and cursor.
-
-    Raises:
-        Exception: If the connection to the database fails.
-    """
+    # Establishes a connection to the MySQL database and returns the connection and cursor
     connection = None
     cursor = None
     try:
@@ -36,13 +22,7 @@ def get_db(host="localhost", user="root", password="Ahsan7424", database="store"
 
 
 def close_db(connection, cursor):
-    """
-    Closes a database connection and cursor.
-
-    Args:
-        connection (mysql.connector.connection.MySQLConnection): The database connection object.
-        cursor (mysql.connector.cursor.MySQLCursor): The database cursor object.
-    """
+    # Closes a database connection and cursor
     try:
         if cursor:
             cursor.close()

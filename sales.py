@@ -1,41 +1,25 @@
 from database import get_db, close_db
 from decimal import Decimal
 
+# Import for low stock alerts and large transaction alerts
+try:
+    from Automations import check_and_alert_low_stock, check_and_alert_large_transaction
+except ImportError:
+    check_and_alert_low_stock = None
+    check_and_alert_large_transaction = None
+
 class SalesError(Exception):
-    """
-    Represents an error that occurs during sales operations.
-    """
+    """Sales operation error."""
     pass
 
 def handle_error(connection, cursor, error):
-    """
-    Handles errors, closes the database connection if needed, and raises a SalesError.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        error: The exception that occurred.
-    """
+    """Close DB connection and raise SalesError."""
     if connection and cursor:
         close_db(connection, cursor)
     raise SalesError(str(error))
 
-
-
 def get_product(cursor, sku):
-    """
-    Retrieves a product from the database based on its SKU.
-
-    Args:
-        cursor: The database cursor object.
-        sku (str): The SKU of the product to retrieve.
-
-    Returns:
-        dict: A dictionary containing the product details.
-
-    Raises:
-        SalesError: If the product is not found or a database error occurs.
-    """
+    """Get product by SKU."""
     try:
         query = "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id FROM Products p JOIN Categories c ON p.category_id = c.category_id WHERE p.SKU = %s"
         cursor.execute(query, (sku,))
@@ -54,17 +38,7 @@ def get_product(cursor, sku):
         raise SalesError(f"Error getting product: {e}")
 
 def add_to_cart(cart, sku, quantity):
-    """
-    Adds a product to the shopping cart or increases its quantity if already present.
-
-    Args:
-        cart (list): The shopping cart (a list of dictionaries).
-        sku (str): The SKU of the product to add.
-        quantity (int): The quantity of the product to add.
-
-    Raises:
-        SalesError: If quantity <= 0.
-    """
+    # Add product to cart or increase quantity
     if quantity <= 0:
         raise SalesError("Quantity must be greater than 0.")
     for item in cart:
@@ -74,16 +48,7 @@ def add_to_cart(cart, sku, quantity):
     cart.append({'SKU': sku, 'quantity': quantity})
 
 def remove_from_cart(cart, sku):
-    """
-    Removes a product from the shopping cart.
-
-    Args:
-        cart (list): The shopping cart (a list of dictionaries).
-        sku (str): The SKU of the product to remove.
-
-    Raises:
-        SalesError: If the SKU is not found in the cart.
-    """
+    # Remove product from cart
     for item in cart:
         if item['SKU'] == sku:
             cart.remove(item)
@@ -91,17 +56,7 @@ def remove_from_cart(cart, sku):
     raise SalesError(f"SKU '{sku}' not found in cart.")
 
 def update_cart_quantity(cart, sku, quantity):
-    """
-    Updates the quantity of a product in the shopping cart.
-
-    Args:
-        cart (list): The shopping cart (a list of dictionaries).
-        sku (str): The SKU of the product to update.
-        quantity (int): The new quantity of the product.
-
-    Raises:
-        SalesError: If quantity <= 0 or SKU is not found in cart.
-    """
+    # Update product quantity in cart
     if quantity <= 0:
         raise SalesError("Quantity must be greater than 0.")
     for item in cart:
@@ -111,32 +66,11 @@ def update_cart_quantity(cart, sku, quantity):
     raise SalesError(f"SKU '{sku}' not found in cart.")
 
 def get_cart_items(cart):
-    """
-    Retrieves all items in the shopping cart.
-
-    Args:
-        cart (list): The shopping cart (a list of dictionaries).
-
-    Returns:
-        list: The list of items in the cart.
-    """
+    # Get all cart items
     return cart
 
 def calculate_totals(cart, cursor):
-    """
-    Calculates the subtotal, taxes, and total of all items in the shopping cart.
-
-    Args:
-        cart (list): The shopping cart (a list of dictionaries).
-        cursor: The database cursor object.
-
-    Returns:
-        dict: A dictionary containing the subtotal, taxes, and total.
-
-    Raises:
-        SalesError: If any item in the cart references a SKU not in the database, 
-                    or any database error occurs.
-    """
+    # Calculate subtotal, taxes, and total
     try:
         subtotal = Decimal('0.00')
         for item in cart:
@@ -148,30 +82,14 @@ def calculate_totals(cart, cursor):
             price = result['price']
             quantity = Decimal(str(item['quantity']))
             subtotal += price * quantity
-        taxes = subtotal * Decimal('0.10')  # 10% tax
+        taxes = subtotal * Decimal('0.175')  # 10% tax
         total = subtotal + taxes
         return {"subtotal": float(subtotal), "taxes": float(taxes), "total": float(total)}
     except Exception as e:
         raise SalesError(f"Error calculating totals: {e}")
 
 def log_sale(connection, cursor, cart, employee_id, customer_id):
-    """
-    Logs a sale in the database.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        cart (list): The shopping cart (a list of dictionaries).
-        employee_id (int): The ID of the employee who made the sale.
-        customer_id (int): The ID of the customer who made the purchase.
-
-    Returns:
-        int: The ID of the newly created sale (transaction).
-
-    Raises:
-        SalesError: If the employee_id or customer_id doesn't exist, 
-                    or any database error occurs.
-    """
+    # Log sale transaction to database
     try:
         # Check if customer_id exists (if provided)
         if customer_id is not None:
@@ -221,25 +139,21 @@ def log_sale(connection, cursor, cart, employee_id, customer_id):
                 "UPDATE Products SET stock = stock - %s WHERE SKU = %s",
                 (item['quantity'], item['SKU'])
             )
+            # Check for low stock and send alert if needed
+            if check_and_alert_low_stock:
+                check_and_alert_low_stock(cursor, item['SKU'])
         connection.commit()
+        
+        # Check for large transaction and send alert if needed
+        if check_and_alert_large_transaction:
+            check_and_alert_large_transaction(cursor, sale_id, totals['total'], employee_id, customer_id)
+        
         return sale_id
     except Exception as e:
         raise SalesError(f"Error logging sale: {e}")
 
 def generate_receipt(cursor, transaction_id):
-    """
-    Generates a receipt for a given transaction ID.
-
-    Args:
-        cursor: The database cursor object.
-        transaction_id (int): The unique ID of the sale.
-
-    Returns:
-        str: The receipt text as a formatted string.
-
-    Raises:
-        SalesError: If the transaction_id is not found or a database error occurs.
-    """
+    """Generate receipt text for transaction."""
     try:
         query = """
             SELECT s.sale_datetime, s.total, si.SKU, si.quantity, si.price
@@ -272,16 +186,7 @@ def generate_receipt(cursor, transaction_id):
         raise SalesError(f"Error generating receipt: {e}")
 
 def generate_receipt_dict(cursor, transaction_id):
-    """
-    Generates a receipt for a given transaction ID as a list of dicts for UI display.
-    Args:
-        cursor: The database cursor object.
-        transaction_id (int): The unique ID of the sale.
-    Returns:
-        list: List of dicts with keys: SKU, quantity, price
-    Raises:
-        SalesError: If the transaction_id is not found or a database error occurs.
-    """
+    """Generate receipt data as dictionary."""
     try:
         query = """
             SELECT si.SKU, si.quantity, si.price

@@ -2,14 +2,7 @@ import database
 import datetime
 
 def sales_by_employee(cursor, employee_id):
-    """
-    Returns all sales (sale_id, sale_datetime, total, customer_id, customer_name) for a selected employee.
-    Args:
-        cursor: The database cursor object.
-        employee_id (int): The employee's ID.
-    Returns:
-        list[dict]: Each dict represents a sale.
-    """
+    # Returns all sales for a selected employee
     try:
         query = """
             SELECT s.sale_id, s.sale_datetime, s.total, s.customer_id, c.name AS customer_name
@@ -34,14 +27,7 @@ def sales_by_employee(cursor, employee_id):
         raise ValueError(f"Error generating sales by employee report: {e}")
 
 def supplier_purchase_report(cursor, supplier_id):
-    """
-    Returns all purchases (purchase_id, purchase_date, SKU, product_name, quantity, price, line_total) for a selected supplier.
-    Args:
-        cursor: The database cursor object.
-        supplier_id (int): The supplier's ID.
-    Returns:
-        list[dict]: Each dict represents a purchase.
-    """
+    # Returns all purchases for a selected supplier
     try:
         query = """
             SELECT p.purchase_id, p.purchase_datetime, pi.SKU, pr.name AS product_name, pi.quantity, pr.price, (pi.quantity * pr.price) AS line_total
@@ -69,13 +55,7 @@ def supplier_purchase_report(cursor, supplier_id):
         raise ValueError(f"Error generating supplier purchase report: {e}")
 
 def inventory_adjustment_history(cursor):
-    """
-    Returns all inventory adjustments (adjustment_id, date, SKU, quantity_change, employee_name).
-    Args:
-        cursor: The database cursor object.
-    Returns:
-        list[dict]: Each dict represents an inventory adjustment.
-    """
+    # Returns all inventory adjustments
     try:
         query = """
             SELECT ia.adjustment_id, ia.adjustment_datetime, ia.SKU, ia.quantity_change, ia.reason, e.name AS employee_name

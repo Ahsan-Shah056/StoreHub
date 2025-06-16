@@ -1,29 +1,18 @@
 from database import close_db
 
+# Import for low stock alerts
+try:
+    from Automations import check_and_alert_low_stock
+except ImportError:
+    check_and_alert_low_stock = None
+
 
 def handle_error(connection, cursor, e):
     raise ValueError(str(e))
 
 
 def add_item(connection, cursor, sku, name, category, price, stock, supplier_id):
-    """Adds a new item to the inventory.
-
-    Args:
-        connection: The database connection.
-        cursor: The database cursor.
-        sku: The SKU of the item.
-        name: The name of the item.
-        category: The category of the item.
-        price: The price of the item.
-        stock: The stock of the item.
-        supplier_id: The supplier ID of the item.
-
-    Returns:
-        A dictionary containing the details of the added item.
-
-    Raises:
-        ValueError: If the price or stock is negative, or if the category or supplier does not exist.
-    """
+    # Add new item to inventory
     try:
         if price <= 0 or stock < 0:
             raise ValueError("Price must be greater than 0 and stock cannot be negative.")
@@ -54,7 +43,7 @@ def add_item(connection, cursor, sku, name, category, price, stock, supplier_id)
 
 
 def delete_item(connection, cursor, sku):
-    """Deletes an item from the inventory, including related inventory adjustments."""
+    # Deletes an item from the inventory, including related inventory adjustments
     try:
         item = get_item(connection, cursor, sku)
         # First, delete related inventory adjustments
@@ -68,19 +57,7 @@ def delete_item(connection, cursor, sku):
 
 
 def get_item(connection, cursor, sku):
-    """Retrieves an item from the inventory.
-
-    Args:
-        connection: The database connection.
-        cursor: The database cursor.
-        sku: The SKU of the item to retrieve.
-
-    Returns:
-        A dictionary containing the item details.
-
-    Raises:
-        ValueError: If the SKU does not exist.
-    """
+    # Get item by SKU
     try:
         cursor.execute(
             "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id "
@@ -103,15 +80,7 @@ def get_item(connection, cursor, sku):
 
 
 def view_inventory(connection, cursor):
-    """Retrieves all items in the inventory.
-
-    Args:
-        connection: The database connection.
-        cursor: The database cursor.
-
-    Returns:
-        list: A list of dictionaries, where each dictionary contains the details of an item.
-    """
+    # Get all inventory items
     try:
         cursor.execute(
             "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id "
@@ -134,10 +103,7 @@ def view_inventory(connection, cursor):
 
 
 def check_low_stock(connection, cursor, threshold=None):
-    """Retrieves items with low stock from the inventory.
-
-    
-    """
+    # Get items with low stock
     try:
         if threshold is None:
             query = "SELECT SKU, name, stock FROM Products WHERE stock < 25"
@@ -155,7 +121,7 @@ def check_low_stock(connection, cursor, threshold=None):
 
 
 def adjust_stock(connection, cursor, sku, quantity_change, reason, employee_id):
-    """Adjusts the stock of an item in the inventory, now requires employee_id."""
+    # Adjust item stock with reason tracking
     try:
         item = get_item(connection, cursor, sku)
         new_stock = item["stock"] + quantity_change
@@ -167,6 +133,11 @@ def adjust_stock(connection, cursor, sku, quantity_change, reason, employee_id):
             (sku, quantity_change, reason, employee_id)
         )
         connection.commit()
+        
+        # Check for low stock and send alert if needed
+        if check_and_alert_low_stock:
+            check_and_alert_low_stock(cursor, sku)
+            
         return get_item(connection, cursor, sku)
     except Exception as e:
         handle_error(connection, cursor, f"Error adjusting stock: {e}")

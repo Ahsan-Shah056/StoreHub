@@ -2,26 +2,14 @@ from database import close_db
 
 
 def handle_error(connection, cursor, error_message):
-    """
-    Handles errors by closing the database connection and raising a ValueError.
-    """
+    # Handles errors by closing the database connection and raising a ValueError
     if connection and cursor:
         close_db(connection, cursor)
     raise ValueError(error_message)
 
 
 def add_employee(connection, cursor, name):
-    """
-    Adds a new employee to the database.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        name (str): The name of the employee.
-
-    Returns:
-        dict: A dictionary containing the details of the added employee.
-    """
+    # Adds a new employee to the database
     try:
         query = "INSERT INTO Employees (name) VALUES (%s)"
         cursor.execute(query, (name,))
@@ -34,18 +22,7 @@ def add_employee(connection, cursor, name):
 
 
 def update_employee(connection, cursor, employee_id, name):
-    """
-    Updates an existing employee's information in the database.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        employee_id (int): The ID of the employee to update.
-        name (str): The new name of the employee.
-
-    Returns:
-        dict: A dictionary containing the updated employee's details.
-    """
+    # Updates an existing employee's information in the database
     try:
         query = "UPDATE Employees SET name = %s WHERE employee_id = %s"
         cursor.execute(query, (name, employee_id))
@@ -57,20 +34,7 @@ def update_employee(connection, cursor, employee_id, name):
 
 
 def delete_employee(connection, cursor, employee_id):
-    """
-    Deletes an employee from the database.
-
-    Args:
-        connection: The database connection object.
-        cursor: The database cursor object.
-        employee_id (int): The ID of the employee to delete.
-
-    Returns:
-        dict: A dictionary containing the details of the deleted employee.
-
-    Raises:
-        ValueError: If the employee with the given ID does not exist.
-    """
+    # Deletes an employee from the database
     try:
         employee = get_employee(cursor, employee_id)
         query = "DELETE FROM Employees WHERE employee_id = %s"
@@ -82,16 +46,7 @@ def delete_employee(connection, cursor, employee_id):
 
 
 def view_employees(cursor, connection=None):
-    """
-    Retrieves all employees from the database.
-
-    Args:
-        cursor: The database cursor object.
-        connection: The database connection object (optional, for error handling).
-
-    Returns:
-        list: A list of dictionaries, where each dictionary represents an employee.
-    """
+    # Retrieves all employees from the database
     try:
         query = "SELECT employee_id, name, created_at FROM Employees"
         cursor.execute(query)
@@ -110,19 +65,7 @@ def view_employees(cursor, connection=None):
 
 
 def get_employee(cursor, employee_id):
-    """
-    Retrieves an employee from the database by their ID.
-
-    Args:
-        cursor: The database cursor object.
-        employee_id (int): The ID of the employee to retrieve.
-
-    Returns:
-        dict: A dictionary containing the employee's details.
-
-    Raises:
-        ValueError: If the employee with the given ID does not exist.
-    """
+    # Retrieves an employee from the database by their ID
     try:
         query = "SELECT employee_id, name, created_at FROM Employees WHERE employee_id = %s"
         cursor.execute(query, (employee_id,))
@@ -141,16 +84,7 @@ def get_employee(cursor, employee_id):
 
 
 def search_employee_by_name(cursor, name):
-    """
-    Searches for employees in the database whose names contain the given search term.
-
-    Args:
-        cursor: The database cursor object.
-        name (str): The name or part of the name to search for.
-
-    Returns:
-        list: A list of dictionaries, where each dictionary represents an employee.
-    """
+    # Searches for employees in the database whose names contain the given search term
     try:
         query = "SELECT employee_id, name, created_at FROM Employees WHERE name LIKE %s"
         cursor.execute(query, (f"%{name}%",))

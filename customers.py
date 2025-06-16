@@ -30,9 +30,7 @@ def get_all_customers(cursor):
 
 
 def delete_customer(connection, cursor, customer_id):
-    """
-    Deletes a customer from the database, but only if they have no related sales.
-    """
+    # Delete customer if no related sales exist
     try:
         if customer_id == 0:
             raise ValueError("Cannot delete the anonymous customer.")
@@ -54,15 +52,7 @@ def delete_customer(connection, cursor, customer_id):
 
 
 def view_customers(cursor):
-    """
-    Retrieves all customers from the database.
-
-    Args:
-        cursor: The database cursor object.
-
-    Returns:
-        list: A list of dictionaries containing the details of all customers.
-    """
+    # Get all customers from database
     try:
         query = "SELECT * FROM Customers"
         cursor.execute(query)
@@ -83,16 +73,7 @@ def view_customers(cursor):
 
 
 def get_customer(cursor, customer_id):
-    """
-    Retrieves a customer from the database by their ID.
-
-    Args:
-        cursor: The database cursor object.
-        customer_id (int): The ID of the customer to retrieve.
-
-    Returns:
-        dict: A dictionary containing the customer's details.
-    """
+    # Get customer by ID
     try:
         query = "SELECT * FROM Customers WHERE customer_id = %s"
         cursor.execute(query, (customer_id,))
@@ -115,16 +96,7 @@ def get_customer_by_id(cursor, customer_id):
 
 
 def search_customer_by_name(cursor, name):
-    """
-    Searches for customers in the database by name.
-
-    Args:
-        cursor: The database cursor object.
-        name (str): The name or part of the name to search for.
-
-    Returns:
-        list: A list of dictionaries containing the details of matching customers.
-    """
+    # Search for customers by name
     try:
         query = "SELECT * FROM Customers WHERE name LIKE %s"
         cursor.execute(query, ('%' + name + '%',))

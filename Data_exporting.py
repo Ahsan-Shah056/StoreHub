@@ -3,12 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 def export_treeview_to_csv(treeview, parent_window=None):
-    """
-    Export the contents of a Tkinter Treeview to a CSV file.
-    Args:
-        treeview (ttk.Treeview): The Treeview widget whose data to export.
-        parent_window (tk.Tk or tk.Toplevel, optional): The parent window for dialogs.
-    """
+    # Export the contents of a Tkinter Treeview to a CSV file
     # Prompt user for file location
     file_path = filedialog.asksaveasfilename(
         parent=parent_window,

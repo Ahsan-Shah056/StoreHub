@@ -17,10 +17,7 @@ from Data_exporting import export_treeview_to_csv
 # All widget creation should be inside class methods and only after root is created in main.py
 
 def apply_styles(widget, master=None):
-    """
-    Apply custom styles to the given widget and its children.
-    Always use the provided master/root for tkFont.Font to avoid hidden root window creation.
-    """
+    # Apply custom styles to the given widget and its children
     if master is None:
         master = widget.winfo_toplevel()
     font = tkFont.Font(master=master, family="Helvetica", size=10, weight="bold")
@@ -37,9 +34,7 @@ def apply_styles(widget, master=None):
         apply_styles(child, master=master)
 
 def alternate_treeview_rows(treeview):
-    """
-    Alternate row colors for a Treeview widget.
-    """
+    # Alternate row colors for a Treeview widget
     # Configure tags in case they're not already configured
     treeview.tag_configure("evenrow", background="#f9f9f9")
     treeview.tag_configure("oddrow", background="#e9e9e9")
@@ -50,12 +45,7 @@ def alternate_treeview_rows(treeview):
         treeview.item(item, tags=(tag,))
 
 class SalesUI:
-    """
-    UI class for sales operations, including product search, adding to cart,
-    updating cart quantity, and checkout. This interface is designed to be
-    user-friendly and visually appealing, with intuitive layouts and interactive
-    elements to enhance the user experience.
-    """
+    # UI class for sales operations
     def __init__(self, master):
         # Title and description
         self.title_label = ttk.Label(master, text="Sales Dashboard", font=("Helvetica", 18, "bold"))
@@ -297,7 +287,7 @@ class SalesUI:
         self.purchase_status.config(text="Cart emptied.", foreground='blue')
 
     def _on_resend_receipt(self):
-        """Resend the last receipt to customer email"""
+        # Resend the last receipt to customer email
         if self.resend_receipt_callback:
             self.resend_receipt_callback()
         else:
@@ -1276,7 +1266,7 @@ class POSApp:
         self.calculate_and_display_totals()
 
     def _logout(self):
-        """Handle logout button click - notify main app that user wants to logout"""
+        # Handle logout button click - notify main app that user wants to logout
         if hasattr(self, 'logout_callback') and self.logout_callback:
             self.logout_callback()
 
@@ -1302,12 +1292,12 @@ def add_to_cart(product_listbox, add_to_cart_quantity_entry, cart_tree, cart, cu
 
 # Define handle_error function
 def handle_error(error_message):
-    """Displays an error message in a message box."""
+    # Displays an error message in a message box
     messagebox.showerror("Error", error_message)
 
 # Define _update_cart_display function
 def _update_cart_display(cart, cart_tree, cursor):
-    """Updates the cart display in the UI with the current items in the cart."""
+    # Updates the cart display in the UI with the current items in the cart
     try:
         cart_tree.delete(*cart_tree.get_children())
         for item in cart:
