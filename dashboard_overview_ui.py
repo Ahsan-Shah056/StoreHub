@@ -49,21 +49,80 @@ class OverviewUI(DashboardBaseUI):
     def create_overview_ui(self):
         """Create the comprehensive overview interface"""
         
-        # Main scrollable frame
-        canvas = tk.Canvas(self.parent)
-        scrollbar = ttk.Scrollbar(self.parent, orient="vertical", command=canvas.yview)
-        self.scrollable_frame = ttk.Frame(canvas)
+        # Create a main frame container 
+        main_frame = ttk.Frame(self.parent)
+        main_frame.pack(fill='both', expand=True)
         
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Main scrollable frame with smart scrollbar that blends with UI
+        self.canvas = tk.Canvas(main_frame, highlightthickness=0, bd=0)
+        self.scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
         
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        # Configure Canvas to match the theme background
+        def update_canvas_bg():
+            # Get the background color from the parent frame
+            try:
+                # For TTK themes, get the background color
+                style = ttk.Style()
+                bg_color = style.lookup('TFrame', 'background')
+                if bg_color:
+                    self.canvas.configure(bg=bg_color)
+                else:
+                    # Fallback to system default
+                    self.canvas.configure(bg=main_frame.cget('bg'))
+            except:
+                # Ultimate fallback
+                self.canvas.configure(bg='SystemButtonFace')
         
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        # Update background initially and when theme might change
+        self.parent.after(1, update_canvas_bg)
+        
+        # Configure scrolling with auto-hide scrollbar
+        def configure_scroll_region(event=None):
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            
+            # Make the canvas window width match the canvas width
+            canvas_width = self.canvas.winfo_width()
+            if canvas_width > 1:
+                self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+            
+            # Auto-hide scrollbar when not needed
+            canvas_height = self.canvas.winfo_height()
+            content_height = self.scrollable_frame.winfo_reqheight()
+            
+            if content_height > canvas_height and canvas_height > 1:
+                # Show scrollbar when content exceeds canvas height
+                self.scrollbar.pack(side="right", fill="y")
+            else:
+                # Hide scrollbar when content fits
+                self.scrollbar.pack_forget()
+        
+        self.scrollable_frame.bind("<Configure>", configure_scroll_region)
+        self.canvas.bind("<Configure>", configure_scroll_region)
+        
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Pack canvas (scrollbar will be packed dynamically)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # Bind mousewheel to canvas for smooth scrolling
+        def _on_mousewheel(event):
+            if self.scrollbar.winfo_viewable():  # Only scroll if scrollbar is visible
+                self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        def _bind_mousewheel(event):
+            self.canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            self.canvas.bind_all("<Button-4>", lambda e: _on_mousewheel(e) if self.scrollbar.winfo_viewable() else None)
+            self.canvas.bind_all("<Button-5>", lambda e: _on_mousewheel(e) if self.scrollbar.winfo_viewable() else None)
+        
+        def _unbind_mousewheel(event):
+            self.canvas.unbind_all("<MouseWheel>")
+            self.canvas.unbind_all("<Button-4>")
+            self.canvas.unbind_all("<Button-5>")
+        
+        self.canvas.bind('<Enter>', _bind_mousewheel)
+        self.canvas.bind('<Leave>', _unbind_mousewheel)
         
         # Overview header
         header_frame = ttk.Frame(self.scrollable_frame)

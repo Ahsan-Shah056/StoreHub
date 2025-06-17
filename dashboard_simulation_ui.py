@@ -8,6 +8,11 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+import warnings
+
+# Suppress matplotlib layout warnings for better user experience
+warnings.filterwarnings('ignore', message='Tight layout not applied*')
+
 from dashboard_base import DashboardBaseUI, DashboardConstants
 import dashboard
 import inventory
@@ -121,7 +126,7 @@ class SimulationUI(DashboardBaseUI):
         chart_frame = ttk.LabelFrame(results_frame, text="Revenue vs Price Chart", padding="5")
         chart_frame.pack(fill='x', pady=(10, 0))
         
-        self.price_fig, self.price_ax = plt.subplots(figsize=(10, 3))
+        self.price_fig, self.price_ax = plt.subplots(figsize=(10, 3.5))
         self.price_canvas = FigureCanvasTkAgg(self.price_fig, chart_frame)
         self.price_canvas.get_tk_widget().pack(fill='both', expand=True)
     
@@ -219,21 +224,53 @@ class SimulationUI(DashboardBaseUI):
         chart_frame = ttk.LabelFrame(display_frame, text="Forecast Visualization", padding="5")
         chart_frame.pack(fill='both', expand=True)
         
-        self.forecast_fig, self.forecast_ax = plt.subplots(figsize=(10, 4))
+        self.forecast_fig, self.forecast_ax = plt.subplots(figsize=(10, 4.5))
         self.forecast_canvas = FigureCanvasTkAgg(self.forecast_fig, chart_frame)
         self.forecast_canvas.get_tk_widget().pack(fill='both', expand=True)
     
     def create_optimization_tab(self):
         """Create optimization analysis tab"""
-        # Main container with scroll
-        canvas = tk.Canvas(self.optimization_frame)
+        # Main container with enhanced canvas
+        canvas = tk.Canvas(self.optimization_frame, highlightthickness=0, bd=0)
         scrollbar = ttk.Scrollbar(self.optimization_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Configure Canvas to match the theme background
+        def update_canvas_bg():
+            try:
+                style = ttk.Style()
+                bg_color = style.lookup('TFrame', 'background')
+                if bg_color:
+                    canvas.configure(bg=bg_color)
+                else:
+                    canvas.configure(bg=self.optimization_frame.cget('bg'))
+            except:
+                canvas.configure(bg='SystemButtonFace')
+        
+        self.optimization_frame.after(1, update_canvas_bg)
+        
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            # Make the canvas window width match the canvas width
+            canvas_width = canvas.winfo_width()
+            if canvas_width > 1:
+                canvas.itemconfig(canvas_window, width=canvas_width)
+            
+            # Auto-hide scrollbar when not needed
+            canvas_height = canvas.winfo_height()
+            content_height = scrollable_frame.winfo_reqheight()
+            
+            if content_height > canvas_height and canvas_height > 1:
+                scrollbar.pack(side="right", fill="y")
+            else:
+                scrollbar.pack_forget()
+        
+        scrollable_frame.bind("<Configure>", configure_scroll_region)
+        canvas.bind("<Configure>", configure_scroll_region)
+        
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
         
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -282,9 +319,8 @@ class SimulationUI(DashboardBaseUI):
                                             font=DashboardConstants.BODY_FONT)
         self.optimization_summary.pack()
         
-        # Pack canvas and scrollbar
+        # Pack canvas (scrollbar will be packed dynamically)
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
     
     def load_product_for_price_simulation(self):
         """Load product data for price simulation"""
@@ -372,7 +408,12 @@ class SimulationUI(DashboardBaseUI):
                              marker='*', markersize=12, color='red', label='Max Revenue')
             self.price_ax.legend()
         
-        self.price_fig.tight_layout()
+        # Use subplots_adjust instead of tight_layout to avoid warnings
+        try:
+            self.price_fig.tight_layout(pad=1.0)
+        except:
+            # Fallback to subplots_adjust if tight_layout fails
+            self.price_fig.subplots_adjust(left=0.1, bottom=0.15, right=0.95, top=0.9)
         self.price_canvas.draw()
     
     def add_inventory_scenario(self):
@@ -488,7 +529,12 @@ class SimulationUI(DashboardBaseUI):
             self.forecast_ax.legend()
             self.forecast_ax.grid(True, alpha=0.3)
         
-        self.forecast_fig.tight_layout()
+        # Use subplots_adjust instead of tight_layout to avoid warnings
+        try:
+            self.forecast_fig.tight_layout(pad=1.0)
+        except:
+            # Fallback to subplots_adjust if tight_layout fails
+            self.forecast_fig.subplots_adjust(left=0.1, bottom=0.12, right=0.95, top=0.9)
         self.forecast_canvas.draw()
     
     def run_pricing_optimization(self):

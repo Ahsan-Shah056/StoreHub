@@ -14,22 +14,30 @@ class AnalyticsUI(DashboardBaseUI):
     def __init__(self, parent, callbacks):
         super().__init__(parent, callbacks)
         self.chart_view_mode = "Daily"  # Daily, Weekly, Monthly
+        self.data_limit_var = None  # Will be initialized in UI creation
+        self.chart_style_var = None  # Will be initialized in UI creation
         
         # Import required libraries for charts
         try:
             import matplotlib.pyplot as plt
             from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
             from matplotlib.figure import Figure
+            import matplotlib.dates as mdates
             import numpy as np
             
             self.matplotlib_available = True
             self.plt = plt
             self.FigureCanvasTkAgg = FigureCanvasTkAgg
             self.Figure = Figure
+            self.mdates = mdates
             self.np = np
             
-            # Set matplotlib style
+            # Set matplotlib style and configure for better date handling
             plt.style.use('seaborn-v0_8' if 'seaborn-v0_8' in plt.style.available else 'default')
+            
+            # Configure matplotlib to handle dates better
+            import matplotlib
+            matplotlib.rcParams['timezone'] = 'UTC'
             
         except ImportError:
             self.matplotlib_available = False
@@ -70,21 +78,49 @@ class AnalyticsUI(DashboardBaseUI):
     def create_analytics_ui(self):
         """Create comprehensive analytics interface with charts and visualizations"""
         
-        # Main scrollable frame
-        canvas = tk.Canvas(self.parent)
+        # Main scrollable frame with enhanced canvas
+        canvas = tk.Canvas(self.parent, highlightthickness=0, bd=0)
         scrollbar = ttk.Scrollbar(self.parent, orient="vertical", command=canvas.yview)
         self.scrollable_frame = ttk.Frame(canvas)
         
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Configure Canvas to match the theme background
+        def update_canvas_bg():
+            try:
+                style = ttk.Style()
+                bg_color = style.lookup('TFrame', 'background')
+                if bg_color:
+                    canvas.configure(bg=bg_color)
+                else:
+                    canvas.configure(bg=self.parent.cget('bg'))
+            except:
+                canvas.configure(bg='SystemButtonFace')
         
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.parent.after(1, update_canvas_bg)
+        
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            # Make the canvas window width match the canvas width
+            canvas_width = canvas.winfo_width()
+            if canvas_width > 1:
+                canvas.itemconfig(canvas_window, width=canvas_width)
+            
+            # Auto-hide scrollbar when not needed
+            canvas_height = canvas.winfo_height()
+            content_height = self.scrollable_frame.winfo_reqheight()
+            
+            if content_height > canvas_height and canvas_height > 1:
+                scrollbar.pack(side="right", fill="y")
+            else:
+                scrollbar.pack_forget()
+        
+        self.scrollable_frame.bind("<Configure>", configure_scroll_region)
+        canvas.bind("<Configure>", configure_scroll_region)
+        
+        canvas_window = canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
         
         # Analytics header with view controls
         self.create_analytics_header()
@@ -122,6 +158,28 @@ class AnalyticsUI(DashboardBaseUI):
         
         # Refresh button
         ttk.Button(view_frame, text="🔄 Refresh Charts", command=self.refresh_charts).pack(side=tk.RIGHT, padx=10)
+        
+        # Chart configuration controls
+        config_frame = ttk.Frame(header_frame)
+        config_frame.pack(fill='x', pady=(5, 0))
+        
+        ttk.Label(config_frame, text="Chart Options:", font=DashboardConstants.SMALL_FONT).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Data limit control
+        ttk.Label(config_frame, text="Max Items:", font=DashboardConstants.SMALL_FONT).pack(side=tk.LEFT, padx=(0, 5))
+        self.data_limit_var = tk.StringVar(value="8")
+        data_limit_combo = ttk.Combobox(config_frame, textvariable=self.data_limit_var, 
+                                       values=["5", "8", "10", "15", "20"], width=5, state="readonly")
+        data_limit_combo.pack(side=tk.LEFT, padx=(0, 10))
+        data_limit_combo.bind('<<ComboboxSelected>>', lambda e: self.refresh_charts())
+        
+        # Chart style control
+        ttk.Label(config_frame, text="Style:", font=DashboardConstants.SMALL_FONT).pack(side=tk.LEFT, padx=(0, 5))
+        self.chart_style_var = tk.StringVar(value="Professional")
+        style_combo = ttk.Combobox(config_frame, textvariable=self.chart_style_var, 
+                                  values=["Professional", "Colorful", "Minimal"], width=10, state="readonly")
+        style_combo.pack(side=tk.LEFT, padx=(0, 10))
+        style_combo.bind('<<ComboboxSelected>>', lambda e: self.refresh_charts())
         
         # Current view indicator
         self.view_indicator = ttk.Label(header_frame, text=f"Current View: {self.chart_view_mode}", 
@@ -446,7 +504,7 @@ class AnalyticsUI(DashboardBaseUI):
             print(f"Error refreshing charts: {e}")
     
     def update_sales_trend_chart(self):
-        """Update the sales trend chart"""
+        """Update the sales trend chart with smart data aggregation"""
         try:
             if not self.current_filters:
                 return
@@ -461,29 +519,154 @@ class AnalyticsUI(DashboardBaseUI):
             self.sales_ax1.clear()
             
             if daily_sales:
-                dates = [data['sale_date'] for data in daily_sales]
-                revenues = [float(data['daily_revenue'] or 0) for data in daily_sales]
-                profits = [float(data['daily_profit'] or 0) for data in daily_sales]
+                # Aggregate data based on view mode for better readability
+                aggregated_data = self._aggregate_sales_data(daily_sales)
+                
+                if not aggregated_data:
+                    self.sales_ax1.text(0.5, 0.5, 'No aggregated data available\nfor selected period', 
+                                       horizontalalignment='center', verticalalignment='center',
+                                       transform=self.sales_ax1.transAxes, fontsize=12)
+                    self.sales_ax1.set_title(f"Sales Trend - {self.chart_view_mode} View")
+                    self.sales_canvas.draw()
+                    return
+                
+                # Extract data with error handling and flexible date conversion
+                try:
+                    from datetime import datetime
+                    
+                    dates = []
+                    revenues = []
+                    profits = []
+                    
+                    for i, data in enumerate(aggregated_data):
+                        try:
+                            period = data.get('period', '')
+                            revenue = float(data.get('revenue', 0))
+                            profit = float(data.get('profit', 0))
+                            
+                            # Skip invalid data
+                            if period is None or period == 'Unknown' or period == '':
+                                continue
+                            
+                            # More flexible period handling
+                            if self.chart_view_mode == "Daily":
+                                # Try multiple date formats and fallbacks
+                                if isinstance(period, str) and period:
+                                    # Try different date formats
+                                    date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d']
+                                    date_obj = None
+                                    
+                                    for fmt in date_formats:
+                                        try:
+                                            date_obj = datetime.strptime(period, fmt)
+                                            break
+                                        except ValueError:
+                                            continue
+                                    
+                                    if date_obj:
+                                        dates.append(date_obj)
+                                        revenues.append(revenue)
+                                        profits.append(profit)
+                                    else:
+                                        # Fallback: use a generic label for unparseable dates
+                                        dates.append(f"Day {i+1}")
+                                        revenues.append(revenue)
+                                        profits.append(profit)
+                                elif hasattr(period, 'strftime'):
+                                    # Already a datetime object
+                                    dates.append(period)
+                                    revenues.append(revenue)
+                                    profits.append(profit)
+                            else:
+                                # For Weekly/Monthly, use string labels but ensure they're valid
+                                if period:
+                                    dates.append(str(period))
+                                    revenues.append(revenue)
+                                    profits.append(profit)
+                        except (ValueError, TypeError):
+                            continue
+                    
+                    if not dates:
+                        raise ValueError("No valid data points found after processing")
+                        
+                except Exception as e:
+                    print(f"Error extracting chart data: {e}")
+                    self.sales_ax1.text(0.5, 0.5, f'Error processing chart data:\n{str(e)[:50]}...\nPlease check data format', 
+                                       horizontalalignment='center', verticalalignment='center',
+                                       transform=self.sales_ax1.transAxes, fontsize=10)
+                    self.sales_ax1.set_title(f"Sales Trend - {self.chart_view_mode} View")
+                    self.sales_canvas.draw()
+                    return
+                
+                # Limit data points for readability (max 30 points)
+                if len(dates) > 30:
+                    step = len(dates) // 30
+                    dates = dates[::step]
+                    revenues = revenues[::step]
+                    profits = profits[::step]
                 
                 # Create dual-axis chart
                 self.sales_ax2 = self.sales_ax1.twinx()
                 
-                # Plot revenue
-                line1 = self.sales_ax1.plot(dates, revenues, 'b-', label='Revenue', linewidth=2, marker='o')
+                # Choose markers based on data density
+                marker_style = 'o' if len(dates) <= 15 else None
+                line_width = 2 if len(dates) <= 20 else 1.5
+                
+                # Plot revenue and profit with proper date handling
+                if self.chart_view_mode == "Daily" and dates and hasattr(dates[0], 'strftime'):
+                    # For daily view with datetime objects, format x-axis properly
+                    try:
+                        line1 = self.sales_ax1.plot_date(dates, revenues, 'b-', label='Revenue', 
+                                                        linewidth=line_width, marker=marker_style, markersize=4)
+                        line2 = self.sales_ax2.plot_date(dates, profits, 'g-', label='Profit', 
+                                                        linewidth=line_width, marker=marker_style, markersize=4)
+                        
+                        # Format x-axis for dates using imported mdates
+                        if hasattr(self, 'mdates') and self.mdates:
+                            if len(dates) <= 7:
+                                self.sales_ax1.xaxis.set_major_formatter(self.mdates.DateFormatter('%m/%d'))
+                            elif len(dates) <= 30:
+                                self.sales_ax1.xaxis.set_major_formatter(self.mdates.DateFormatter('%m/%d'))
+                                self.sales_ax1.xaxis.set_major_locator(self.mdates.DayLocator(interval=max(1, len(dates)//10)))
+                            else:
+                                self.sales_ax1.xaxis.set_major_formatter(self.mdates.DateFormatter('%m/%d'))
+                                self.sales_ax1.xaxis.set_major_locator(self.mdates.WeekdayLocator())
+                    except Exception as date_error:
+                        print(f"Date plotting error, falling back to simple plot: {date_error}")
+                        # Fallback to simple string plotting
+                        date_strings = [d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d) for d in dates]
+                        line1 = self.sales_ax1.plot(date_strings, revenues, 'b-', label='Revenue', 
+                                                   linewidth=line_width, marker=marker_style, markersize=4)
+                        line2 = self.sales_ax2.plot(date_strings, profits, 'g-', label='Profit', 
+                                                   linewidth=line_width, marker=marker_style, markersize=4)
+                else:
+                    # For weekly/monthly or string labels
+                    line1 = self.sales_ax1.plot(dates, revenues, 'b-', label='Revenue', 
+                                               linewidth=line_width, marker=marker_style, markersize=4)
+                    line2 = self.sales_ax2.plot(dates, profits, 'g-', label='Profit', 
+                                               linewidth=line_width, marker=marker_style, markersize=4)
+                
                 self.sales_ax1.set_ylabel('Revenue ($)', color='b')
                 self.sales_ax1.tick_params(axis='y', labelcolor='b')
-                
-                # Plot profit
-                line2 = self.sales_ax2.plot(dates, profits, 'g-', label='Profit', linewidth=2, marker='s')
                 self.sales_ax2.set_ylabel('Profit ($)', color='g')
                 self.sales_ax2.tick_params(axis='y', labelcolor='g')
                 
                 # Formatting
-                self.sales_ax1.set_title(f"Sales & Profit Trend - {self.chart_view_mode} View")
+                self.sales_ax1.set_title(f"Sales & Profit Trend - {self.chart_view_mode} View ({len(aggregated_data)} periods)")
                 self.sales_ax1.grid(True, alpha=0.3)
                 
-                # Rotate x-axis labels for better readability
-                self.sales_fig.autofmt_xdate()
+                # Smart x-axis formatting based on data density and type
+                if self.chart_view_mode == "Daily" and dates and hasattr(dates[0], 'strftime'):
+                    # For datetime objects, use matplotlib's automatic date formatting
+                    self.sales_fig.autofmt_xdate()
+                elif len(dates) > 10:
+                    # For string labels, rotate and reduce label frequency for dense data
+                    self.sales_ax1.tick_params(axis='x', rotation=45)
+                    if len(dates) > 20:
+                        # Show every nth label for very dense data
+                        for i, label in enumerate(self.sales_ax1.get_xticklabels()):
+                            if i % 2 != 0:
+                                label.set_visible(False)
                 
             else:
                 self.sales_ax1.text(0.5, 0.5, 'No sales data available\nfor selected period', 
@@ -496,8 +679,122 @@ class AnalyticsUI(DashboardBaseUI):
         except Exception as e:
             print(f"Error updating sales trend chart: {e}")
     
+    def _aggregate_sales_data(self, daily_sales):
+        """Aggregate daily sales data based on current view mode"""
+        try:
+            from datetime import datetime, timedelta
+            from collections import defaultdict
+            
+            if not daily_sales:
+                return []
+            
+            if self.chart_view_mode == "Daily":
+                # For daily view, limit to recent data if too many points
+                recent_data = daily_sales[-30:] if len(daily_sales) > 30 else daily_sales
+                result = []
+                for data in recent_data:
+                    try:
+                        sale_date = data.get('sale_date')
+                        if not sale_date:  # Skip None or empty dates
+                            continue
+                            
+                        result.append({
+                            'period': sale_date, 
+                            'revenue': float(data.get('daily_revenue') or 0), 
+                            'profit': float(data.get('daily_profit') or 0)
+                        })
+                    except (ValueError, TypeError):
+                        continue
+                
+                return result
+            
+            elif self.chart_view_mode == "Weekly":
+                # Aggregate by weeks
+                weekly_data = defaultdict(lambda: {'revenue': 0, 'profit': 0})
+                
+                for data in daily_sales:
+                    try:
+                        sale_date = data.get('sale_date')
+                        if not sale_date:
+                            continue
+                            
+                        date = datetime.strptime(str(sale_date), '%Y-%m-%d')
+                        # Get Monday of the week as the week identifier
+                        week_start = date - timedelta(days=date.weekday())
+                        week_display = week_start.strftime('%m/%d')
+                        
+                        revenue = float(data.get('daily_revenue') or 0)
+                        profit = float(data.get('daily_profit') or 0)
+                        
+                        weekly_data[week_display]['revenue'] += revenue
+                        weekly_data[week_display]['profit'] += profit
+                    except (ValueError, TypeError, AttributeError):
+                        continue
+                
+                result = [{'period': week, 'revenue': data['revenue'], 'profit': data['profit']} 
+                         for week, data in sorted(weekly_data.items())]
+                
+                return result
+            
+            elif self.chart_view_mode == "Monthly":
+                # Aggregate by months
+                monthly_data = defaultdict(lambda: {'revenue': 0, 'profit': 0})
+                
+                for data in daily_sales:
+                    try:
+                        sale_date = data.get('sale_date')
+                        if not sale_date:
+                            continue
+                            
+                        date = datetime.strptime(str(sale_date), '%Y-%m-%d')
+                        month_display = date.strftime('%b %Y')
+                        
+                        revenue = float(data.get('daily_revenue') or 0)
+                        profit = float(data.get('daily_profit') or 0)
+                        
+                        monthly_data[month_display]['revenue'] += revenue
+                        monthly_data[month_display]['profit'] += profit
+                    except (ValueError, TypeError, AttributeError):
+                        continue
+                
+                result = [{'period': month, 'revenue': data['revenue'], 'profit': data['profit']} 
+                         for month, data in sorted(monthly_data.items())]
+                
+                return result
+            
+            return []
+            
+        except Exception as e:
+            print(f"Error aggregating sales data: {e}")
+            return []
+    
+    def get_color_palette(self, count):
+        """Get color palette based on selected style"""
+        try:
+            style = self.chart_style_var.get() if self.chart_style_var and hasattr(self.chart_style_var, 'get') else "Professional"
+            
+            if style == "Professional":
+                # Professional blue-gray palette
+                colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#3D5A80', '#98C1D9', '#EE6C4D', '#293241']
+            elif style == "Colorful":
+                # Vibrant colorful palette
+                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
+            else:  # Minimal
+                # Minimal grayscale with accent
+                colors = ['#2C3E50', '#7F8C8D', '#BDC3C7', '#3498DB', '#95A5A6', '#34495E', '#85929E', '#AEB6BF']
+            
+            # Repeat colors if we need more
+            while len(colors) < count:
+                colors.extend(colors)
+            
+            return colors[:count]
+            
+        except Exception as e:
+            print(f"Error getting color palette: {e}")
+            return ['#3498DB'] * count
+    
     def update_category_chart(self):
-        """Update the category performance chart"""
+        """Update the category performance chart with optimized display"""
         try:
             # Get category data
             category_data = self.dashboard_funcs['get_category_analytics']()
@@ -506,19 +803,56 @@ class AnalyticsUI(DashboardBaseUI):
             self.category_ax.clear()
             
             if category_data:
-                categories = [cat['category_name'] for cat in category_data if cat['total_revenue'] > 0]
-                revenues = [float(cat['total_revenue']) for cat in category_data if cat['total_revenue'] > 0]
+                # Filter and sort categories by revenue
+                filtered_categories = [cat for cat in category_data if cat['total_revenue'] > 0]
+                filtered_categories = sorted(filtered_categories, key=lambda x: float(x['total_revenue']), reverse=True)
                 
-                if categories and revenues:
-                    # Create pie chart
-                    colors = self.plt.cm.Set3(self.np.linspace(0, 1, len(categories)))
-                    wedges, texts, autotexts = self.category_ax.pie(revenues, labels=categories, autopct='%1.1f%%', 
-                                                                   colors=colors, startangle=90)
+                # Limit to top categories for better readability
+                max_categories = int(self.data_limit_var.get()) if self.data_limit_var and hasattr(self.data_limit_var, 'get') else 8
+                if len(filtered_categories) > max_categories:
+                    top_categories = filtered_categories[:max_categories-1]
+                    # Combine remaining categories into "Others"
+                    others_revenue = sum(float(cat['total_revenue']) for cat in filtered_categories[max_categories-1:])
+                    if others_revenue > 0:
+                        top_categories.append({'category_name': 'Others', 'total_revenue': others_revenue})
+                    filtered_categories = top_categories
+                
+                if filtered_categories:
+                    categories = [cat['category_name'] for cat in filtered_categories]
+                    revenues = [float(cat['total_revenue']) for cat in filtered_categories]
+                    
+                    # Use dynamic color palette based on style
+                    colors = self.get_color_palette(len(categories))
+                    
+                    # Create pie chart with improved formatting
+                    wedges, texts, autotexts = self.category_ax.pie(
+                        revenues, 
+                        labels=categories, 
+                        autopct=lambda pct: f'{pct:.1f}%' if pct > 5 else '',  # Only show % for significant slices
+                        colors=colors, 
+                        startangle=90,
+                        explode=[0.05 if i == 0 else 0 for i in range(len(categories))]  # Explode top category
+                    )
                     
                     # Improve text readability
                     for autotext in autotexts:
                         autotext.set_color('white')
                         autotext.set_fontweight('bold')
+                        autotext.set_fontsize(9)
+                    
+                    # Improve label formatting
+                    for text in texts:
+                        text.set_fontsize(8)
+                        # Truncate long category names
+                        if len(text.get_text()) > 12:
+                            text.set_text(text.get_text()[:12] + '...')
+                    
+                    # Add a legend for better clarity
+                    self.category_ax.legend(wedges, [f"{cat}: ${rev:,.0f}" for cat, rev in zip(categories, revenues)],
+                                           title="Revenue by Category",
+                                           loc="center left",
+                                           bbox_to_anchor=(1, 0, 0.5, 1),
+                                           fontsize=8)
                     
                 else:
                     self.category_ax.text(0.5, 0.5, 'No revenue data\navailable by category', 
@@ -529,14 +863,14 @@ class AnalyticsUI(DashboardBaseUI):
                                      horizontalalignment='center', verticalalignment='center',
                                      transform=self.category_ax.transAxes, fontsize=12)
             
-            self.category_ax.set_title("Revenue Distribution by Category")
+            self.category_ax.set_title(f"Revenue Distribution by Category (Top {min(len(filtered_categories) if filtered_categories else 0, max_categories)})")
             self.category_canvas.draw()
             
         except Exception as e:
             print(f"Error updating category chart: {e}")
     
     def update_profit_margin_chart(self):
-        """Update the profit margin analysis chart"""
+        """Update the profit margin analysis chart with optimized display"""
         try:
             # Get profit margin data
             margin_data = self.dashboard_funcs['calculate_profit_margins']()
@@ -545,27 +879,71 @@ class AnalyticsUI(DashboardBaseUI):
             self.margin_ax.clear()
             
             if margin_data:
-                # Get top 10 products by margin
-                top_margins = sorted(margin_data, key=lambda x: x['profit_margin'], reverse=True)[:10]
+                # Filter out products with very low margins or revenue for focus
+                filtered_margins = [p for p in margin_data if float(p.get('profit_margin', 0)) > 0]
                 
-                products = [p['name'][:15] + '...' if len(p['name']) > 15 else p['name'] for p in top_margins]
-                margins = [float(p['profit_margin']) for p in top_margins]
+                # Get top products by margin for better readability
+                max_products = int(self.data_limit_var.get()) if self.data_limit_var else 8
+                top_margins = sorted(filtered_margins, key=lambda x: float(x['profit_margin']), reverse=True)[:max_products]
                 
-                # Create horizontal bar chart
-                bars = self.margin_ax.barh(products, margins, color='skyblue')
-                
-                # Color bars based on margin levels
-                for i, bar in enumerate(bars):
-                    if margins[i] >= 30:
-                        bar.set_color('green')
-                    elif margins[i] >= 20:
-                        bar.set_color('orange')
-                    else:
-                        bar.set_color('red')
-                
-                self.margin_ax.set_xlabel('Profit Margin (%)')
-                self.margin_ax.set_title('Top 10 Products by Profit Margin')
-                self.margin_ax.grid(True, axis='x', alpha=0.3)
+                if top_margins:
+                    # Truncate product names for better display
+                    products = []
+                    for p in top_margins:
+                        name = p['name']
+                        if len(name) > 20:
+                            name = name[:17] + '...'
+                        products.append(name)
+                    
+                    margins = [float(p['profit_margin']) for p in top_margins]
+                    
+                    # Create horizontal bar chart
+                    bars = self.margin_ax.barh(products, margins)
+                    
+                    # Color bars based on margin levels with better color scheme
+                    for i, bar in enumerate(bars):
+                        margin = margins[i]
+                        if margin >= 40:
+                            bar.set_color('#2E8B57')  # Sea Green - Excellent
+                        elif margin >= 25:
+                            bar.set_color('#32CD32')  # Lime Green - Good
+                        elif margin >= 15:
+                            bar.set_color('#FFD700')  # Gold - Average
+                        elif margin >= 5:
+                            bar.set_color('#FF8C00')  # Dark Orange - Low
+                        else:
+                            bar.set_color('#FF6347')  # Tomato - Very Low
+                    
+                    # Add value labels on bars
+                    for i, (bar, margin) in enumerate(zip(bars, margins)):
+                        width = bar.get_width()
+                        self.margin_ax.text(width + 0.5, bar.get_y() + bar.get_height()/2, 
+                                           f'{margin:.1f}%', 
+                                           ha='left', va='center', fontsize=9, fontweight='bold')
+                    
+                    self.margin_ax.set_xlabel('Profit Margin (%)')
+                    self.margin_ax.set_title(f'Top {len(top_margins)} Products by Profit Margin')
+                    self.margin_ax.grid(True, axis='x', alpha=0.3)
+                    
+                    # Add margin level legend
+                    from matplotlib.patches import Patch
+                    legend_elements = [
+                        Patch(facecolor='#2E8B57', label='Excellent (40%+)'),
+                        Patch(facecolor='#32CD32', label='Good (25-40%)'),
+                        Patch(facecolor='#FFD700', label='Average (15-25%)'),
+                        Patch(facecolor='#FF8C00', label='Low (5-15%)'),
+                        Patch(facecolor='#FF6347', label='Very Low (<5%)')
+                    ]
+                    self.margin_ax.legend(handles=legend_elements, loc='lower right', fontsize=8)
+                    
+                    # Adjust layout to prevent label cutoff
+                    self.margin_ax.set_xlim(0, max(margins) * 1.15)
+                    
+                else:
+                    self.margin_ax.text(0.5, 0.5, 'No products with\npositive margins found', 
+                                       horizontalalignment='center', verticalalignment='center',
+                                       transform=self.margin_ax.transAxes, fontsize=12)
+                    self.margin_ax.set_title('Product Profit Margins')
                 
             else:
                 self.margin_ax.text(0.5, 0.5, 'No profit margin\ndata available', 
@@ -579,7 +957,7 @@ class AnalyticsUI(DashboardBaseUI):
             print(f"Error updating profit margin chart: {e}")
     
     def update_inventory_chart(self):
-        """Update the inventory value analysis chart"""
+        """Update the inventory value analysis chart with optimized display"""
         try:
             # Get category data for inventory analysis
             category_data = self.dashboard_funcs['get_category_analytics']()
@@ -588,24 +966,76 @@ class AnalyticsUI(DashboardBaseUI):
             self.inventory_ax.clear()
             
             if category_data:
-                categories = [cat['category_name'] for cat in category_data]
-                cost_values = [float(cat['inventory_cost_value']) for cat in category_data]
-                retail_values = [float(cat['inventory_retail_value']) for cat in category_data]
+                # Filter categories with significant inventory value and limit display
+                significant_categories = [
+                    cat for cat in category_data 
+                    if float(cat['inventory_retail_value']) > 0
+                ]
                 
-                x = self.np.arange(len(categories))
-                width = 0.35
+                # Sort by retail value and take top categories for better readability
+                max_categories = int(self.data_limit_var.get()) if self.data_limit_var and hasattr(self.data_limit_var, 'get') else 6
+                significant_categories = sorted(
+                    significant_categories, 
+                    key=lambda x: float(x['inventory_retail_value']), 
+                    reverse=True
+                )[:max_categories]
                 
-                # Create grouped bar chart
-                bars1 = self.inventory_ax.bar(x - width/2, cost_values, width, label='Cost Value', color='lightcoral')
-                bars2 = self.inventory_ax.bar(x + width/2, retail_values, width, label='Retail Value', color='skyblue')
-                
-                self.inventory_ax.set_xlabel('Categories')
-                self.inventory_ax.set_ylabel('Value ($)')
-                self.inventory_ax.set_title('Inventory Value: Cost vs Retail by Category')
-                self.inventory_ax.set_xticks(x)
-                self.inventory_ax.set_xticklabels(categories, rotation=45, ha='right')
-                self.inventory_ax.legend()
-                self.inventory_ax.grid(True, axis='y', alpha=0.3)
+                if significant_categories:
+                    # Truncate category names for better display
+                    categories = []
+                    for cat in significant_categories:
+                        name = cat['category_name']
+                        if len(name) > 12:
+                            name = name[:9] + '...'
+                        categories.append(name)
+                    
+                    cost_values = [float(cat['inventory_cost_value']) for cat in significant_categories]
+                    retail_values = [float(cat['inventory_retail_value']) for cat in significant_categories]
+                    
+                    x = self.np.arange(len(categories))
+                    width = 0.35
+                    
+                    # Get colors based on style
+                    colors = self.get_color_palette(2)
+                    
+                    # Create grouped bar chart with style-based colors
+                    bars1 = self.inventory_ax.bar(x - width/2, cost_values, width, 
+                                                 label='Cost Value', color=colors[0], alpha=0.8)
+                    bars2 = self.inventory_ax.bar(x + width/2, retail_values, width, 
+                                                 label='Retail Value', color=colors[1], alpha=0.8)
+                    
+                    # Add value labels on bars
+                    for bars in [bars1, bars2]:
+                        for bar in bars:
+                            height = bar.get_height()
+                            if height > 0:
+                                self.inventory_ax.text(bar.get_x() + bar.get_width()/2., height,
+                                                      f'${height:,.0f}',
+                                                      ha='center', va='bottom', fontsize=8, rotation=0)
+                    
+                    self.inventory_ax.set_xlabel('Categories')
+                    self.inventory_ax.set_ylabel('Value ($)')
+                    self.inventory_ax.set_title(f'Inventory Value: Cost vs Retail (Top {len(categories)} Categories)')
+                    self.inventory_ax.set_xticks(x)
+                    self.inventory_ax.set_xticklabels(categories, rotation=45, ha='right')
+                    self.inventory_ax.legend(loc='upper right')
+                    self.inventory_ax.grid(True, axis='y', alpha=0.3)
+                    
+                    # Calculate and show average markup
+                    total_cost = sum(cost_values)
+                    total_retail = sum(retail_values)
+                    if total_cost > 0:
+                        avg_markup = ((total_retail - total_cost) / total_cost) * 100
+                        self.inventory_ax.text(0.02, 0.98, f'Avg. Markup: {avg_markup:.1f}%', 
+                                              transform=self.inventory_ax.transAxes, 
+                                              bbox=dict(boxstyle="round,pad=0.3", facecolor="yellow", alpha=0.7),
+                                              fontsize=9, verticalalignment='top')
+                    
+                else:
+                    self.inventory_ax.text(0.5, 0.5, 'No categories with\nsignificant inventory value', 
+                                          horizontalalignment='center', verticalalignment='center',
+                                          transform=self.inventory_ax.transAxes, fontsize=12)
+                    self.inventory_ax.set_title('Inventory Value Distribution')
                 
             else:
                 self.inventory_ax.text(0.5, 0.5, 'No inventory data\navailable', 
@@ -643,11 +1073,11 @@ class AnalyticsUI(DashboardBaseUI):
             for item in self.top_products_tree.get_children():
                 self.top_products_tree.delete(item)
             
-            # Get top products data
+            # Get top products data - limit to top 10 for better performance
             top_products = self.dashboard_funcs['get_top_products'](
                 self.current_filters['start_date'], 
                 self.current_filters['end_date'], 
-                15  # Top 15 products
+                10  # Reduced from 15 to 10 for better readability
             )
             
             for i, product in enumerate(top_products, 1):

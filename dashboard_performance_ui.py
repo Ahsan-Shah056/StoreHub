@@ -174,17 +174,46 @@ class PerformanceUI(DashboardBaseUI):
     
     def create_cost_efficiency_tab(self):
         """Create cost efficiency analysis tab"""
-        # Main container with scroll
-        canvas = tk.Canvas(self.efficiency_frame)
+        # Main container with enhanced canvas
+        canvas = tk.Canvas(self.efficiency_frame, highlightthickness=0, bd=0)
         scrollbar = ttk.Scrollbar(self.efficiency_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Configure Canvas to match the theme background
+        def update_canvas_bg():
+            try:
+                style = ttk.Style()
+                bg_color = style.lookup('TFrame', 'background')
+                if bg_color:
+                    canvas.configure(bg=bg_color)
+                else:
+                    canvas.configure(bg=self.efficiency_frame.cget('bg'))
+            except:
+                canvas.configure(bg='SystemButtonFace')
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        self.efficiency_frame.after(1, update_canvas_bg)
+        
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            # Make the canvas window width match the canvas width
+            canvas_width = canvas.winfo_width()
+            if canvas_width > 1:
+                canvas.itemconfig(canvas_window, width=canvas_width)
+            
+            # Auto-hide scrollbar when not needed
+            canvas_height = canvas.winfo_height()
+            content_height = scrollable_frame.winfo_reqheight()
+            
+            if content_height > canvas_height and canvas_height > 1:
+                scrollbar.pack(side="right", fill="y")
+            else:
+                scrollbar.pack_forget()
+        
+        scrollable_frame.bind("<Configure>", configure_scroll_region)
+        canvas.bind("<Configure>", configure_scroll_region)
+        
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # Cost efficiency summary
@@ -221,9 +250,8 @@ class PerformanceUI(DashboardBaseUI):
         self.efficiency_tree.configure(yscrollcommand=eff_scrollbar.set)
         eff_scrollbar.pack(side='right', fill='y')
         
-        # Pack canvas and scrollbar
+        # Pack canvas (scrollbar will be packed dynamically)
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
     
     def get_date_range(self):
         """Get start and end dates based on selected period"""
