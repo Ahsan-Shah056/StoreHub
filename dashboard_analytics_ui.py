@@ -440,9 +440,6 @@ class AnalyticsUI(DashboardBaseUI):
         ttk.Button(export_buttons_frame, text="📈 Export Charts as Images", 
                   command=self.export_charts).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(export_buttons_frame, text="📑 Generate Analytics Report", 
-                  command=self.generate_analytics_report).pack(side=tk.LEFT, padx=5)
-        
         # Export status
         self.export_status_label = ttk.Label(export_frame, text="Ready to export analytics data", 
                                             font=DashboardConstants.SMALL_FONT)
@@ -1279,13 +1276,3 @@ class AnalyticsUI(DashboardBaseUI):
         except Exception as e:
             self.show_error("Export Error", f"Error exporting charts: {e}")
             self.export_status_label.config(text="Export failed")
-    
-    def generate_analytics_report(self):
-        """Generate comprehensive analytics report"""
-        try:
-            self.export_status_label.config(text="Generating analytics report...")
-            self.show_info("Report", "Analytics report generation ready!\n\nWould generate comprehensive PDF report with:\n- All charts and visualizations\n- Detailed analytics tables\n- Business insights and recommendations")
-            self.export_status_label.config(text="Report generation ready")
-        except Exception as e:
-            self.show_error("Report Error", f"Error generating report: {e}")
-            self.export_status_label.config(text="Report generation failed")
