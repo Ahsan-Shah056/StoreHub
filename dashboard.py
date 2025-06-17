@@ -755,12 +755,13 @@ class DashboardAnalytics:
             if cursor:
                 cursor.close()
 
-    def get_cost_efficiency_metrics(self) -> List[Dict[str, Any]]:
-        """Get cost efficiency metrics for products and categories"""
+    def get_cost_efficiency_metrics(self, start_date: str = None, end_date: str = None) -> List[Dict[str, Any]]:
+        """Get cost efficiency metrics for products and categories with optional date filtering"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor(dictionary=True)
             
+            # Base query
             query = """
                 SELECT 
                     p.SKU,
@@ -777,12 +778,21 @@ class DashboardAnalytics:
                 JOIN SaleItems si ON p.SKU = si.SKU
                 JOIN Sales s ON si.sale_id = s.sale_id
                 LEFT JOIN Categories c ON p.category_id = c.category_id
+            """
+            
+            # Add date filtering if provided
+            params = []
+            if start_date and end_date:
+                query += " WHERE s.sale_date BETWEEN %s AND %s"
+                params = [start_date, end_date]
+            
+            query += """
                 GROUP BY p.SKU, p.name, p.cost, p.price, c.name
                 HAVING total_units_sold > 0
                 ORDER BY profit_margin DESC, total_profit DESC
             """
             
-            cursor.execute(query)
+            cursor.execute(query, params)
             return cursor.fetchall()
             
         except Exception as e:
@@ -1344,9 +1354,9 @@ def get_product_performance_analysis(start_date: str, end_date: str):
     """Get detailed product performance analysis"""
     return dashboard_analytics.get_product_performance_analysis(start_date, end_date)
 
-def get_cost_efficiency_metrics():
-    """Get cost efficiency metrics for products and categories"""
-    return dashboard_analytics.get_cost_efficiency_metrics()
+def get_cost_efficiency_metrics(start_date: str = None, end_date: str = None):
+    """Get cost efficiency metrics for products and categories with optional date filtering"""
+    return dashboard_analytics.get_cost_efficiency_metrics(start_date, end_date)
 
 def get_employee_productivity_trends(employee_id: int, start_date: str, end_date: str):
     """Get employee productivity trends over time"""
