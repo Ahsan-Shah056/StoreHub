@@ -1,14 +1,21 @@
 """
-Dashboard UI Components for Storecore POS & Inventory System
-Provides comprehensive business intelligence interface with advanced filtering
+Main Dashboard UI Module - Orchestrator
+Main dashboard controller with global filters and subtab management
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 import os
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
+
+# Import modular dashboard components
+from dashboard_base import DashboardBaseUI, DashboardConstants
+from dashboard_overview_ui import OverviewUI
+from dashboard_analytics_ui import AnalyticsUI
+from dashboard_performance_ui import PerformanceUI
+from dashboard_simulation_ui import SimulationUI
 
 class DashboardUI:
     """Main Dashboard UI class with 4 subtabs: Overview, Analytics, Performance, Simulation"""
@@ -62,7 +69,7 @@ class DashboardUI:
         title_label = ttk.Label(
             header_frame, 
             text="📊 Enhanced Business Intelligence Dashboard", 
-            font=("Helvetica", 16, "bold")
+            font=DashboardConstants.HEADER_FONT
         )
         title_label.pack(side=tk.LEFT)
         
@@ -70,7 +77,7 @@ class DashboardUI:
         self.time_label = ttk.Label(
             header_frame, 
             text=f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}", 
-            font=("Helvetica", 10)
+            font=DashboardConstants.BODY_FONT
         )
         self.time_label.pack(side=tk.RIGHT)
         
@@ -94,7 +101,7 @@ class DashboardUI:
         date_row.pack(fill='x', pady=(0, 5))
         
         # Date range selection
-        ttk.Label(date_row, text="Date Range:", font=("Helvetica", 9, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(date_row, text="Date Range:", font=DashboardConstants.SUBHEADER_FONT).pack(side=tk.LEFT, padx=(0, 5))
         
         # Start date
         ttk.Label(date_row, text="From:").pack(side=tk.LEFT, padx=(10, 2))
@@ -146,7 +153,7 @@ class DashboardUI:
         entity_row.pack(fill='x', pady=(5, 0))
         
         # Employee filter
-        ttk.Label(entity_row, text="Employee:", font=("Helvetica", 9, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(entity_row, text="Employee:", font=DashboardConstants.SUBHEADER_FONT).pack(side=tk.LEFT, padx=(0, 5))
         self.employee_combobox = ttk.Combobox(
             entity_row, 
             textvariable=self.employee_filter_var, 
@@ -156,7 +163,7 @@ class DashboardUI:
         self.employee_combobox.pack(side=tk.LEFT, padx=(0, 15))
         
         # Supplier filter
-        ttk.Label(entity_row, text="Supplier:", font=("Helvetica", 9, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(entity_row, text="Supplier:", font=DashboardConstants.SUBHEADER_FONT).pack(side=tk.LEFT, padx=(0, 5))
         self.supplier_combobox = ttk.Combobox(
             entity_row, 
             textvariable=self.supplier_filter_var, 
@@ -166,7 +173,7 @@ class DashboardUI:
         self.supplier_combobox.pack(side=tk.LEFT, padx=(0, 15))
         
         # Category filter
-        ttk.Label(entity_row, text="Category:", font=("Helvetica", 9, "bold")).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(entity_row, text="Category:", font=DashboardConstants.SUBHEADER_FONT).pack(side=tk.LEFT, padx=(0, 5))
         self.category_combobox = ttk.Combobox(
             entity_row, 
             textvariable=self.category_filter_var, 
@@ -317,7 +324,7 @@ class DashboardUI:
         export_window.grab_set()
         
         # Export options
-        ttk.Label(export_window, text="Export Options", font=("Helvetica", 14, "bold")).pack(pady=10)
+        ttk.Label(export_window, text="Export Options", font=DashboardConstants.HEADER_FONT).pack(pady=10)
         
         export_frame = ttk.Frame(export_window)
         export_frame.pack(expand=True, fill='both', padx=20, pady=10)
@@ -337,7 +344,7 @@ class DashboardUI:
         settings_window.transient(self.parent)
         settings_window.grab_set()
         
-        ttk.Label(settings_window, text="Dashboard Settings", font=("Helvetica", 14, "bold")).pack(pady=10)
+        ttk.Label(settings_window, text="Dashboard Settings", font=DashboardConstants.HEADER_FONT).pack(pady=10)
         
         settings_frame = ttk.Frame(settings_window)
         settings_frame.pack(expand=True, fill='both', padx=20, pady=10)
@@ -367,96 +374,3 @@ class DashboardUI:
         button_frame.pack(side=tk.BOTTOM, pady=10)
         ttk.Button(button_frame, text="Save", command=settings_window.destroy).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Cancel", command=settings_window.destroy).pack(side=tk.LEFT, padx=5)
-
-
-# Placeholder classes for the 4 subtabs (to be implemented in upcoming phases)
-class OverviewUI:
-    """Overview subtab - Key metrics and quick insights"""
-    def __init__(self, parent, callbacks):
-        self.parent = parent
-        self.callbacks = callbacks
-        self.create_placeholder()
-    
-    def create_placeholder(self):
-        placeholder_frame = ttk.Frame(self.parent, padding="20")
-        placeholder_frame.pack(fill='both', expand=True)
-        
-        ttk.Label(placeholder_frame, 
-                 text="📈 Overview Subtab", 
-                 font=("Helvetica", 16, "bold")).pack(pady=10)
-        
-        ttk.Label(placeholder_frame, 
-                 text="Key metrics and quick insights will be displayed here.\n\nComing in Phase 3!", 
-                 font=("Helvetica", 12)).pack()
-    
-    def refresh_data(self, filters):
-        pass
-
-
-class AnalyticsUI:
-    """Analytics subtab - Charts and data visualization"""
-    def __init__(self, parent, callbacks):
-        self.parent = parent
-        self.callbacks = callbacks
-        self.create_placeholder()
-    
-    def create_placeholder(self):
-        placeholder_frame = ttk.Frame(self.parent, padding="20")
-        placeholder_frame.pack(fill='both', expand=True)
-        
-        ttk.Label(placeholder_frame, 
-                 text="📊 Analytics Subtab", 
-                 font=("Helvetica", 16, "bold")).pack(pady=10)
-        
-        ttk.Label(placeholder_frame, 
-                 text="Advanced charts and data visualization will be displayed here.\n\nComing in Phase 4!", 
-                 font=("Helvetica", 12)).pack()
-    
-    def refresh_data(self, filters):
-        pass
-
-
-class PerformanceUI:
-    """Performance subtab - Employee and product performance"""
-    def __init__(self, parent, callbacks):
-        self.parent = parent
-        self.callbacks = callbacks
-        self.create_placeholder()
-    
-    def create_placeholder(self):
-        placeholder_frame = ttk.Frame(self.parent, padding="20")
-        placeholder_frame.pack(fill='both', expand=True)
-        
-        ttk.Label(placeholder_frame, 
-                 text="👤 Performance Subtab", 
-                 font=("Helvetica", 16, "bold")).pack(pady=10)
-        
-        ttk.Label(placeholder_frame, 
-                 text="Employee and product performance metrics will be displayed here.\n\nComing in Phase 5A!", 
-                 font=("Helvetica", 12)).pack()
-    
-    def refresh_data(self, filters):
-        pass
-
-
-class SimulationUI:
-    """Simulation subtab - What-if analysis tools"""
-    def __init__(self, parent, callbacks):
-        self.parent = parent
-        self.callbacks = callbacks
-        self.create_placeholder()
-    
-    def create_placeholder(self):
-        placeholder_frame = ttk.Frame(self.parent, padding="20")
-        placeholder_frame.pack(fill='both', expand=True)
-        
-        ttk.Label(placeholder_frame, 
-                 text="🎲 Simulation Subtab", 
-                 font=("Helvetica", 16, "bold")).pack(pady=10)
-        
-        ttk.Label(placeholder_frame, 
-                 text="What-if analysis and simulation tools will be displayed here.\n\nComing in Phase 5B!", 
-                 font=("Helvetica", 12)).pack()
-    
-    def refresh_data(self, filters):
-        pass

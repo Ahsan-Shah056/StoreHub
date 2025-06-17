@@ -338,10 +338,15 @@ class CustomerUI:
         self.desc_label = ttk.Label(master, text="Add, view, and manage customer information.", font=("Helvetica", 12))
         self.desc_label.pack(pady=(0, 15), padx=10, anchor="w")
         self.frame = ttk.LabelFrame(master, text="Customer", padding="10")
-        self.frame.pack(fill='both', expand=True)
+        self.frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Configure frame grid weights for proper expansion
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+        
         # Sub-tabs for Add, Delete (remove Update tab)
         self.notebook = ttk.Notebook(self.frame)
-        self.notebook.grid(row=0, column=0, padx=10, pady=5, sticky=tk.NW)
+        self.notebook.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
         # Add Tab
         self.add_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.add_tab, text="Add")
@@ -426,8 +431,15 @@ class CustomerUI:
         self.customer_tree.heading('Contact Info', text='Contact Info')
         self.customer_tree.heading('Address', text='Address')
         self.customer_tree.grid(row=0, column=1, rowspan=5, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
-        self.frame.rowconfigure(1, weight=1)
-        self.frame.columnconfigure(1, weight=1)
+        
+        # Configure grid weights for proper expansion
+        self.frame.rowconfigure(0, weight=1)  # Tree row expands
+        self.frame.rowconfigure(1, weight=0)  # Button rows fixed  
+        self.frame.rowconfigure(2, weight=0)
+        self.frame.rowconfigure(3, weight=0)
+        self.frame.rowconfigure(4, weight=0)
+        self.frame.columnconfigure(0, weight=0)  # Button column fixed
+        self.frame.columnconfigure(1, weight=1)  # Tree column expands
         # Add View Customers button to customers tab
         self.view_customers_button = ttk.Button(self.frame, text="View Customers", command=self._on_view_customers, style="Blue.TButton")
         self.view_customers_button.grid(row=2, column=0, pady=10, sticky=tk.W)
@@ -639,9 +651,14 @@ class InventoryUI:
         self.desc_label = ttk.Label(master, text="Add, view, and manage inventory items and stock levels.", font=("Helvetica", 12))
         self.desc_label.pack(pady=(0, 15), padx=10, anchor="w")
         self.frame = ttk.LabelFrame(master, text="Inventory", padding="10")
-        self.frame.pack(fill='both', expand=True)
+        self.frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Configure frame grid weights for proper expansion
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+        
         self.notebook = ttk.Notebook(self.frame)
-        self.notebook.grid(row=0, column=0, padx=10, pady=5, sticky=tk.NW)
+        self.notebook.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
         # Define a custom style for blue buttons with white text for inventory tab
         style = ttk.Style(master)
         style.theme_use('clam')
@@ -760,9 +777,11 @@ class InventoryUI:
         self.inventory_tree_scroll_x = ttk.Scrollbar(self.frame, orient='horizontal', command=self.inventory_tree.xview)
         self.inventory_tree.configure(xscrollcommand=self.inventory_tree_scroll_x.set)
         
-        # Grid layout for tree and scrollbar
+        # Grid layout for tree and scrollbar with proper weights
         self.inventory_tree.grid(row=0, column=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
         self.inventory_tree_scroll_x.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=10)
+        
+        # Buttons in column 0
         self.view_inventory_button = ttk.Button(self.frame, text="View Inventory", command=self._threaded_view_inventory, style="Blue.TButton")
         self.view_inventory_button.grid(row=4, column=0, pady=10, sticky=tk.W)
         self.export_data_button = ttk.Button(self.frame, text="Export Data", command=self._on_export_data, style="Blue.TButton")
@@ -770,8 +789,17 @@ class InventoryUI:
         # Add Import Data button below Export Data
         self.import_data_button = ttk.Button(self.frame, text="Import Data", command=self._on_import_data, style="Blue.TButton")
         self.import_data_button.grid(row=6, column=0, pady=10, sticky=tk.W)
-        self.frame.rowconfigure(0, weight=1)
-        self.frame.columnconfigure(1, weight=1)
+        
+        # Configure grid weights for proper expansion
+        self.frame.rowconfigure(0, weight=1)  # Tree row expands
+        self.frame.rowconfigure(1, weight=0)  # Other rows fixed
+        self.frame.rowconfigure(2, weight=0)
+        self.frame.rowconfigure(3, weight=0)  # Scrollbar row
+        self.frame.rowconfigure(4, weight=0)  # Button rows
+        self.frame.rowconfigure(5, weight=0)
+        self.frame.rowconfigure(6, weight=0)
+        self.frame.columnconfigure(0, weight=0)  # Button column fixed
+        self.frame.columnconfigure(1, weight=1)  # Tree column expands
         # Do not auto-populate inventory_tree on init
 
     def _populate_employees(self):
@@ -1086,9 +1114,14 @@ class SuppliersUI:
         self.desc_label = ttk.Label(master, text="Add, view, and manage supplier information.", font=("Helvetica", 12))
         self.desc_label.pack(pady=(0, 15), padx=10, anchor="w")
         self.frame = ttk.LabelFrame(master, text='Suppliers', padding='10')
-        self.frame.pack(fill='both', expand=True)
+        self.frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Configure frame grid weights for proper expansion
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
+        
         self.notebook = ttk.Notebook(self.frame)
-        self.notebook.grid(row=0, column=0, padx=10, pady=5, sticky=tk.NW)
+        self.notebook.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
         # Define a custom style for blue buttons with white text for suppliers tab
         style = ttk.Style(master)
         style.theme_use('clam')
@@ -1196,8 +1229,15 @@ class SuppliersUI:
         self.suppliers_tree.heading('Contact', text='Contact Info')
         self.suppliers_tree.heading('Address', text='Address')
         self.suppliers_tree.grid(row=0, column=1, rowspan=4, sticky=(tk.N, tk.W, tk.E, tk.S), padx=10, pady=5)
-        self.frame.rowconfigure(1, weight=1)
-        self.frame.columnconfigure(1, weight=1)
+        
+        # Configure grid weights for proper expansion
+        self.frame.rowconfigure(0, weight=1)  # Tree row expands
+        self.frame.rowconfigure(1, weight=0)  # Button rows fixed
+        self.frame.rowconfigure(2, weight=0)
+        self.frame.rowconfigure(3, weight=0)
+        self.frame.rowconfigure(4, weight=0)
+        self.frame.columnconfigure(0, weight=0)  # Button column fixed
+        self.frame.columnconfigure(1, weight=1)  # Tree column expands
         self.view_suppliers_callback = None
     def _on_view_suppliers(self):
         if self.view_suppliers_callback:
@@ -1393,7 +1433,8 @@ class POSApp:
         # Configure row and column weights for resizing
         self.root.rowconfigure(0, weight=1)
         self.root.columnconfigure(0, weight=1)
-        self.main_frame.rowconfigure(0, weight=0)
+        self.main_frame.rowconfigure(0, weight=0)  # Header row - fixed height
+        self.main_frame.rowconfigure(1, weight=1)  # Notebook row - expandable
         self.main_frame.columnconfigure(0, weight=1)
         self.main_frame.columnconfigure(1, weight=1)
         self.main_frame.columnconfigure(2, weight=0)
@@ -1445,7 +1486,12 @@ class POSApp:
                 'sales_by_employee_callback': sales_by_employee_callback,
                 'supplier_purchase_callback': supplier_purchase_callback,
                 'inventory_value_report_callback': inventory_value_report_callback,
-                'customer_purchase_history_callback': customer_purchase_history_callback
+                'customer_purchase_history_callback': customer_purchase_history_callback,
+                'navigate_to_sales': lambda: self.notebook.select(self.sales_tab),
+                'navigate_to_inventory': lambda: self.notebook.select(self.inventory_tab),
+                'navigate_to_reports': lambda: self.notebook.select(self.reports_tab),
+                'navigate_to_customers': lambda: self.notebook.select(self.customer_tab),
+                'navigate_to_suppliers': lambda: self.notebook.select(self.suppliers_tab)
             }
             self.dashboard_ui = DashboardUI(self.dashboard_tab, **dashboard_callbacks)
             self.reports_ui = ReportsUI(self.reports_tab)
