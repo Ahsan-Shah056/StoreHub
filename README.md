@@ -158,9 +158,12 @@
 
 | Feature | Description | Impact |
 |:-------:|:------------|:------:|
-| 📄 **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
+| � **Analytics Dashboard** | Comprehensive business intelligence with real-time metrics | ⭐⭐⭐⭐⭐ |
+| 🔍 **Advanced Filtering** | Multi-parameter filtering by date, employee, supplier, category | ⭐⭐⭐⭐⭐ |
+| 📊 **Multi-format Export** | Dashboard data export to CSV, Excel, and PDF formats | ⭐⭐⭐⭐⭐ |
+| 🔄 **Data Generation** | Interactive scripts for realistic test data creation | ⭐⭐⭐⭐⭐ |
+| �📄 **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
 | 📧 **Enhanced Email** | PDF receipts automatically attached to emails | ⭐⭐⭐⭐⭐ |
-| 📊 **CSV Export** | Export any data to Excel-compatible formats | ⭐⭐⭐⭐⭐ |
 | 📥 **Data Import** | Bulk CSV import for customers, inventory & suppliers | ⭐⭐⭐⭐⭐ |
 | ✏️ **Update Records** | Full editing capabilities for customers & suppliers | ⭐⭐⭐⭐⭐ |
 | 💰 **Enhanced Reports** | Inventory value report with grand total display | ⭐⭐⭐⭐⭐ |
@@ -263,21 +266,33 @@
 </details>
 
 <details>
-<summary><strong>📈 Business Intelligence & Reporting</strong></summary>
+<summary><strong>📈 Business Intelligence & Dashboard Analytics</strong></summary>
 
-- **📊 Pre-Built Analytics Dashboard**
+- **📊 Comprehensive Analytics Dashboard**
+  - **📈 Real-time Metrics**: Sales summaries, transaction counts, and profit analysis
+  - **🔍 Advanced Filtering**: Filter by date range, employee, supplier, and category
+  - **📊 Top Products Analysis**: Best-selling items with units sold and revenue data
+  - **⚡ Recent Activities**: Live transaction feed with profit margins
+  - **💰 Financial Insights**: Revenue tracking, average transaction values, and profit calculations
+  - **📤 Multi-format Export**: Export complete dashboard data to CSV, Excel, and PDF
+- **🎯 Multi-tab Dashboard Interface**
+  - **Overview Tab**: Key performance indicators and business summary metrics
+  - **Analytics Tab**: Deep-dive analytics with advanced filtering capabilities
+  - **Performance Tab**: Employee performance tracking and sales analytics
+  - **Simulation Tab**: Business forecasting and scenario planning tools
+- **📊 Legacy Reporting System**
   - **Low Stock Report**: Identify products requiring immediate restocking
   - **Sales Performance**: Analyze employee productivity and sales trends
   - **Supplier Analytics**: Track procurement patterns and supplier reliability
   - **Customer Insights**: Understand purchase behaviors and preferences
-- **� Data Import & Export Capabilities**
+- **📥 Data Import & Export Capabilities**
   - **🆕 CSV Import**: Bulk import customers, inventory, and suppliers with validation
   - **🔍 Import Preview**: Validate data before committing to database
   - **🛡️ Error Handling**: Skip duplicates and invalid entries automatically
   - **📋 Sample Generation**: Create sample CSV templates for easy formatting
   - One-click CSV export for all tables and reports
   - Excel-compatible formatting for external analysis
-  - Scheduled automated report generation
+  - **🔄 Interactive Data Generation**: Scripts for creating realistic test datasets
 - **🎯 Custom Report Builder**
   - Flexible query system for custom analytics
   - Real-time data visualization options
@@ -421,7 +436,50 @@
 
 ---
 
-### 🎯 **Core Reports**
+### �️ **Interactive Dashboard Interface**
+
+<details>
+<summary><strong>📊 Dashboard Overview</strong></summary>
+
+**Real-time business analytics with powerful filtering and export capabilities**
+
+#### 🎯 **Dashboard Tabs**
+
+| Tab | Purpose | Key Features |
+|-----|---------|--------------|
+| **📈 Overview** | Key performance indicators | Sales summaries, top products, recent activities |
+| **📊 Analytics** | Deep-dive analytics | Advanced filtering, trend analysis, custom reports |
+| **⚡ Performance** | Employee & supplier metrics | Performance tracking, productivity analysis |
+| **🔮 Simulation** | Business forecasting | Scenario planning, predictive modeling |
+
+#### 🔍 **Advanced Filtering System**
+
+- **📅 Date Range Selection**: Custom periods from days to years
+- **👤 Employee Filtering**: Track individual or team performance
+- **🏭 Supplier Analysis**: Filter by supplier relationships
+- **📦 Category Insights**: Product category-based analytics
+- **🔄 Auto-refresh**: Live updates as filters change
+
+#### 📊 **Real-time Metrics Display**
+
+- **💰 Total Sales**: Revenue tracking with period comparisons
+- **🛒 Transaction Counts**: Order volume and frequency analysis
+- **📈 Average Values**: Transaction size and customer behavior
+- **🏆 Top Products**: Best-selling items with units sold
+- **⚡ Recent Activities**: Live transaction feed with profit margins
+
+#### 📤 **Multi-format Export**
+
+- **📄 CSV Export**: Excel-compatible data export
+- **📊 Excel Integration**: Advanced spreadsheet formatting
+- **📑 PDF Reports**: Professional business reports
+- **🔄 Complete Dashboard Export**: All metrics in single file
+
+</details>
+
+---
+
+### �🎯 **Core Reports**
 
 <table>
 <tr>
@@ -1051,10 +1109,51 @@ python main.py
 </details>
 
 <details>
-<summary><strong>📊 Sample Data Loading</strong></summary>
+<summary><strong>📊 Advanced Data Generation & Testing</strong></summary>
+
+**Comprehensive test data generation for development and demonstration purposes**
+
+### 🎯 **Interactive Data Generation Scripts**
+
+| Script | Purpose | Features |
+|--------|---------|----------|
+| **`generate_data_interactive.py`** | Comprehensive data generation | Interactive prompts, purchases, inventory adjustments |
+| **`generate_customers.py`** | Customer database population | 500+ realistic customer profiles |
+| **`generate_sales.py`** | Sales transaction generation | Bulk sales with realistic customer distribution |
+
+### 🔄 **Data Generation Workflow**
 
 ```bash
-# Load comprehensive sample data
+# Step 1: Generate customer base (run once)
+python generate_customers.py
+# Creates 500 realistic customers with proper contact information
+
+# Step 2: Interactive purchase and inventory generation
+python generate_data_interactive.py
+# Interactive prompts for:
+# • Number of purchases to generate
+# • Number of purchase items per transaction
+# • Inventory adjustments with automatic stock updates
+
+# Step 3: Generate sales transactions
+python generate_sales.py
+# Creates realistic sales data using the customer base
+# Includes proper employee assignment and transaction timing
+```
+
+### 📈 **Generated Data Features**
+
+- **🧾 Realistic Purchases**: Complete purchase orders with proper supplier relationships
+- **📦 Purchase Items**: Detailed line items with realistic quantities and pricing
+- **📊 Inventory Updates**: Automatic stock adjustments based on purchase data
+- **💰 Sales Transactions**: Comprehensive sales with customer assignments
+- **⏰ Time-based Data**: Realistic date/time distributions for historical analysis
+- **🔄 Scalable Volumes**: Generate from hundreds to thousands of records
+
+### 🛠️ **Legacy Sample Data**
+
+```bash
+# Quick sample data for basic testing
 python sample_data.py
 
 # Includes:
@@ -1064,6 +1163,13 @@ python sample_data.py
 # ✅ 10+ employees
 # ✅ Sample transactions
 ```
+
+### 💡 **Best Practices**
+
+1. **Start Small**: Begin with smaller datasets for testing
+2. **Customer First**: Always run `generate_customers.py` before sales generation
+3. **Incremental Builds**: Use interactive script for controlled data growth
+4. **Dashboard Testing**: Generated data populates the analytics dashboard for comprehensive testing
 
 </details>
 

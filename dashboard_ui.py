@@ -382,9 +382,7 @@ class DashboardUI:
             
             # Get recent activities
             recent_activities = get_recent_activities(
-                filters['start_date'],
-                filters['end_date'],
-                20,  # Get last 20 activities
+                20,  # Get last 20 activities (limit)
                 filters['employee_id'],
                 filters['supplier_id'],
                 filters['category_id']
@@ -405,10 +403,10 @@ class DashboardUI:
                     ['Total Sales', f"${sales_data.get('total_sales', 0):.2f}", 
                      f"{filters['start_date']} to {filters['end_date']}", 
                      filters['employee'], filters['supplier'], filters['category']],
-                    ['Total Transactions', sales_data.get('total_transactions', 0),
+                    ['Total Transactions', sales_data.get('total_orders', 0),
                      f"{filters['start_date']} to {filters['end_date']}", 
                      filters['employee'], filters['supplier'], filters['category']],
-                    ['Average Transaction', f"${sales_data.get('avg_transaction', 0):.2f}",
+                    ['Average Transaction', f"${sales_data.get('avg_order_value', 0):.2f}",
                      f"{filters['start_date']} to {filters['end_date']}", 
                      filters['employee'], filters['supplier'], filters['category']]
                 ])
@@ -426,12 +424,17 @@ class DashboardUI:
             # Add recent activities section  
             data['rows'].append(['--- RECENT ACTIVITIES ---', '', '', '', '', ''])
             for activity in recent_activities[:5]:
+                # Format datetime
+                datetime_str = activity.get('sale_datetime', 'N/A')
+                if hasattr(datetime_str, 'strftime'):
+                    datetime_str = datetime_str.strftime('%Y-%m-%d %H:%M:%S')
+                
                 data['rows'].append([
                     'Activity',
                     activity.get('type', 'Sale'),
-                    f"${activity.get('total', 0):.2f}",
+                    f"${activity.get('sale_total', 0):.2f}",
                     activity.get('employee_name', 'N/A'),
-                    activity.get('activity_datetime', 'N/A'),
+                    datetime_str,
                     filters['category']
                 ])
             
