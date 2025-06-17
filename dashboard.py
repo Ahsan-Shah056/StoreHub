@@ -32,7 +32,8 @@ class DashboardAnalytics:
 
     # Core Dashboard Functions
     
-    def get_sales_summary(self, start_date: str, end_date: str, employee_id: Optional[int] = None) -> Dict[str, Any]:
+    def get_sales_summary(self, start_date: str, end_date: str, employee_id: Optional[int] = None, 
+                         supplier_id: Optional[int] = None, category_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Get comprehensive sales summary with profit calculations
         Returns total sales, orders, profit, and comparison metrics
@@ -41,7 +42,7 @@ class DashboardAnalytics:
             conn = self.get_connection()
             cursor = conn.cursor(dictionary=True)
             
-            # Base query for sales summary
+            # Base query for sales summary with extended filtering
             base_query = """
                 SELECT 
                     COUNT(DISTINCT s.sale_id) as total_orders,
@@ -52,18 +53,30 @@ class DashboardAnalytics:
                 FROM Sales s
                 JOIN SaleItems si ON s.sale_id = si.sale_id
                 LEFT JOIN Products p ON si.SKU = p.SKU
-                WHERE DATE(s.sale_datetime) BETWEEN %s AND %s
             """
             
+            # Build WHERE clause with conditions
+            conditions = ["DATE(s.sale_datetime) BETWEEN %s AND %s"]
             params = [start_date, end_date]
+            
             if employee_id:
-                base_query += " AND s.employee_id = %s"
+                conditions.append("s.employee_id = %s")
                 params.append(employee_id)
+                
+            if supplier_id:
+                conditions.append("p.supplier_id = %s")
+                params.append(supplier_id)
+                
+            if category_id:
+                conditions.append("p.category_id = %s")
+                params.append(category_id)
+            
+            base_query += " WHERE " + " AND ".join(conditions)
             
             cursor.execute(base_query, params)
             current_period = cursor.fetchone()
             
-            # Calculate previous period for comparison
+            # Calculate previous period for comparison with same filters
             start_dt = datetime.strptime(start_date, '%Y-%m-%d')
             end_dt = datetime.strptime(end_date, '%Y-%m-%d')
             period_days = (end_dt - start_dt).days + 1
@@ -71,11 +84,16 @@ class DashboardAnalytics:
             prev_start = (start_dt - timedelta(days=period_days)).strftime('%Y-%m-%d')
             prev_end = (start_dt - timedelta(days=1)).strftime('%Y-%m-%d')
             
+            # Apply same filters to previous period
             prev_params = [prev_start, prev_end]
             if employee_id:
                 prev_params.append(employee_id)
+            if supplier_id:
+                prev_params.append(supplier_id)
+            if category_id:
+                prev_params.append(category_id)
                 
-            cursor.execute(base_query, prev_params)
+            cursor.execute(base_query.replace("BETWEEN %s AND %s", "BETWEEN %s AND %s"), prev_params)
             previous_period = cursor.fetchone()
             
             # Calculate percentage changes
@@ -122,7 +140,8 @@ class DashboardAnalytics:
             if cursor:
                 cursor.close()
 
-    def get_top_products(self, start_date: str, end_date: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def get_top_products(self, start_date: str, end_date: str, limit: int = 5, employee_id: Optional[int] = None,
+                        supplier_id: Optional[int] = None, category_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get top performing products with profit analysis"""
         try:
             conn = self.get_connection()
@@ -146,13 +165,33 @@ class DashboardAnalytics:
                 FROM Products p
                 JOIN SaleItems si ON p.SKU = si.SKU
                 JOIN Sales s ON si.sale_id = s.sale_id
-                WHERE DATE(s.sale_datetime) BETWEEN %s AND %s
+            """
+            
+            # Build WHERE clause with conditions
+            conditions = ["DATE(s.sale_datetime) BETWEEN %s AND %s"]
+            params = [start_date, end_date]
+            
+            if employee_id:
+                conditions.append("s.employee_id = %s")
+                params.append(employee_id)
+                
+            if supplier_id:
+                conditions.append("p.supplier_id = %s")
+                params.append(supplier_id)
+                
+            if category_id:
+                conditions.append("p.category_id = %s")
+                params.append(category_id)
+            
+            query += " WHERE " + " AND ".join(conditions)
+            query += """
                 GROUP BY p.SKU, p.name, p.cost, p.stock
                 ORDER BY units_sold DESC
                 LIMIT %s
             """
             
-            cursor.execute(query, (start_date, end_date, limit))
+            params.append(limit)
+            cursor.execute(query, params)
             return cursor.fetchall()
             
         except Exception as e:
@@ -539,7 +578,8 @@ class DashboardAnalytics:
 
     # Utility Functions for Dashboard
     
-    def get_recent_activities(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_activities(self, limit: int = 10, employee_id: Optional[int] = None,
+                             supplier_id: Optional[int] = None, category_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get recent transactions with profit information"""
         try:
             conn = self.get_connection()
@@ -563,12 +603,35 @@ class DashboardAnalytics:
                 LEFT JOIN Customers c ON s.customer_id = c.customer_id
                 JOIN SaleItems si ON s.sale_id = si.sale_id
                 LEFT JOIN Products p ON si.SKU = p.SKU
+            """
+            
+            # Build WHERE clause with conditions
+            conditions = []
+            params = []
+            
+            if employee_id:
+                conditions.append("s.employee_id = %s")
+                params.append(employee_id)
+                
+            if supplier_id:
+                conditions.append("p.supplier_id = %s")
+                params.append(supplier_id)
+                
+            if category_id:
+                conditions.append("p.category_id = %s")
+                params.append(category_id)
+            
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+                
+            query += """
                 GROUP BY s.sale_id, s.sale_datetime, s.total, e.name, c.name
                 ORDER BY s.sale_datetime DESC
                 LIMIT %s
             """
             
-            cursor.execute(query, (limit,))
+            params.append(limit)
+            cursor.execute(query, params)
             return cursor.fetchall()
             
         except Exception as e:
@@ -1210,14 +1273,32 @@ class DashboardAnalytics:
         else:
             return "Current pricing appears optimal"
 
+    def get_categories(self) -> List[Dict[str, Any]]:
+        """Get all product categories"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor(dictionary=True)
+            
+            query = "SELECT category_id, name FROM Categories ORDER BY name"
+            cursor.execute(query)
+            return cursor.fetchall()
+            
+        except Exception as e:
+            logger.error(f"Error in get_categories: {e}")
+            return []
+        finally:
+            if cursor:
+                cursor.close()
+
 # === GLOBAL ANALYTICS INSTANCE ===
 dashboard_analytics = DashboardAnalytics()
 
 # === CORE ANALYTICS FUNCTION STUBS ===
 
-def get_sales_summary(start_date: str, end_date: str, employee_id: Optional[int] = None):
-    """Get comprehensive sales summary with profit calculations"""
-    return dashboard_analytics.get_sales_summary(start_date, end_date, employee_id)
+def get_sales_summary(start_date: str, end_date: str, employee_id: Optional[int] = None,
+                     supplier_id: Optional[int] = None, category_id: Optional[int] = None):
+    """Get comprehensive sales summary with enhanced filtering"""
+    return dashboard_analytics.get_sales_summary(start_date, end_date, employee_id, supplier_id, category_id)
 
 def get_inventory_value():
     """Get total inventory value and metrics"""
@@ -1227,17 +1308,19 @@ def calculate_profit_margins():
     """Calculate profit margins for all products"""
     return dashboard_analytics.calculate_profit_margins()
 
-def get_top_products(start_date: str, end_date: str, limit: int = 10):
-    """Get top performing products by sales"""
-    return dashboard_analytics.get_top_products(start_date, end_date, limit)
+def get_top_products(start_date: str, end_date: str, limit: int = 10, employee_id: Optional[int] = None,
+                    supplier_id: Optional[int] = None, category_id: Optional[int] = None):
+    """Get top performing products by sales with enhanced filtering"""
+    return dashboard_analytics.get_top_products(start_date, end_date, limit, employee_id, supplier_id, category_id)
 
 def get_low_stock_analytics():
     """Get low stock items analysis"""
     return dashboard_analytics.get_low_stock_analytics()
 
-def get_recent_activities(limit: int = 10):
-    """Get recent sales activities"""
-    return dashboard_analytics.get_recent_activities(limit)
+def get_recent_activities(limit: int = 10, employee_id: Optional[int] = None,
+                         supplier_id: Optional[int] = None, category_id: Optional[int] = None):
+    """Get recent sales activities with enhanced filtering"""
+    return dashboard_analytics.get_recent_activities(limit, employee_id, supplier_id, category_id)
 
 def get_supplier_performance():
     """Get supplier performance metrics"""
@@ -1294,3 +1377,7 @@ def simulate_staff_scenarios(staff_changes: Dict[str, int]):
 def analyze_optimal_pricing(category_id: Optional[int] = None):
     """Analyze optimal pricing strategies for products"""
     return dashboard_analytics.analyze_optimal_pricing(category_id)
+
+def get_categories():
+    """Get all product categories"""
+    return dashboard_analytics.get_categories()

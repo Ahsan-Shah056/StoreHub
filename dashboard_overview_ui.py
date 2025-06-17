@@ -226,6 +226,7 @@ class OverviewUI(DashboardBaseUI):
         ttk.Button(actions_frame, text="⚠️ Low Stock Alert", width=12, command=self.show_low_stock).pack(side=tk.LEFT, padx=5)
         ttk.Button(actions_frame, text="🤝 Supplier Analysis", width=15, command=self.show_supplier_analysis).pack(side=tk.LEFT, padx=5)
         ttk.Button(actions_frame, text="💰 Cost Review", width=12, command=self.show_cost_review).pack(side=tk.LEFT, padx=5)
+        ttk.Button(actions_frame, text="📤 Export Data", width=12, command=self.export_activities_to_csv).pack(side=tk.LEFT, padx=5)
     
     def create_recent_activity_feed(self):
         """Create recent activity feed with profit information"""
@@ -304,15 +305,28 @@ class OverviewUI(DashboardBaseUI):
         except Exception as e:
             print(f"Error refreshing overview data: {e}")
     
+    def export_activities_to_csv(self):
+        """Export recent activities tree data to CSV"""
+        try:
+            from Data_exporting import export_treeview_to_csv
+            export_treeview_to_csv(self.activity_tree, self.parent)
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Error exporting activities: {e}")
+    
     def update_metrics_cards(self, filters):
         """Update the 6 main metrics cards"""
         try:
             if not self.dashboard_funcs:
                 return
             
-            # Get sales summary
+            # Get filter IDs
+            employee_id = filters.get('employee_id')
+            supplier_id = filters.get('supplier_id')
+            category_id = filters.get('category_id')
+            
+            # Get sales summary with all filters
             sales_summary = self.dashboard_funcs['get_sales_summary'](
-                filters['start_date'], filters['end_date']
+                filters['start_date'], filters['end_date'], employee_id, supplier_id, category_id
             )
             
             # Update sales card
@@ -342,9 +356,9 @@ class OverviewUI(DashboardBaseUI):
             self.inventory_value_label.config(text=self.format_currency(inventory_data['total_retail_value']))
             self.inventory_count_label.config(text=f"{self.format_number(inventory_data['total_products'])} products")
             
-            # Get top product
+            # Get top product with all filters
             top_products = self.dashboard_funcs['get_top_products'](
-                filters['start_date'], filters['end_date'], 1
+                filters['start_date'], filters['end_date'], 1, employee_id, supplier_id, category_id
             )
             
             # Update top product card
@@ -390,9 +404,14 @@ class OverviewUI(DashboardBaseUI):
             if not self.dashboard_funcs:
                 return
             
-            # Get sales summary for additional stats
+            # Get filter IDs
+            employee_id = filters.get('employee_id')
+            supplier_id = filters.get('supplier_id')
+            category_id = filters.get('category_id')
+            
+            # Get sales summary for additional stats with all filters
             sales_summary = self.dashboard_funcs['get_sales_summary'](
-                filters['start_date'], filters['end_date']
+                filters['start_date'], filters['end_date'], employee_id, supplier_id, category_id
             )
             
             # Update average order value
@@ -437,8 +456,13 @@ class OverviewUI(DashboardBaseUI):
             for item in self.activity_tree.get_children():
                 self.activity_tree.delete(item)
             
-            # Get recent activities
-            activities = self.dashboard_funcs['get_recent_activities'](10)
+            # Get filter IDs
+            employee_id = filters.get('employee_id')
+            supplier_id = filters.get('supplier_id')
+            category_id = filters.get('category_id')
+            
+            # Get recent activities with all filters
+            activities = self.dashboard_funcs['get_recent_activities'](10, employee_id, supplier_id, category_id)
             
             for activity in activities:
                 # Format the data

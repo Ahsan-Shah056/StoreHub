@@ -1025,27 +1025,18 @@ class ReportsUI:
     def _on_customer_purchase_history_report(self):
         if hasattr(self, 'customer_purchase_history_callback') and self.customer_purchase_history_callback:
             selected_customer = self.customer_combobox.get()
-            print(f"Debug: Selected customer: {selected_customer}")
             customer_id = self.customers_map.get(selected_customer) if hasattr(self, 'customers_map') else None
-            print(f"Debug: Customer ID: {customer_id}")
-            print(f"Debug: customers_map keys: {list(self.customers_map.keys()) if hasattr(self, 'customers_map') else 'No customers_map'}")
             if customer_id:
                 self.customer_purchase_history_callback(customer_id)
-            else:
-                print("Debug: No customer_id found or no customer selected")
 
     def _populate_customers(self):
         if self.get_customers_callback:
             customers_list = self.get_customers_callback()
-            print(f"Debug: Retrieved {len(customers_list)} customers")
             self.customers_map = {f"{c['name']} (ID: {c['customer_id']})": c['customer_id'] for c in customers_list}
-            print(f"Debug: customers_map: {self.customers_map}")
             self.customer_combobox['values'] = list(self.customers_map.keys())
             if self.customer_combobox['values']:
                 self.customer_combobox.current(0)
-                print(f"Debug: Set default customer to: {self.customer_combobox.get()}")
         else:
-            print("Debug: No get_customers_callback available")
             self.customers_map = {}
             self.customer_combobox['values'] = []
 
