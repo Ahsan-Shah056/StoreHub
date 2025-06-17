@@ -103,13 +103,15 @@ def view_inventory(connection, cursor):
 
 
 def check_low_stock(connection, cursor, threshold=None):
-    # Get items with low stock
+    # Get items with low stock using individual product thresholds
     try:
         if threshold is None:
-            query = "SELECT SKU, name, stock FROM Products WHERE stock < 25"
+            # Use individual product thresholds from database
+            query = "SELECT SKU, name, stock, low_stock_threshold FROM Products WHERE stock <= low_stock_threshold"
             cursor.execute(query)
         else:
-            query = "SELECT SKU, name, stock FROM Products WHERE stock < %s"
+            # Use provided threshold for all products
+            query = "SELECT SKU, name, stock, low_stock_threshold FROM Products WHERE stock < %s"
             cursor.execute(query, (threshold,))
         results = cursor.fetchall()
         return [

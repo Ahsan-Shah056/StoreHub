@@ -490,7 +490,7 @@
 
 **📋 What it shows:**
 
-- Products below restock threshold (25 units)
+- Products below their individual restock thresholds
 - Current stock levels and pricing
 - Supplier contact information for quick reordering
 - Product categories and SKU details
@@ -771,7 +771,7 @@
 
 **⚡ When it triggers:**
 
-- Stock falls below **25 units** threshold
+- Stock falls below **individual product** threshold
 - During sales transactions
 - Manual inventory adjustments
 - Bulk stock operations
@@ -1412,7 +1412,7 @@ To enable automated alerts and reports, configure email settings in `credentials
 
 **Automation Features Requiring Email:**
 
-- Low stock alerts (< 25 units)
+- Low stock alerts (using individual product thresholds)
 - Large transaction alerts (> $10,000)
 - End-of-day business reports
 
@@ -1478,7 +1478,7 @@ The application now includes a secure login system with role-based access contro
 
 **Low Stock Alerts Not Triggering:**
 
-- Confirm threshold is set to 25 units in `Automations.py`
+- Thresholds are now set individually per product in the database
 - Verify products actually have stock below threshold
 - Check email configuration is properly set up
 

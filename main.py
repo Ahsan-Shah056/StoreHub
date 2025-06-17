@@ -83,7 +83,6 @@ from Automations import (
     check_and_alert_low_stock,
     get_manager_email,
     send_low_stock_alert,
-    LOW_STOCK_THRESHOLD,
     check_and_alert_large_transaction,
     send_large_transaction_alert,
     send_end_of_day_report
