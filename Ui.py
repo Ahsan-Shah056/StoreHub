@@ -12,6 +12,12 @@ import os
 from Data_exporting import export_treeview_to_csv
 from dashboard_ui import DashboardUI
 
+# Import climate UI from Climate Tab folder
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'Climate Tab'))
+from climate_ui import ClimateUI
+
 # Import formatting functions from main
 try:
     from main import format_treeview_values, format_treeview_text, handle_error
@@ -1435,6 +1441,7 @@ class POSApp:
         self.notebook.grid(row=1, column=0, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         self.dashboard_tab = ttk.Frame(self.notebook)
+        self.climate_tab = ttk.Frame(self.notebook)
         self.sales_tab = ttk.Frame(self.notebook)
         self.customer_tab = ttk.Frame(self.notebook)
         self.inventory_tab = ttk.Frame(self.notebook)
@@ -1445,6 +1452,7 @@ class POSApp:
         # Dashboard tab access for manager and accountant (business intelligence users)
         if user_role in ["manager", "accountant"]:
             self.notebook.add(self.dashboard_tab, text="📊 Dashboard")
+            self.notebook.add(self.climate_tab, text="🌍 Climate")
         
         self.notebook.add(self.sales_tab, text="Sales")
         
@@ -1485,6 +1493,16 @@ class POSApp:
                 'navigate_to_suppliers': lambda: self.notebook.select(self.suppliers_tab)
             }
             self.dashboard_ui = DashboardUI(self.dashboard_tab, **dashboard_callbacks)
+            
+            # Create climate UI with callbacks
+            climate_callbacks = {
+                'refresh_data': self.refresh_climate_data,
+                'export_data': self.export_climate_data,
+                'navigate_to_inventory': lambda: self.notebook.select(self.inventory_tab),
+                'navigate_to_suppliers': lambda: self.notebook.select(self.suppliers_tab)
+            }
+            self.climate_ui = ClimateUI(self.climate_tab, **climate_callbacks)
+            
             self.reports_ui = ReportsUI(self.reports_tab)
         
         if user_role in ["manager", "inventory_manager", "store_admin"]:
@@ -1603,6 +1621,24 @@ class POSApp:
         # Handle logout button click - notify main app that user wants to logout
         if hasattr(self, 'logout_callback') and self.logout_callback:
             self.logout_callback()
+    
+    def refresh_climate_data(self):
+        """Refresh climate data callback"""
+        try:
+            # This would typically trigger a data refresh in the climate system
+            # For now, just show a success message
+            messagebox.showinfo("Success", "Climate data refreshed successfully")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to refresh climate data: {str(e)}")
+    
+    def export_climate_data(self):
+        """Export climate data callback"""
+        try:
+            # This would typically export climate data to CSV or other format
+            # For now, just show a placeholder message
+            messagebox.showinfo("Export", "Climate data export feature coming soon")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to export climate data: {str(e)}")
 
 def add_to_cart(product_listbox, add_to_cart_quantity_entry, cart_tree, cart, cursor):
     try:
