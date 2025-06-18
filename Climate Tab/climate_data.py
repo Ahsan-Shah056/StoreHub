@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ClimateDataManager:
-    """Climate data access and management class with rule-based automation"""
+    """Climate data access and management class with rule-based automation and performance optimization"""
     
     def __init__(self):
         self.material_mapping = {
@@ -33,6 +33,11 @@ class ClimateDataManager:
             3: "Cotton",
             4: "Rice"
         }
+        
+        # Performance optimization - caching
+        self._cache = {}
+        self._cache_timeout = 300  # 5 minutes cache timeout
+        self._last_refresh = {}
         
         # Rule-based thresholds for automation
         self.thresholds = {
@@ -100,6 +105,31 @@ class ClimateDataManager:
             }
         }
         
+    def _is_cache_valid(self, key: str) -> bool:
+        """Check if cached data is still valid"""
+        if key not in self._cache or key not in self._last_refresh:
+            return False
+        
+        cache_age = (datetime.now() - self._last_refresh[key]).total_seconds()
+        return cache_age < self._cache_timeout
+    
+    def _get_cached_data(self, key: str):
+        """Get data from cache if valid"""
+        if self._is_cache_valid(key):
+            return self._cache[key]
+        return None
+    
+    def _set_cache_data(self, key: str, data):
+        """Set data in cache"""
+        self._cache[key] = data
+        self._last_refresh[key] = datetime.now()
+    
+    def clear_cache(self):
+        """Clear all cached data"""
+        self._cache.clear()
+        self._last_refresh.clear()
+        logger.info("Climate data cache cleared")
+        
     def get_connection(self):
         """Get database connection"""
         try:
@@ -110,7 +140,13 @@ class ClimateDataManager:
             raise
 
     def get_current_climate_status(self) -> List[Dict[str, Any]]:
-        """Get current climate status for all raw materials"""
+        """Get current climate status for all raw materials with caching"""
+        # Check cache first
+        cached_data = self._get_cached_data('current_climate_status')
+        if cached_data is not None:
+            logger.debug("Returning cached climate status data")
+            return cached_data
+            
         try:
             connection, cursor = self.get_connection()
             
@@ -167,6 +203,10 @@ class ClimateDataManager:
                         'risk_level': risk_level,
                         'last_updated': result['timestamp']
                     })
+            
+            # Cache the results
+            self._set_cache_data('current_climate_status', results)
+            logger.debug(f"Cached climate status data for {len(results)} materials")
             
             return results
             
@@ -256,7 +296,6 @@ class ClimateDataManager:
                     p.price,
                     p.cost,
                     p.stock,
-                    p.category,
                     p.low_stock_threshold,
                     rm.name as material_name
                 FROM Products p
@@ -297,7 +336,7 @@ class ClimateDataManager:
                     'priority': priority,
                     'material_name': product['material_name'],
                     'price': float(product['price']),
-                    'category': product['category']
+                    'category': 'General'  # Default category since column may not exist
                 })
             
             return results

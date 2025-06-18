@@ -1,22 +1,44 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from ttkthemes import ThemedTk
 import tkinter.font as tkFont  
-from tkinter import messagebox  # For error handling
 import inventory
 import customers 
 import sales  
 import threading
-from PIL import Image, ImageTk
-import os
-from Data_exporting import export_treeview_to_csv
-from dashboard_ui import DashboardUI
-
-# Import climate UI from Climate Tab folder
 import sys
 import os
+from PIL import Image, ImageTk
+
+# Add Climate Tab path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Climate Tab'))
-from climate_ui import ClimateUI
+
+# Standard imports
+from Data_exporting import export_treeview_to_csv
+from dashboard_ui import DashboardUI
+from data_importing import show_customer_import_dialog, show_inventory_import_dialog, show_supplier_import_dialog
+from typing import Any, Optional
+
+# Climate Tab imports with proper path handling
+CLIMATE_AVAILABLE = False
+ClimateUI: Optional[Any] = None
+climate_data: Optional[Any] = None
+
+try:
+    # First ensure the Climate Tab path is in sys.path
+    climate_tab_path = os.path.join(os.path.dirname(__file__), 'Climate Tab')
+    if climate_tab_path not in sys.path:
+        sys.path.insert(0, climate_tab_path)
+    
+    # Now import the climate modules
+    from climate_ui import ClimateUI  # type: ignore
+    import climate_data  # type: ignore
+    CLIMATE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Climate Tab imports failed: {e}")
+    ClimateUI = None
+    climate_data = None
+    CLIMATE_AVAILABLE = False
 
 # Import formatting functions from main
 try:
@@ -541,7 +563,6 @@ class CustomerUI:
         export_treeview_to_csv(self.customer_tree, self.frame)
     
     def _on_import_data(self):
-        from data_importing import show_customer_import_dialog
         # Create a refresh callback that updates the customer tree
         def refresh_customers():
             if self.view_customers_callback:
@@ -865,7 +886,6 @@ class InventoryUI:
         export_treeview_to_csv(self.inventory_tree, self.frame)
     
     def _on_import_data(self):
-        from data_importing import show_inventory_import_dialog
         # Create a refresh callback that updates the inventory tree
         def refresh_inventory():
             if self.view_inventory_callback:
@@ -1304,9 +1324,6 @@ class SuppliersUI:
             else:
                 messagebox.showwarning("Warning", "Please enter a Supplier ID.")
     
-    def _threaded_delete_supplier(self):
-        
-        threading.Thread(target=self.delete_supplier).start()
     def delete_supplier(self):
         if self.delete_supplier_callback:
             self.delete_supplier_callback(self.delete_supplier_id_entry)
@@ -1316,7 +1333,6 @@ class SuppliersUI:
         export_treeview_to_csv(self.suppliers_tree, self.frame)
     
     def _on_import_data(self):
-        from data_importing import show_supplier_import_dialog
         # Create a refresh callback that updates the suppliers tree
         def refresh_suppliers():
             if self.view_suppliers_callback:
@@ -1495,13 +1511,23 @@ class POSApp:
             self.dashboard_ui = DashboardUI(self.dashboard_tab, **dashboard_callbacks)
             
             # Create climate UI with callbacks
-            climate_callbacks = {
-                'refresh_data': self.refresh_climate_data,
-                'export_data': self.export_climate_data,
-                'navigate_to_inventory': lambda: self.notebook.select(self.inventory_tab),
-                'navigate_to_suppliers': lambda: self.notebook.select(self.suppliers_tab)
-            }
-            self.climate_ui = ClimateUI(self.climate_tab, **climate_callbacks)
+            if CLIMATE_AVAILABLE and ClimateUI is not None:
+                climate_callbacks = {
+                    'get_materials_callback': self.get_climate_materials,
+                    'get_forecast_callback': self.get_climate_forecast,
+                    'refresh_data': self.refresh_climate_data,
+                    'export_data': self.export_climate_data,
+                    'navigate_to_inventory': lambda: self.notebook.select(self.inventory_tab),
+                    'navigate_to_suppliers': lambda: self.notebook.select(self.suppliers_tab)
+                }
+                self.climate_ui = ClimateUI(self.climate_tab, **climate_callbacks)
+            else:
+                # Create a simple message if climate UI is not available
+                error_label = ttk.Label(self.climate_tab, 
+                                      text="Climate Tab is currently unavailable.\nPlease check the Climate Tab folder and files.",
+                                      font=('Arial', 12),
+                                      anchor='center')
+                error_label.pack(expand=True, fill='both')
             
             self.reports_ui = ReportsUI(self.reports_tab)
         
@@ -1640,40 +1666,34 @@ class POSApp:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export climate data: {str(e)}")
 
-def add_to_cart(product_listbox, add_to_cart_quantity_entry, cart_tree, cart, cursor):
-    try:
-        selected_index = product_listbox.curselection()
-        if not selected_index:
-            raise ValueError("Please select a product and specify quantity.")
-        selected_product = product_listbox.get(selected_index[0])
-        sku = selected_product.split(' (')[1][:-1]
-        quantity = int(add_to_cart_quantity_entry.get())
-        if quantity <= 0:
-            raise ValueError("Quantity must be a positive number.")
-        # Add the product to the cart
-        sales.add_to_cart(cart, sku, quantity)
-        # Update the cart Treeview
-        _update_cart_display(cart, cart_tree, cursor)
-        add_to_cart_quantity_entry.delete(0, tk.END)
-    except ValueError as ve:
-        handle_error(str(ve))
-    except Exception as e:
-        handle_error(f"An error occurred while adding to cart: {e}")
+    def get_climate_materials(self):
+        """Get climate materials data callback for Phase 6 integration"""
+        try:
+            if not CLIMATE_AVAILABLE or climate_data is None:
+                print("Climate data not available")
+                return []
+            
+            # Get current climate status for all materials
+            materials = climate_data.get_current_climate_status()
+            return materials
+            
+        except Exception as e:
+            print(f"Error getting climate materials: {e}")
+            return []
 
-# Define handle_error function
-def handle_error(error_message):
-    # Displays an error message in a message box
-    messagebox.showerror("Error", error_message)
+    def get_climate_forecast(self, days_ahead=7):
+        """Get climate forecast data callback for Phase 6 integration"""
+        try:
+            if not CLIMATE_AVAILABLE or climate_data is None:
+                print("Climate data not available")
+                return []
+            
+            # Get climate forecast
+            forecast = climate_data.get_climate_forecast(days_ahead)
+            return forecast
+            
+        except Exception as e:
+            print(f"Error getting climate forecast: {e}")
+            return []
 
-# Define _update_cart_display function
-def _update_cart_display(cart, cart_tree, cursor):
-    # Updates the cart display in the UI with the current items in the cart
-    try:
-        cart_tree.delete(*cart_tree.get_children())
-        for item in cart:
-            formatted_values = format_treeview_values((item['SKU'], item['name'], item['quantity'], item['price']))
-            cart_tree.insert("", "end", values=formatted_values)
-        alternate_treeview_rows(cart_tree)
-    except Exception as e:
-        handle_error(f"An error occurred while updating the cart display: {e}")
 
