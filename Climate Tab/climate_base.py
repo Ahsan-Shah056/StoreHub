@@ -106,6 +106,14 @@ class ClimateConstants:
         'CRITICAL': "#dc3545"   # Red
     }
     
+    # Risk level numeric values (for charts)
+    RISK_LEVELS = {
+        'LOW': 1,
+        'MEDIUM': 2, 
+        'HIGH': 3,
+        'CRITICAL': 4
+    }
+    
     # Fonts
     HEADER_FONT = ("Helvetica", 16, "bold")
     SUBHEADER_FONT = ("Helvetica", 12, "bold")

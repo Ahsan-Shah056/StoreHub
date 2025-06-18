@@ -13,10 +13,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from climate_base import ClimateBaseUI, ClimateConstants
+from climate_overview_ui import ClimateOverviewUI
+from climate_warnings_ui import ClimateWarningsUI
 import climate_data
 
 class ClimateUI:
-    """Main Climate UI class with 4 subtabs: Overview, Warnings, Analysis, Actions"""
+    """Main Climate UI class with 3 subtabs: Overview, Warnings, Actions"""
     
     def __init__(self, parent_frame, **callbacks):
         self.parent = parent_frame
@@ -86,23 +88,38 @@ class ClimateUI:
         # Create subtab frames
         self.overview_tab = ttk.Frame(self.subtabs_notebook)
         self.warnings_tab = ttk.Frame(self.subtabs_notebook)
-        self.analysis_tab = ttk.Frame(self.subtabs_notebook)
         self.actions_tab = ttk.Frame(self.subtabs_notebook)
         
         # Add subtabs to notebook
         self.subtabs_notebook.add(self.overview_tab, text="📊 Overview")
         self.subtabs_notebook.add(self.warnings_tab, text="⚠️ Warnings")
-        self.subtabs_notebook.add(self.analysis_tab, text="📈 Analysis")
         self.subtabs_notebook.add(self.actions_tab, text="🎯 Actions")
         
-        # Initialize subtab content (placeholders for now)
-        self.create_overview_placeholder()
-        self.create_warnings_placeholder()
-        self.create_analysis_placeholder()
+        # Initialize subtab content
+        self.create_overview_content()
+        self.create_warnings_content()
         self.create_actions_placeholder()
         
         # Bind tab change event
         self.subtabs_notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        
+    def create_overview_content(self):
+        """Create enhanced overview content using ClimateOverviewUI"""
+        try:
+            # Initialize the enhanced overview UI
+            self.overview_ui = ClimateOverviewUI(self.overview_tab, self.callbacks)
+        except Exception as e:
+            # Fallback to placeholder if enhanced UI fails
+            self.create_overview_placeholder()
+    
+    def create_warnings_content(self):
+        """Create enhanced warnings content using ClimateWarningsUI"""
+        try:
+            # Initialize the enhanced warnings UI
+            self.warnings_ui = ClimateWarningsUI(self.warnings_tab, self.callbacks)
+        except Exception as e:
+            # Fallback to placeholder if enhanced UI fails
+            self.create_warnings_placeholder()
         
     def create_overview_placeholder(self):
         """Create placeholder content for overview tab"""
@@ -200,21 +217,6 @@ class ClimateUI:
         self.forecast_tree.pack(side='left', fill='both', expand=True)
         forecast_scrollbar.pack(side='right', fill='y')
         
-    def create_analysis_placeholder(self):
-        """Create placeholder content for analysis tab"""
-        analysis_frame = ttk.Frame(self.analysis_tab, padding="10")
-        analysis_frame.pack(fill='both', expand=True)
-        
-        title_label = ttk.Label(analysis_frame,
-                               text="Climate Impact Analysis",
-                               font=ClimateConstants.SUBHEADER_FONT)
-        title_label.pack(anchor='w', pady=(0, 10))
-        
-        placeholder_label = ttk.Label(analysis_frame,
-                                     text="Analysis features will be implemented in Phase 4",
-                                     font=ClimateConstants.BODY_FONT)
-        placeholder_label.pack(expand=True)
-        
     def create_actions_placeholder(self):
         """Create placeholder content for actions tab"""
         actions_frame = ttk.Frame(self.actions_tab, padding="10")
@@ -249,6 +251,15 @@ class ClimateUI:
     def refresh_overview_data(self):
         """Refresh data for overview tab"""
         try:
+            # Try to refresh enhanced overview first
+            if hasattr(self, 'overview_ui') and self.overview_ui:
+                self.overview_ui.refresh_data()
+                return
+            
+            # Fallback to placeholder data refresh if enhanced UI not available
+            if not hasattr(self, 'status_cards_frame'):
+                return
+                
             # Clear existing status cards
             for widget in self.status_cards_frame.winfo_children():
                 widget.destroy()
@@ -283,11 +294,21 @@ class ClimateUI:
                 ))
                 
         except Exception as e:
-            self.overall_risk_label.config(text=f"Error loading overview data: {str(e)}")
+            if hasattr(self, 'overall_risk_label'):
+                self.overall_risk_label.config(text=f"Error loading overview data: {str(e)}")
     
     def refresh_warnings_data(self):
         """Refresh data for warnings tab"""
         try:
+            # Try to refresh enhanced warnings first
+            if hasattr(self, 'warnings_ui') and self.warnings_ui:
+                self.warnings_ui.refresh_data()
+                return
+            
+            # Fallback to placeholder data refresh if enhanced UI not available
+            if not hasattr(self, 'alerts_label'):
+                return
+                
             # Get alerts
             alerts = self.climate_manager.get_climate_alerts()
             
@@ -314,7 +335,8 @@ class ClimateUI:
                 ))
                 
         except Exception as e:
-            self.alerts_label.config(text=f"Error loading warnings data: {str(e)}")
+            if hasattr(self, 'alerts_label'):
+                self.alerts_label.config(text=f"Error loading warnings data: {str(e)}")
     
     def on_tab_changed(self, event):
         """Handle tab change events"""
