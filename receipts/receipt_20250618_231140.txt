@@ -1,0 +1,17 @@
+
+        DIGICLIMATE STORE HUB ENTERPRISE SYSTEM
+        =============================================
+        Date: 2025-06-18 23:11:38
+        Customer: Haris Khan (ID: 27)
+        Sale ID: 30001
+        ---------------------------------------------
+        ITEM               QTY   PRICE   TOTAL
+        ---------------------------------------------
+        White Bread         12  $150.00 $1800.00
+---------------------------------------------
+                       SUBTOTAL: $1800.00
+                          TAXES: $315.00
+                          TOTAL: $2115.00
+=============================================
+Thank you for your purchase!
+    DigiClimate Store Hub v2.0

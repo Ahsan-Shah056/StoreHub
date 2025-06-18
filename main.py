@@ -442,7 +442,7 @@ def print_receipt_to_pdf(receipt_text):
         story = []
         
         # Add company logo (if exists)
-        logo_path = "logo.jpeg"
+        logo_path = "logo.png"
         if os.path.exists(logo_path):
             try:
                 logo = ReportLabImage(logo_path, width=2*inch, height=1.5*inch)
@@ -617,7 +617,7 @@ def generate_pdf_for_email(receipt_text, sale_id):
         story = []
         
         # Add company logo (if exists)
-        logo_path = "logo.jpeg"
+        logo_path = "logo.png"
         if os.path.exists(logo_path):
             try:
                 logo = ReportLabImage(logo_path, width=2*inch, height=1.5*inch)
@@ -1542,7 +1542,7 @@ def create_login_window(root):
     
     # Add logo if it exists
     try:
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
         if os.path.exists(logo_path):
             logo_image = Image.open(logo_path)
             logo_image = logo_image.resize((100, 100), Image.LANCZOS)
@@ -1753,7 +1753,7 @@ if __name__ == "__main__":
     
     # Display the logo in the top-right corner
     try:
-        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+        logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
         if os.path.exists(logo_path):
             logo_image = Image.open(logo_path)
             logo_image = logo_image.resize((80, 80), Image.LANCZOS)

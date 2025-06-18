@@ -13,7 +13,7 @@ CREATE TABLE Categories (
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- Products
+
 -- Products
 CREATE TABLE Products (
     SKU VARCHAR(255) PRIMARY KEY,

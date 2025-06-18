@@ -1410,7 +1410,7 @@ class POSApp:
         
         # Add logo to the top right corner
         try:
-            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.jpeg")
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
             if os.path.exists(logo_path):
                 logo_img = Image.open(logo_path)
                 # Resize the image to a reasonable size
