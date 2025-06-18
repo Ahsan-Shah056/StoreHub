@@ -268,54 +268,13 @@ class SimulationUI(DashboardBaseUI):
     
     def create_optimization_tab(self):
         """Create optimization analysis tab"""
-        # Main container with enhanced canvas
-        canvas = tk.Canvas(self.optimization_frame, highlightthickness=0, bd=0)
-        scrollbar = ttk.Scrollbar(self.optimization_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        # Configure Canvas to match the theme background
-        def update_canvas_bg():
-            try:
-                style = ttk.Style()
-                bg_color = style.lookup('TFrame', 'background')
-                if bg_color:
-                    canvas.configure(bg=bg_color)
-                else:
-                    canvas.configure(bg=self.optimization_frame.cget('bg'))
-            except:
-                canvas.configure(bg='SystemButtonFace')
-        
-        self.optimization_frame.after(1, update_canvas_bg)
-        
-        def configure_scroll_region(event=None):
-            canvas.configure(scrollregion=canvas.bbox("all"))
-            
-            # Make the canvas window width match the canvas width
-            canvas_width = canvas.winfo_width()
-            if canvas_width > 1:
-                canvas.itemconfig(canvas_window, width=canvas_width)
-            
-            # Auto-hide scrollbar when not needed
-            canvas_height = canvas.winfo_height()
-            content_height = scrollable_frame.winfo_reqheight()
-            
-            if content_height > canvas_height and canvas_height > 1:
-                scrollbar.pack(side="right", fill="y")
-            else:
-                scrollbar.pack_forget()
-        
-        scrollable_frame.bind("<Configure>", configure_scroll_region)
-        canvas.bind("<Configure>", configure_scroll_region)
-        
-        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        # Simplified layout without canvas scrolling for better expansion
+        main_container = ttk.Frame(self.optimization_frame)
+        main_container.pack(fill='both', expand=True, padx=5, pady=5)
         
         # Optimization controls
-        control_frame = ttk.LabelFrame(scrollable_frame, text="Optimization Analysis", padding="10")
-        control_frame.pack(fill='x', padx=5, pady=5)
+        control_frame = ttk.LabelFrame(main_container, text="Optimization Analysis", padding="10")
+        control_frame.pack(fill='x', pady=(0, 5))
         
         # Category filter
         filter_frame = ttk.Frame(control_frame)
@@ -323,42 +282,74 @@ class SimulationUI(DashboardBaseUI):
         
         ttk.Label(filter_frame, text="Category Filter:").pack(side='left', padx=(0, 5))
         self.opt_category_var = tk.StringVar(value="All Categories")
+        
+        # Get all categories dynamically from database
+        try:
+            products = inventory.get_all_products()
+            categories = sorted(list(set(p.get('category', 'Unknown') for p in products if p.get('category'))))
+            category_values = ["All Categories"] + categories
+        except Exception:
+            category_values = ["All Categories", "Bread", "Buns", "Pasta"]  # Fallback
+        
         category_combo = ttk.Combobox(filter_frame, textvariable=self.opt_category_var, 
-                                     values=["All Categories", "Bread", "Buns", "Pasta"], 
-                                     state="readonly", width=15)
+                                     values=category_values, 
+                                     state="readonly", width=20)
         category_combo.pack(side='left', padx=(0, 10))
         
         ttk.Button(filter_frame, text="Analyze Pricing", 
                   command=self.run_pricing_optimization).pack(side='left')
         
-        # Optimization results
-        results_frame = ttk.LabelFrame(scrollable_frame, text="Pricing Optimization Results", padding="5")
-        results_frame.pack(fill='both', expand=True, padx=5, pady=5)
-        
-        # Results table
-        columns = ('SKU', 'Product', 'Current Price', 'Recommended Price', 'Price Change %', 'Current Margin %', 'New Margin %', 'Profit Impact', 'Reason')
-        self.optimization_tree = ttk.Treeview(results_frame, columns=columns, show='headings', height=12, style="Simulation.Treeview")
-        
-        for col in columns:
-            self.optimization_tree.heading(col, text=col)
-            if col in ['Product', 'Reason']:
-                self.optimization_tree.column(col, width=150)
-            else:
-                self.optimization_tree.column(col, width=100)
-        
-        self.optimization_tree.pack(fill='both', expand=True)
-        
         # Optimization summary
-        summary_frame = ttk.LabelFrame(scrollable_frame, text="Optimization Summary", padding="10")
-        summary_frame.pack(fill='x', padx=5, pady=5)
+        summary_frame = ttk.LabelFrame(main_container, text="Optimization Summary", padding="10")
+        summary_frame.pack(fill='x', pady=(0, 5))
         
         self.optimization_summary = ttk.Label(summary_frame, 
                                             text="Run pricing optimization to see summary",
-                                            font=DashboardConstants.BODY_FONT)
+                                            font=("Helvetica", 14, "bold"))
         self.optimization_summary.pack()
         
-        # Pack canvas (scrollbar will be packed dynamically)
-        canvas.pack(side="left", fill="both", expand=True)
+        # Optimization results - expanded to full width
+        results_frame = ttk.LabelFrame(main_container, text="Pricing Optimization Results", padding="5")
+        results_frame.pack(fill='both', expand=True)
+        
+        # Create treeview container with scrollbars
+        tree_container = ttk.Frame(results_frame)
+        tree_container.pack(fill='both', expand=True)
+        
+        # Results table with enhanced column widths for full expansion
+        columns = ('SKU', 'Product', 'Current Price', 'Recommended Price', 'Price Change %', 'Current Margin %', 'New Margin %', 'Profit Impact', 'Reason')
+        self.optimization_tree = ttk.Treeview(tree_container, columns=columns, show='headings', style="Simulation.Treeview")
+        
+        # Enhanced column configuration for better width distribution
+        column_widths = {
+            'SKU': 80,
+            'Product': 200,
+            'Current Price': 110,
+            'Recommended Price': 130,
+            'Price Change %': 110,
+            'Current Margin %': 120,
+            'New Margin %': 110,
+            'Profit Impact': 120,
+            'Reason': 400
+        }
+        
+        for col in columns:
+            self.optimization_tree.heading(col, text=col)
+            self.optimization_tree.column(col, width=column_widths[col], minwidth=80)
+        
+        # Add scrollbars for optimization treeview
+        opt_v_scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.optimization_tree.yview)
+        opt_h_scrollbar = ttk.Scrollbar(tree_container, orient="horizontal", command=self.optimization_tree.xview)
+        self.optimization_tree.configure(yscrollcommand=opt_v_scrollbar.set, xscrollcommand=opt_h_scrollbar.set)
+        
+        # Pack treeview and scrollbars with proper layout
+        self.optimization_tree.grid(row=0, column=0, sticky='nsew')
+        opt_v_scrollbar.grid(row=0, column=1, sticky='ns')
+        opt_h_scrollbar.grid(row=1, column=0, sticky='ew')
+        
+        # Configure grid weights for proper expansion
+        tree_container.grid_rowconfigure(0, weight=1)
+        tree_container.grid_columnconfigure(0, weight=1)
     
     def load_product_for_price_simulation(self):
         """Load product data for price simulation"""
@@ -543,9 +534,18 @@ class SimulationUI(DashboardBaseUI):
         """Run pricing optimization analysis"""
         try:
             category = self.opt_category_var.get()
-            category_id = None if category == "All Categories" else 1  # Simplified category mapping
             
-            results = dashboard.analyze_optimal_pricing(category_id)
+            # Get all results first, then filter by category name if needed
+            results = dashboard.analyze_optimal_pricing(None)  # Get all categories
+            
+            # Filter results by category name if not "All Categories"
+            if category != "All Categories":
+                # Filter results based on the category name from the products
+                filtered_results = []
+                products = inventory.get_all_products()
+                category_skus = {p.get('SKU') for p in products if p.get('category') == category}
+                filtered_results = [r for r in results if r.get('sku') in category_skus]
+                results = filtered_results
             
             # Clear existing results
             for item in self.optimization_tree.get_children():
@@ -564,14 +564,14 @@ class SimulationUI(DashboardBaseUI):
                     
                     values = (
                         result.get('sku', 'N/A'),
-                        result.get('product_name', 'N/A')[:20],  # Truncate name
+                        result.get('product_name', 'N/A')[:25],  # Allow more space for product name
                         f"${result.get('current_price', 0):.2f}",
                         f"${result.get('recommended_price', 0):.2f}",
                         f"{result.get('price_change_percent', 0):.1f}%",
                         f"{result.get('current_margin_percent', 0):.1f}%",
                         f"{result.get('new_margin_percent', 0):.1f}%",
                         f"${profit_impact:.2f}",
-                        result.get('recommendation_reason', 'N/A')[:30]  # Truncate reason
+                        result.get('recommendation_reason', 'N/A')  # Show full reason
                     )
                     self.optimization_tree.insert('', 'end', values=values)
                 

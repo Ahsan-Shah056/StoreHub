@@ -550,7 +550,7 @@ def print_receipt_to_pdf(receipt_text):
         
         story.append(Paragraph("Thank you for your purchase!", footer_style))
         story.append(Spacer(1, 10))
-        story.append(Paragraph("DigiClimate Store Hub v1.0 - Professional POS System", center_style))
+        story.append(Paragraph("DigiClimate Store Hub v2.0 - Professional POS System", center_style))
         
         # Build PDF
         doc.build(story)

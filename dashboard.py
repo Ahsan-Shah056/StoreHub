@@ -1314,32 +1314,61 @@ class DashboardAnalytics:
                 cost = float(product['cost']) if product['cost'] else 0
                 current_margin = ((current_price - cost) / current_price) * 100 if current_price > 0 else 0
                 avg_selling_price = float(product['avg_selling_price'])
-                
-                # Suggest optimal price based on various factors
-                recommended_price = current_price
-                
-                # Factor 1: If selling below list price consistently, might increase
-                if avg_selling_price < current_price * 0.9:
-                    recommended_price = current_price * 0.95
-                
-                # Factor 2: If cost margin is too low, increase price
-                if current_margin < 30 and cost > 0:
-                    recommended_price = cost * 1.4  # Target 30% margin
-                
-                # Factor 3: Market-based pricing
-                if product['highest_price_sold'] > current_price * 1.1:
-                    recommended_price = min(recommended_price * 1.1, float(product['highest_price_sold']))
-                
-                # Calculate potential impact
                 units_sold = float(product['total_units_sold'])
                 current_profit = float(product['total_profit'])
                 
-                estimated_demand_change = -0.5  # Assume 50% of customers remain at higher price
-                if recommended_price < current_price:
-                    estimated_demand_change = 0.2  # 20% increase in demand for lower price
+                # Suggest optimal price based on various factors with detailed reasoning
+                recommended_price = current_price
+                recommendation_reason = "✅ Current pricing is well optimized - no changes needed"
                 
-                estimated_new_units = units_sold * (1 + estimated_demand_change)
-                estimated_new_profit = estimated_new_units * (recommended_price - cost)
+                # Factor 1: If selling below list price consistently, might decrease
+                if avg_selling_price < current_price * 0.9:
+                    recommended_price = current_price * 0.95
+                    price_gap = ((current_price - avg_selling_price) / current_price) * 100
+                    recommendation_reason = f"💡 Reduce by 5% to ${recommended_price:.2f} - customers consistently pay {price_gap:.0f}% below list price"
+                
+                # Factor 2: If cost margin is too low, increase price
+                elif current_margin < 30 and cost > 0:
+                    recommended_price = cost * 1.43  # Target 30% margin (cost / 0.7)
+                    recommendation_reason = f"📈 Increase to ${recommended_price:.2f} to achieve healthy 30% margin (currently {current_margin:.0f}%)"
+                
+                # Factor 3: Market-based pricing adjustment
+                elif product['highest_price_sold'] > current_price * 1.05:
+                    recommended_price = min(current_price * 1.05, float(product['highest_price_sold']) * 0.95)
+                    highest_sold = float(product['highest_price_sold'])
+                    recommendation_reason = f"🚀 Increase to ${recommended_price:.2f} - market data shows customers will pay up to ${highest_sold:.2f}"
+                
+                # Factor 4: High margin products - consider small price increase
+                elif current_margin > 50 and units_sold > 10:
+                    recommended_price = current_price * 1.02
+                    recommendation_reason = f"💰 Premium pricing opportunity: increase to ${recommended_price:.2f} (strong {units_sold:.0f} unit sales, {current_margin:.0f}% margin)"
+                
+                # Factor 5: Low volume products - consider price reduction
+                elif units_sold < 5 and current_margin > 25:
+                    recommended_price = current_price * 0.95
+                    recommendation_reason = f"🎯 Stimulate demand: reduce to ${recommended_price:.2f} to boost sales (only {units_sold:.0f} units sold in 90 days)"
+                
+                # Calculate improved impact estimates
+                price_change_ratio = recommended_price / current_price
+                
+                # More realistic demand elasticity
+                if price_change_ratio > 1.0:
+                    # Price increase - assume some customer loss
+                    elasticity = -0.3 if current_margin > 40 else -0.5
+                    demand_change = (price_change_ratio - 1) * elasticity
+                else:
+                    # Price decrease - assume demand increase
+                    elasticity = 0.4 if current_margin > 30 else 0.2
+                    demand_change = (1 - price_change_ratio) * elasticity
+                
+                # Projected monthly sales (scale from 90-day data)
+                monthly_units = units_sold / 3  # Convert 90-day to monthly
+                estimated_new_monthly_units = monthly_units * (1 + demand_change)
+                
+                # Monthly profit calculations
+                current_monthly_profit = monthly_units * (current_price - cost)
+                estimated_new_monthly_profit = estimated_new_monthly_units * (recommended_price - cost)
+                monthly_profit_impact = estimated_new_monthly_profit - current_monthly_profit
                 
                 optimization_results.append({
                     'sku': product['SKU'],
@@ -1349,14 +1378,12 @@ class DashboardAnalytics:
                     'price_change_percent': ((recommended_price - current_price) / current_price) * 100,
                     'current_margin_percent': current_margin,
                     'new_margin_percent': ((recommended_price - cost) / recommended_price) * 100 if recommended_price > 0 else 0,
-                    'current_monthly_profit': current_profit,
-                    'estimated_new_profit': estimated_new_profit,
-                    'profit_impact': estimated_new_profit - current_profit,
+                    'current_monthly_profit': current_monthly_profit,
+                    'estimated_new_profit': estimated_new_monthly_profit,
+                    'profit_impact': monthly_profit_impact,
                     'units_sold_last_90_days': units_sold,
-                    'estimated_new_units': estimated_new_units,
-                    'recommendation_reason': self._get_pricing_recommendation_reason(
-                        current_price, recommended_price, current_margin, avg_selling_price
-                    )
+                    'estimated_new_units': estimated_new_monthly_units,
+                    'recommendation_reason': recommendation_reason
                 })
             
             return optimization_results
