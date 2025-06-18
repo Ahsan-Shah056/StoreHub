@@ -4,9 +4,10 @@ Main climate tab controller with subtab management
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from datetime import datetime, timedelta
 import os
+import json
 
 # Import modular climate components
 import sys
@@ -15,6 +16,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from climate_base import ClimateBaseUI, ClimateConstants
 from climate_overview_ui import ClimateOverviewUI
 from climate_warnings_ui import ClimateWarningsUI
+from climate_actions_ui import ClimateActionsUI
 import climate_data
 
 class ClimateUI:
@@ -98,7 +100,7 @@ class ClimateUI:
         # Initialize subtab content
         self.create_overview_content()
         self.create_warnings_content()
-        self.create_actions_placeholder()
+        self.create_actions_content()
         
         # Bind tab change event
         self.subtabs_notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
@@ -120,6 +122,15 @@ class ClimateUI:
         except Exception as e:
             # Fallback to placeholder if enhanced UI fails
             self.create_warnings_placeholder()
+    
+    def create_actions_content(self):
+        """Create enhanced actions content using ClimateActionsUI"""
+        try:
+            # Initialize the enhanced actions UI
+            self.actions_ui = ClimateActionsUI(self.actions_tab, self.callbacks)
+        except Exception as e:
+            # Fallback to placeholder if enhanced UI fails
+            self.create_actions_placeholder()
         
     def create_overview_placeholder(self):
         """Create placeholder content for overview tab"""
@@ -245,6 +256,9 @@ class ClimateUI:
             # Refresh warnings data
             self.refresh_warnings_data()
             
+            # Refresh actions data
+            self.refresh_actions_data()
+            
         except Exception as e:
             messagebox.showerror("Error", f"Failed to refresh climate data: {str(e)}")
     
@@ -338,6 +352,15 @@ class ClimateUI:
             if hasattr(self, 'alerts_label'):
                 self.alerts_label.config(text=f"Error loading warnings data: {str(e)}")
     
+    def refresh_actions_data(self):
+        """Refresh data for actions tab"""
+        try:
+            # Try to refresh enhanced actions first
+            if hasattr(self, 'actions_ui') and self.actions_ui:
+                self.actions_ui.refresh_data()
+        except Exception as e:
+            pass  # Silently fail for actions refresh
+    
     def on_tab_changed(self, event):
         """Handle tab change events"""
         selected_tab = event.widget.tab('current')['text']
@@ -347,10 +370,237 @@ class ClimateUI:
             self.refresh_overview_data()
         elif '⚠️ Warnings' in selected_tab:
             self.refresh_warnings_data()
+        elif '🎯 Actions' in selected_tab:
+            self.refresh_actions_data()
     
     def export_climate_data(self):
-        """Export climate data (placeholder)"""
-        messagebox.showinfo("Export", "Climate data export feature will be implemented in Phase 6")
+        """Export comprehensive climate data"""
+        export_window = tk.Toplevel(self.parent)
+        export_window.title("Export Climate Data")
+        export_window.geometry("450x350")
+        export_window.resizable(False, False)
+        
+        # Make window modal
+        export_window.transient(self.parent)
+        export_window.grab_set()
+        
+        # Main frame
+        main_frame = ttk.Frame(export_window, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, 
+                               text="Export Climate Data", 
+                               font=ClimateConstants.SUBHEADER_FONT)
+        title_label.pack(pady=(0, 15))
+        
+        # Export type selection
+        ttk.Label(main_frame, text="Export Type:").pack(anchor='w')
+        export_type_var = tk.StringVar(value="Complete Report")
+        type_frame = ttk.Frame(main_frame)
+        type_frame.pack(fill='x', pady=(0, 15))
+        
+        ttk.Radiobutton(type_frame, text="Complete Report", variable=export_type_var, 
+                       value="Complete Report").pack(anchor='w')
+        ttk.Radiobutton(type_frame, text="Overview Data Only", variable=export_type_var, 
+                       value="Overview").pack(anchor='w')
+        ttk.Radiobutton(type_frame, text="Warnings & Alerts", variable=export_type_var, 
+                       value="Warnings").pack(anchor='w')
+        ttk.Radiobutton(type_frame, text="Actions Data", variable=export_type_var, 
+                       value="Actions").pack(anchor='w')
+        
+        # Format selection
+        ttk.Label(main_frame, text="Export Format:").pack(anchor='w')
+        format_var = tk.StringVar(value="PDF Report")
+        format_frame = ttk.Frame(main_frame)
+        format_frame.pack(fill='x', pady=(0, 15))
+        
+        ttk.Radiobutton(format_frame, text="PDF Report", variable=format_var, 
+                       value="PDF").pack(anchor='w')
+        ttk.Radiobutton(format_frame, text="Excel Spreadsheet", variable=format_var, 
+                       value="Excel").pack(anchor='w')
+        ttk.Radiobutton(format_frame, text="JSON Data", variable=format_var, 
+                       value="JSON").pack(anchor='w')
+        ttk.Radiobutton(format_frame, text="CSV Data", variable=format_var, 
+                       value="CSV").pack(anchor='w')
+        
+        # Date range
+        ttk.Label(main_frame, text="Date Range:").pack(anchor='w')
+        date_range_var = tk.StringVar(value="All Time")
+        date_combo = ttk.Combobox(main_frame, textvariable=date_range_var,
+                                 values=["All Time", "Last 7 Days", "Last 30 Days", "Last 90 Days"],
+                                 state="readonly")
+        date_combo.pack(fill='x', pady=(0, 15))
+        
+        # Buttons
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.pack(fill='x')
+        
+        def perform_export():
+            """Perform the climate data export"""
+            # Determine file extension based on format
+            extensions = {"PDF": ".pdf", "Excel": ".xlsx", "JSON": ".json", "CSV": ".csv"}
+            filetypes = {
+                "PDF": [("PDF files", "*.pdf"), ("All files", "*.*")],
+                "Excel": [("Excel files", "*.xlsx"), ("All files", "*.*")],
+                "JSON": [("JSON files", "*.json"), ("All files", "*.*")],
+                "CSV": [("CSV files", "*.csv"), ("All files", "*.*")]
+            }
+            
+            format_key = format_var.get()
+            filename = filedialog.asksaveasfilename(
+                defaultextension=extensions[format_key],
+                filetypes=filetypes[format_key],
+                title="Export Climate Data"
+            )
+            
+            if filename:
+                try:
+                    self.export_climate_to_file(filename, export_type_var.get(), 
+                                              format_key, date_range_var.get())
+                    export_window.destroy()
+                    messagebox.showinfo("Success", f"Climate data exported to {filename}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to export data: {str(e)}")
+        
+        def cancel_export():
+            """Cancel export"""
+            export_window.destroy()
+            
+        ttk.Button(buttons_frame, text="📤 Export", 
+                  command=perform_export).pack(side='left', padx=(0, 10))
+        ttk.Button(buttons_frame, text="❌ Cancel", 
+                  command=cancel_export).pack(side='left')
+                  
+    def export_climate_to_file(self, filename, export_type, format_type, date_range):
+        """Export climate data to file in specified format"""
+        # Gather data based on export type
+        export_data = {
+            'export_info': {
+                'export_date': datetime.now().isoformat(),
+                'export_type': export_type,
+                'date_range': date_range,
+                'generated_by': 'DigiClimate Store Hub'
+            }
+        }
+        
+        # Add data based on export type
+        if export_type in ["Complete Report", "Overview"]:
+            export_data['overview'] = self.climate_manager.get_current_climate_status()
+            export_data['risk_assessment'] = self.climate_manager.get_overall_climate_risk()
+            
+        if export_type in ["Complete Report", "Warnings"]:
+            export_data['alerts'] = self.climate_manager.get_climate_alerts()
+            export_data['forecast'] = self.climate_manager.get_climate_forecast(7)
+            
+        if export_type in ["Complete Report", "Actions"]:
+            if hasattr(self, 'actions_ui') and self.actions_ui:
+                export_data['pending_actions'] = self.actions_ui.pending_actions
+                export_data['completed_actions'] = self.actions_ui.completed_actions
+            
+        # Export based on format
+        if format_type == "JSON":
+            self.export_climate_json(filename, export_data)
+        elif format_type == "CSV":
+            self.export_climate_csv(filename, export_data)
+        elif format_type == "PDF":
+            self.export_climate_pdf(filename, export_data)
+        elif format_type == "Excel":
+            self.export_climate_excel(filename, export_data)
+            
+    def export_climate_json(self, filename, data):
+        """Export climate data to JSON"""
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2, default=str)
+            
+    def export_climate_csv(self, filename, data):
+        """Export climate data to CSV"""
+        import csv
+        
+        with open(filename, 'w', newline='') as f:
+            writer = csv.writer(f)
+            
+            # Write header
+            writer.writerow(['CLIMATE DATA EXPORT'])
+            writer.writerow(['Export Date:', data['export_info']['export_date']])
+            writer.writerow(['Export Type:', data['export_info']['export_type']])
+            writer.writerow([])
+            
+            # Write overview data
+            if 'overview' in data:
+                writer.writerow(['OVERVIEW DATA'])
+                writer.writerow(['Material', 'Condition', 'Risk Level', 'Last Updated'])
+                for item in data['overview']:
+                    writer.writerow([
+                        item['material_name'], 
+                        item['current_condition'][:50], 
+                        item['risk_level'],
+                        str(item['last_updated'])
+                    ])
+                writer.writerow([])
+                
+            # Write alerts data
+            if 'alerts' in data:
+                writer.writerow(['ALERTS DATA'])
+                writer.writerow(['Material', 'Message', 'Severity', 'Date'])
+                for alert in data['alerts']:
+                    writer.writerow([
+                        alert['material_name'],
+                        alert['message'],
+                        alert['severity'],
+                        str(alert['alert_date'])
+                    ])
+                    
+    def export_climate_pdf(self, filename, data):
+        """Export climate data to PDF (simplified version)"""
+        # This would require a PDF library like reportlab
+        # For now, create a text-based report and save as .txt
+        txt_filename = filename.replace('.pdf', '.txt')
+        
+        with open(txt_filename, 'w') as f:
+            f.write("CLIMATE DATA REPORT\n")
+            f.write("=" * 50 + "\n\n")
+            
+            info = data['export_info']
+            f.write(f"Generated: {info['export_date']}\n")
+            f.write(f"Export Type: {info['export_type']}\n")
+            f.write(f"Date Range: {info['date_range']}\n")
+            f.write(f"Generated by: {info['generated_by']}\n\n")
+            
+            # Overview section
+            if 'overview' in data:
+                f.write("CLIMATE OVERVIEW\n")
+                f.write("-" * 30 + "\n\n")
+                
+                for item in data['overview']:
+                    f.write(f"Material: {item['material_name']}\n")
+                    f.write(f"Condition: {item['current_condition']}\n")
+                    f.write(f"Risk Level: {item['risk_level']}\n")
+                    f.write(f"Last Updated: {item['last_updated']}\n")
+                    f.write("-" * 40 + "\n\n")
+                    
+            # Alerts section
+            if 'alerts' in data and data['alerts']:
+                f.write("ACTIVE ALERTS\n")
+                f.write("-" * 30 + "\n\n")
+                
+                for alert in data['alerts']:
+                    f.write(f"Material: {alert['material_name']}\n")
+                    f.write(f"Message: {alert['message']}\n")
+                    f.write(f"Severity: {alert['severity']}\n")
+                    f.write(f"Date: {alert['alert_date']}\n")
+                    f.write("-" * 40 + "\n\n")
+                    
+        # Inform user about format change
+        messagebox.showinfo("Format Note", f"PDF export created as text file: {txt_filename}")
+        
+    def export_climate_excel(self, filename, data):
+        """Export climate data to Excel (simplified version)"""
+        # This would require openpyxl or xlswriter
+        # For now, create CSV and inform user
+        csv_filename = filename.replace('.xlsx', '.csv')
+        self.export_climate_csv(csv_filename, data)
+        messagebox.showinfo("Format Note", f"Excel export created as CSV file: {csv_filename}")
         
     def get_current_tab(self):
         """Get currently selected tab"""
