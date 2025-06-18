@@ -213,9 +213,12 @@ class AnalyticsUI(DashboardBaseUI):
         chart_frame.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
         
         if self.matplotlib_available:
-            # Create matplotlib figure
-            self.products_fig = self.Figure(figsize=(6, 4), dpi=100)
+            # Create matplotlib figure with larger size for better text display
+            self.products_fig = self.Figure(figsize=(8, 6), dpi=100)
             self.products_ax = self.products_fig.add_subplot(111)
+            
+            # Adjust layout to prevent text cutoff - more space for y-axis labels
+            self.products_fig.subplots_adjust(left=0.35, right=0.95, top=0.9, bottom=0.15)
             
             # Create canvas
             self.products_canvas = self.FigureCanvasTkAgg(self.products_fig, chart_frame)
@@ -241,9 +244,12 @@ class AnalyticsUI(DashboardBaseUI):
         chart_frame.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
         
         if self.matplotlib_available:
-            # Create matplotlib figure
-            self.category_fig = self.Figure(figsize=(6, 4), dpi=100)
+            # Create matplotlib figure with better size for pie chart and legend
+            self.category_fig = self.Figure(figsize=(8, 5), dpi=100)
             self.category_ax = self.category_fig.add_subplot(111)
+            
+            # Adjust layout for pie chart with legend
+            self.category_fig.subplots_adjust(left=0.1, right=0.7, top=0.9, bottom=0.1)
             
             # Create canvas
             self.category_canvas = self.FigureCanvasTkAgg(self.category_fig, chart_frame)
@@ -269,9 +275,12 @@ class AnalyticsUI(DashboardBaseUI):
         chart_frame.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
         
         if self.matplotlib_available:
-            # Create matplotlib figure
-            self.margin_fig = self.Figure(figsize=(6, 4), dpi=100)
+            # Create matplotlib figure with appropriate size for horizontal bars
+            self.margin_fig = self.Figure(figsize=(8, 5), dpi=100)
             self.margin_ax = self.margin_fig.add_subplot(111)
+            
+            # Adjust layout for horizontal bar chart with product names
+            self.margin_fig.subplots_adjust(left=0.35, right=0.95, top=0.9, bottom=0.15)
             
             # Create canvas
             self.margin_canvas = self.FigureCanvasTkAgg(self.margin_fig, chart_frame)
@@ -297,9 +306,12 @@ class AnalyticsUI(DashboardBaseUI):
         chart_frame.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
         
         if self.matplotlib_available:
-            # Create matplotlib figure
-            self.inventory_fig = self.Figure(figsize=(6, 4), dpi=100)
+            # Create matplotlib figure with better size
+            self.inventory_fig = self.Figure(figsize=(8, 5), dpi=100)
             self.inventory_ax = self.inventory_fig.add_subplot(111)
+            
+            # Adjust layout for better display
+            self.inventory_fig.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
             
             # Create canvas
             self.inventory_canvas = self.FigureCanvasTkAgg(self.inventory_fig, chart_frame)
@@ -500,10 +512,10 @@ class AnalyticsUI(DashboardBaseUI):
                 revenues = []
                 
                 for product in top_products:
-                    # Truncate long product names
+                    # Truncate long product names for better display
                     name = product['name']
-                    if len(name) > 15:
-                        name = name[:12] + '...'
+                    if len(name) > 25:
+                        name = name[:22] + '...'
                     product_names.append(name)
                     revenues.append(float(product['revenue']))
                 
@@ -522,15 +534,18 @@ class AnalyticsUI(DashboardBaseUI):
                                          f'${revenue:,.0f}', 
                                          ha='left', va='center', fontsize=9, fontweight='bold')
                 
-                # Formatting
+                # Formatting with better font sizes
                 self.products_ax.set_yticks(y_positions)
-                self.products_ax.set_yticklabels(product_names)
-                self.products_ax.set_xlabel('Revenue ($)')
-                self.products_ax.set_title(f'Top {len(product_names)} Products by Revenue')
+                self.products_ax.set_yticklabels(product_names, fontsize=10, ha='right')
+                self.products_ax.set_xlabel('Revenue ($)', fontsize=11)
+                self.products_ax.set_title(f'Top {len(product_names)} Products by Revenue', fontsize=12, pad=20)
                 self.products_ax.grid(True, axis='x', alpha=0.3)
                 
                 # Adjust layout to prevent label cutoff
-                self.products_ax.set_xlim(0, max(revenues) * 1.15)
+                self.products_ax.set_xlim(0, max(revenues) * 1.2)
+                
+                # Apply tight layout to prevent text cutoff
+                self.products_fig.tight_layout()
                 
             else:
                 self.products_ax.text(0.5, 0.5, 'No product data available\nfor selected period', 
@@ -615,19 +630,24 @@ class AnalyticsUI(DashboardBaseUI):
                         autotext.set_fontweight('bold')
                         autotext.set_fontsize(9)
                     
-                    # Improve label formatting
+                    # Improve label formatting - remove labels from pie to reduce clutter
                     for text in texts:
-                        text.set_fontsize(8)
-                        # Truncate long category names
-                        if len(text.get_text()) > 12:
-                            text.set_text(text.get_text()[:12] + '...')
+                        text.set_text('')  # Remove labels from pie slices
                     
-                    # Add a legend for better clarity
-                    self.category_ax.legend(wedges, [f"{cat}: ${rev:,.0f}" for cat, rev in zip(categories, revenues)],
+                    # Add a legend for better clarity with better positioning
+                    legend_labels = []
+                    for i, (cat, rev) in enumerate(zip(categories, revenues)):
+                        pct = (rev / sum(revenues)) * 100
+                        if len(cat) > 15:
+                            cat = cat[:12] + '...'
+                        legend_labels.append(f"{cat}: ${rev:,.0f} ({pct:.1f}%)")
+                    
+                    self.category_ax.legend(wedges, legend_labels,
                                            title="Revenue by Category",
                                            loc="center left",
-                                           bbox_to_anchor=(1, 0, 0.5, 1),
-                                           fontsize=8)
+                                           bbox_to_anchor=(1.05, 0.5),
+                                           fontsize=9,
+                                           title_fontsize=10)
                     
                 else:
                     self.category_ax.text(0.5, 0.5, 'No revenue data\navailable by category', 
@@ -639,6 +659,10 @@ class AnalyticsUI(DashboardBaseUI):
                                      transform=self.category_ax.transAxes, fontsize=12)
             
             self.category_ax.set_title(f"Revenue Distribution by Category (Top {min(len(filtered_categories) if filtered_categories else 0, max_categories)})")
+            
+            # Apply tight layout for better spacing
+            self.category_fig.tight_layout()
+            
             self.category_canvas.draw()
             
         except Exception as e:
@@ -666,8 +690,8 @@ class AnalyticsUI(DashboardBaseUI):
                     products = []
                     for p in top_margins:
                         name = p['name']
-                        if len(name) > 20:
-                            name = name[:17] + '...'
+                        if len(name) > 25:
+                            name = name[:22] + '...'
                         products.append(name)
                     
                     margins = [float(p['profit_margin']) for p in top_margins]
@@ -681,27 +705,22 @@ class AnalyticsUI(DashboardBaseUI):
                     # Add value labels on bars
                     for i, (bar, margin) in enumerate(zip(bars, margins)):
                         width = bar.get_width()
-                        self.margin_ax.text(width + 0.5, bar.get_y() + bar.get_height()/2, 
+                        self.margin_ax.text(width + max(margins) * 0.02, bar.get_y() + bar.get_height()/2, 
                                            f'{margin:.1f}%', 
                                            ha='left', va='center', fontsize=9, fontweight='bold')
                     
-                    self.margin_ax.set_xlabel('Profit Margin (%)')
-                    self.margin_ax.set_title(f'Top {len(top_margins)} Products by Profit Margin')
+                    self.margin_ax.set_xlabel('Profit Margin (%)', fontsize=11)
+                    self.margin_ax.set_title(f'Top {len(top_margins)} Products by Profit Margin', fontsize=12, pad=20)
                     self.margin_ax.grid(True, axis='x', alpha=0.3)
                     
-                    # Add margin level legend
-                    from matplotlib.patches import Patch
-                    legend_elements = [
-                        Patch(facecolor='#2E8B57', label='Excellent (40%+)'),
-                        Patch(facecolor='#32CD32', label='Good (25-40%)'),
-                        Patch(facecolor='#FFD700', label='Average (15-25%)'),
-                        Patch(facecolor='#FF8C00', label='Low (5-15%)'),
-                        Patch(facecolor='#FF6347', label='Very Low (<5%)')
-                    ]
-                    self.margin_ax.legend(handles=legend_elements, loc='lower right', fontsize=8)
+                    # Improve y-axis label formatting
+                    self.margin_ax.tick_params(axis='y', labelsize=10)
                     
                     # Adjust layout to prevent label cutoff
-                    self.margin_ax.set_xlim(0, max(margins) * 1.15)
+                    self.margin_ax.set_xlim(0, max(margins) * 1.2)
+                    
+                    # Apply tight layout
+                    self.margin_fig.tight_layout()
                     
                 else:
                     self.margin_ax.text(0.5, 0.5, 'No products with\npositive margins found', 
@@ -749,8 +768,8 @@ class AnalyticsUI(DashboardBaseUI):
                     categories = []
                     for cat in significant_categories:
                         name = cat['category_name']
-                        if len(name) > 12:
-                            name = name[:9] + '...'
+                        if len(name) > 15:
+                            name = name[:12] + '...'
                         categories.append(name)
                     
                     cost_values = [float(cat['inventory_cost_value']) for cat in significant_categories]
@@ -777,12 +796,12 @@ class AnalyticsUI(DashboardBaseUI):
                                                       f'${height:,.0f}',
                                                       ha='center', va='bottom', fontsize=8, rotation=0)
                     
-                    self.inventory_ax.set_xlabel('Categories')
-                    self.inventory_ax.set_ylabel('Value ($)')
-                    self.inventory_ax.set_title(f'Inventory Value: Cost vs Retail (Top {len(categories)} Categories)')
+                    self.inventory_ax.set_xlabel('Categories', fontsize=11)
+                    self.inventory_ax.set_ylabel('Value ($)', fontsize=11)
+                    self.inventory_ax.set_title(f'Inventory Value: Cost vs Retail (Top {len(categories)} Categories)', fontsize=12, pad=20)
                     self.inventory_ax.set_xticks(x)
-                    self.inventory_ax.set_xticklabels(categories, rotation=45, ha='right')
-                    self.inventory_ax.legend(loc='upper right')
+                    self.inventory_ax.set_xticklabels(categories, rotation=45, ha='right', fontsize=10)
+                    self.inventory_ax.legend(loc='upper right', fontsize=10)
                     self.inventory_ax.grid(True, axis='y', alpha=0.3)
                     
                     # Calculate and show average markup
@@ -806,6 +825,9 @@ class AnalyticsUI(DashboardBaseUI):
                                       horizontalalignment='center', verticalalignment='center',
                                       transform=self.inventory_ax.transAxes, fontsize=12)
                 self.inventory_ax.set_title('Inventory Value Distribution')
+            
+            # Apply tight layout for better spacing
+            self.inventory_fig.tight_layout()
             
             self.inventory_canvas.draw()
             

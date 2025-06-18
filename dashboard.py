@@ -783,7 +783,7 @@ class DashboardAnalytics:
             # Add date filtering if provided
             params = []
             if start_date and end_date:
-                query += " WHERE s.sale_date BETWEEN %s AND %s"
+                query += " WHERE s.sale_datetime BETWEEN %s AND %s"
                 params = [start_date, end_date]
             
             query += """
