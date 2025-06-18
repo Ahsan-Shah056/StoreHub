@@ -27,6 +27,11 @@ class SimulationUI(DashboardBaseUI):
     
     def create_interface(self):
         """Create the simulation and what-if analysis interface"""
+        # Configure treeview style for larger font
+        style = ttk.Style()
+        style.configure("Simulation.Treeview", font=DashboardConstants.SUBHEADER_FONT)
+        style.configure("Simulation.Treeview.Heading", font=DashboardConstants.SUBHEADER_FONT)
+        
         # Main container
         main_frame = ttk.Frame(self.parent)
         main_frame.pack(fill='both', expand=True, padx=10, pady=5)
@@ -76,14 +81,27 @@ class SimulationUI(DashboardBaseUI):
         control_frame = ttk.LabelFrame(self.price_frame, text="Price Simulation Controls", padding="10")
         control_frame.pack(fill='x', padx=5, pady=5)
         
-        # Product selection
+        # Product selection with browse button
         selection_frame = ttk.Frame(control_frame)
         selection_frame.pack(fill='x', pady=(0, 10))
         
         ttk.Label(selection_frame, text="Product SKU:").pack(side='left', padx=(0, 5))
         self.price_sku_var = tk.StringVar()
         self.price_sku_entry = ttk.Entry(selection_frame, textvariable=self.price_sku_var, width=15)
-        self.price_sku_entry.pack(side='left', padx=(0, 10))
+        self.price_sku_entry.pack(side='left', padx=(0, 5))
+        
+        # Add auto-uppercase functionality for better UX
+        def on_sku_change(*args):
+            current_value = self.price_sku_var.get()
+            if current_value != current_value.upper():
+                cursor_pos = self.price_sku_entry.index(tk.INSERT)
+                self.price_sku_var.set(current_value.upper())
+                self.price_sku_entry.icursor(cursor_pos)
+        
+        self.price_sku_var.trace('w', on_sku_change)
+        
+        ttk.Button(selection_frame, text="Browse Products", 
+                  command=self.browse_products).pack(side='left', padx=(0, 5))
         
         ttk.Button(selection_frame, text="Load Product", 
                   command=self.load_product_for_price_simulation).pack(side='left', padx=(0, 20))
@@ -93,15 +111,15 @@ class SimulationUI(DashboardBaseUI):
         scenarios_frame.pack(fill='x', pady=(0, 10))
         
         ttk.Label(scenarios_frame, text="Price Scenarios (comma-separated):").pack(side='left', padx=(0, 5))
-        self.price_scenarios_var = tk.StringVar(value="10.00, 12.50, 15.00, 17.50, 20.00")
+        self.price_scenarios_var = tk.StringVar(value="100, 150, 200, 250, 300, 350")
         self.price_scenarios_entry = ttk.Entry(scenarios_frame, textvariable=self.price_scenarios_var, width=40)
         self.price_scenarios_entry.pack(side='left', padx=(0, 10))
         
         ttk.Button(scenarios_frame, text="Run Simulation", 
                   command=self.run_price_simulation).pack(side='left')
         
-        # Results display
-        results_frame = ttk.LabelFrame(self.price_frame, text="Simulation Results", padding="5")
+        # Results display - table only
+        results_frame = ttk.LabelFrame(self.price_frame, text="Simulation Results", padding="10")
         results_frame.pack(fill='both', expand=True, padx=5, pady=5)
         
         # Results table
@@ -109,7 +127,7 @@ class SimulationUI(DashboardBaseUI):
         table_frame.pack(fill='both', expand=True)
         
         columns = ('Price', 'Price Change %', 'Est. Quantity', 'Quantity Change %', 'Est. Revenue', 'Revenue Change', 'Est. Profit', 'Profit Change')
-        self.price_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=8)
+        self.price_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=12, style="Simulation.Treeview")
         
         for col in columns:
             self.price_tree.heading(col, text=col)
@@ -121,14 +139,6 @@ class SimulationUI(DashboardBaseUI):
         price_scrollbar = ttk.Scrollbar(table_frame, orient='vertical', command=self.price_tree.yview)
         self.price_tree.configure(yscrollcommand=price_scrollbar.set)
         price_scrollbar.pack(side='right', fill='y')
-        
-        # Chart
-        chart_frame = ttk.LabelFrame(results_frame, text="Revenue vs Price Chart", padding="5")
-        chart_frame.pack(fill='x', pady=(10, 0))
-        
-        self.price_fig, self.price_ax = plt.subplots(figsize=(10, 3.5))
-        self.price_canvas = FigureCanvasTkAgg(self.price_fig, chart_frame)
-        self.price_canvas.get_tk_widget().pack(fill='both', expand=True)
     
     def create_inventory_simulation_tab(self):
         """Create inventory simulation tab"""
@@ -136,10 +146,14 @@ class SimulationUI(DashboardBaseUI):
         control_frame = ttk.LabelFrame(self.inventory_frame, text="Inventory Simulation Controls", padding="10")
         control_frame.pack(fill='x', padx=5, pady=5)
         
-        # Instructions
+        # Instructions with more detail
+        instruction_text = ("Enter SKU and new reorder level to simulate inventory impact.\n"
+                          "Simulation calculates 60-day costs including carrying costs (25% annual rate) and stockout risks.\n"
+                          "Service levels: Excellent (30+ days), Good (14-30), Adequate (7-14), Critical (<7 days)")
         ttk.Label(control_frame, 
-                 text="Enter SKU and new reorder level to simulate inventory impact:",
-                 font=DashboardConstants.BODY_FONT).pack(pady=(0, 10))
+                 text=instruction_text,
+                 font=DashboardConstants.BODY_FONT,
+                 justify='left').pack(pady=(0, 10))
         
         # Simulation entries
         entries_frame = ttk.Frame(control_frame)
@@ -165,23 +179,45 @@ class SimulationUI(DashboardBaseUI):
         scenarios_frame.pack(fill='x', padx=5, pady=5)
         
         self.inventory_scenarios = {}
-        self.scenarios_listbox = tk.Listbox(scenarios_frame, height=4)
+        
+        # Create listbox with theme-matching colors
+        self.scenarios_listbox = tk.Listbox(scenarios_frame, height=4,
+                                           bg='white',  # Light background
+                                           fg='black',  # Dark text
+                                           selectbackground=DashboardConstants.PRIMARY_COLOR,  # Selection color
+                                           selectforeground='white',  # Selection text color
+                                           highlightbackground='#E0E0E0',  # Border when not focused
+                                           highlightcolor=DashboardConstants.PRIMARY_COLOR,  # Border when focused
+                                           highlightthickness=1,
+                                           borderwidth=1,
+                                           relief='solid',
+                                           font=DashboardConstants.SUBHEADER_FONT)
         self.scenarios_listbox.pack(fill='x', pady=5)
         
         # Results display
         results_frame = ttk.LabelFrame(self.inventory_frame, text="Simulation Results", padding="5")
         results_frame.pack(fill='both', expand=True, padx=5, pady=5)
         
-        # Results table
-        columns = ('SKU', 'Product', 'Current Stock', 'New Reorder', 'Days Until Stockout', 'Carrying Cost', 'Stockout Risk', 'Total Cost')
-        self.inventory_tree = ttk.Treeview(results_frame, columns=columns, show='headings', height=8)
+        # Results table with improved columns
+        columns = ('SKU', 'Product', 'Current Stock', 'New Reorder', 'Days to Stockout', 'Daily Sales', 'Carrying Cost (60d)', 'Service Level', 'Total Cost')
+        self.inventory_tree = ttk.Treeview(results_frame, columns=columns, show='headings', height=10, style="Simulation.Treeview")
+        
+        # Configure column headers and widths
+        column_config = {
+            'SKU': 80,
+            'Product': 150,
+            'Current Stock': 90,
+            'New Reorder': 90,
+            'Days to Stockout': 110,
+            'Daily Sales': 90,
+            'Carrying Cost (60d)': 120,
+            'Service Level': 110,
+            'Total Cost': 90
+        }
         
         for col in columns:
             self.inventory_tree.heading(col, text=col)
-            if col in ['SKU', 'Product']:
-                self.inventory_tree.column(col, width=120)
-            else:
-                self.inventory_tree.column(col, width=100)
+            self.inventory_tree.column(col, width=column_config.get(col, 100))
         
         self.inventory_tree.pack(fill='both', expand=True)
     
@@ -209,24 +245,26 @@ class SimulationUI(DashboardBaseUI):
         
         # Forecast table
         table_frame = ttk.Frame(display_frame)
-        table_frame.pack(fill='x', pady=(0, 10))
+        table_frame.pack(fill='both', expand=True, pady=(0, 10))
         
-        columns = ('Month', 'Forecasted Revenue', 'Lower Bound', 'Upper Bound', 'Confidence', 'Trend')
-        self.forecast_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=6)
+        columns = ('Month', 'Forecasted Revenue', 'Lower Bound', 'Upper Bound', 'Confidence', 'Trend', 'Quality', 'Reliability')
+        self.forecast_tree = ttk.Treeview(table_frame, columns=columns, show='headings', style="Simulation.Treeview")
+        
+        # Configure column headers and widths
+        column_widths = {'Month': 80, 'Forecasted Revenue': 130, 'Lower Bound': 120, 'Upper Bound': 120, 
+                        'Confidence': 90, 'Trend': 90, 'Quality': 80, 'Reliability': 90}
         
         for col in columns:
             self.forecast_tree.heading(col, text=col)
-            self.forecast_tree.column(col, width=120)
+            self.forecast_tree.column(col, width=column_widths.get(col, 100))
         
-        self.forecast_tree.pack(fill='both', expand=True)
+        # Add scrollbar to forecast treeview
+        forecast_scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.forecast_tree.yview)
+        self.forecast_tree.configure(yscrollcommand=forecast_scrollbar.set)
         
-        # Forecast chart
-        chart_frame = ttk.LabelFrame(display_frame, text="Forecast Visualization", padding="5")
-        chart_frame.pack(fill='both', expand=True)
-        
-        self.forecast_fig, self.forecast_ax = plt.subplots(figsize=(10, 4.5))
-        self.forecast_canvas = FigureCanvasTkAgg(self.forecast_fig, chart_frame)
-        self.forecast_canvas.get_tk_widget().pack(fill='both', expand=True)
+        # Pack treeview and scrollbar
+        self.forecast_tree.pack(side='left', fill='both', expand=True)
+        forecast_scrollbar.pack(side='right', fill='y')
     
     def create_optimization_tab(self):
         """Create optimization analysis tab"""
@@ -299,7 +337,7 @@ class SimulationUI(DashboardBaseUI):
         
         # Results table
         columns = ('SKU', 'Product', 'Current Price', 'Recommended Price', 'Price Change %', 'Current Margin %', 'New Margin %', 'Profit Impact', 'Reason')
-        self.optimization_tree = ttk.Treeview(results_frame, columns=columns, show='headings', height=12)
+        self.optimization_tree = ttk.Treeview(results_frame, columns=columns, show='headings', height=12, style="Simulation.Treeview")
         
         for col in columns:
             self.optimization_tree.heading(col, text=col)
@@ -330,16 +368,27 @@ class SimulationUI(DashboardBaseUI):
             return
         
         try:
-            # Get product data (simplified check)
+            # Get product data using case-insensitive search
             products = inventory.get_all_products()
-            product = next((p for p in products if p.get('SKU') == sku), None)
+            product = next((p for p in products if p.get('SKU', '').upper() == sku.upper()), None)
             
             if product:
-                messagebox.showinfo("Product Loaded", 
-                                  f"Product: {product.get('name', 'N/A')}\n"
-                                  f"Current Price: ${product.get('price', 0):.2f}")
+                # Display comprehensive product information
+                info_text = (f"Product: {product.get('name', 'N/A')}\n"
+                           f"SKU: {product.get('SKU', 'N/A')}\n"
+                           f"Current Price: ${product.get('price', 0):.2f}\n"
+                           f"Cost: ${product.get('cost', 0):.2f}\n"
+                           f"Stock: {product.get('stock', 0)} units\n"
+                           f"Category: {product.get('category', 'N/A')}")
+                messagebox.showinfo("Product Loaded", info_text)
             else:
-                messagebox.showwarning("Product Not Found", f"No product found with SKU: {sku}")
+                # Provide helpful suggestions
+                similar_skus = [p['SKU'] for p in products if sku.upper() in p.get('SKU', '').upper()][:5]
+                if similar_skus:
+                    suggestion_text = f"No exact match found for SKU: {sku}\n\nSimilar SKUs found:\n" + "\n".join(similar_skus)
+                else:
+                    suggestion_text = f"No product found with SKU: {sku}\n\nTip: Use the 'Browse Products' button to find available SKUs"
+                messagebox.showwarning("Product Not Found", suggestion_text)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load product: {str(e)}")
     
@@ -378,7 +427,6 @@ class SimulationUI(DashboardBaseUI):
                     )
                     self.price_tree.insert('', 'end', values=values)
                 
-                self.update_price_chart(results)
                 messagebox.showinfo("Success", f"Simulation completed for {len(results)} scenarios")
             else:
                 messagebox.showinfo("No Results", "No simulation data available for this product")
@@ -387,34 +435,6 @@ class SimulationUI(DashboardBaseUI):
             messagebox.showerror("Error", "Invalid price format. Use comma-separated numbers.")
         except Exception as e:
             messagebox.showerror("Error", f"Simulation failed: {str(e)}")
-    
-    def update_price_chart(self, results):
-        """Update price simulation chart"""
-        self.price_ax.clear()
-        
-        if results:
-            prices = [result['scenario_price'] for result in results]
-            revenues = [result['estimated_revenue'] for result in results]
-            
-            self.price_ax.plot(prices, revenues, marker='o', linewidth=2, markersize=6, color='blue')
-            self.price_ax.set_xlabel('Price ($)')
-            self.price_ax.set_ylabel('Estimated Revenue ($)')
-            self.price_ax.set_title('Revenue vs Price Analysis')
-            self.price_ax.grid(True, alpha=0.3)
-            
-            # Highlight optimal point
-            max_revenue_idx = revenues.index(max(revenues))
-            self.price_ax.plot(prices[max_revenue_idx], revenues[max_revenue_idx], 
-                             marker='*', markersize=12, color='red', label='Max Revenue')
-            self.price_ax.legend()
-        
-        # Use subplots_adjust instead of tight_layout to avoid warnings
-        try:
-            self.price_fig.tight_layout(pad=1.0)
-        except:
-            # Fallback to subplots_adjust if tight_layout fails
-            self.price_fig.subplots_adjust(left=0.1, bottom=0.15, right=0.95, top=0.9)
-        self.price_canvas.draw()
     
     def add_inventory_scenario(self):
         """Add inventory scenario to simulation"""
@@ -454,17 +474,28 @@ class SimulationUI(DashboardBaseUI):
             for item in self.inventory_tree.get_children():
                 self.inventory_tree.delete(item)
             
-            # Populate results
+            # Populate results with improved formatting
             if results:
                 for sku, result in results.items():
+                    # Format values for better readability
+                    days_to_stockout = result.get('days_until_stockout', 0)
+                    if days_to_stockout == float('inf'):
+                        days_display = "∞"
+                    else:
+                        days_display = f"{days_to_stockout:.1f}"
+                    
+                    daily_sales = result.get('avg_daily_sales', 0)
+                    service_level = result.get('service_level', result.get('risk_level', 'Unknown'))
+                    
                     values = (
                         sku,
-                        result.get('product_name', 'N/A'),
-                        f"{result.get('current_stock', 0)}",
-                        f"{result.get('new_reorder_level', 0)}",
-                        f"{result.get('days_until_stockout', 0):.1f}",
+                        result.get('product_name', 'N/A')[:20] + ('...' if len(result.get('product_name', '')) > 20 else ''),
+                        f"{result.get('current_stock', 0):,}",
+                        f"{result.get('new_reorder_level', 0):,}",
+                        days_display,
+                        f"{daily_sales:.2f}",
                         f"${result.get('estimated_carrying_cost', 0):.2f}",
-                        result.get('risk_level', 'Unknown'),
+                        service_level,
                         f"${result.get('total_estimated_cost', 0):.2f}"
                     )
                     self.inventory_tree.insert('', 'end', values=values)
@@ -491,51 +522,22 @@ class SimulationUI(DashboardBaseUI):
                 for i, result in enumerate(results, 1):
                     values = (
                         f"Month +{i}",
-                        f"${result.get('forecasted_revenue', 0):.2f}",
-                        f"${result.get('lower_bound', 0):.2f}",
-                        f"${result.get('upper_bound', 0):.2f}",
+                        f"${result.get('forecasted_revenue', 0):,.0f}",
+                        f"${result.get('lower_bound', 0):,.0f}",
+                        f"${result.get('upper_bound', 0):,.0f}",
                         f"{result.get('confidence_level', 0)*100:.0f}%",
-                        result.get('trend_direction', 'Unknown')
+                        result.get('trend_direction', 'Unknown'),
+                        result.get('model_quality', 'N/A'),
+                        result.get('data_reliability', 'N/A')
                     )
                     self.forecast_tree.insert('', 'end', values=values)
                 
-                self.update_forecast_chart(results)
                 messagebox.showinfo("Success", f"Forecast generated for {len(results)} months")
             else:
                 messagebox.showinfo("No Results", "Insufficient historical data for forecasting")
                 
         except Exception as e:
             messagebox.showerror("Error", f"Forecast generation failed: {str(e)}")
-    
-    def update_forecast_chart(self, results):
-        """Update forecast chart"""
-        self.forecast_ax.clear()
-        
-        if results:
-            months = list(range(1, len(results) + 1))
-            forecasts = [result['forecasted_revenue'] for result in results]
-            lower_bounds = [result['lower_bound'] for result in results]
-            upper_bounds = [result['upper_bound'] for result in results]
-            
-            # Plot forecast line
-            self.forecast_ax.plot(months, forecasts, marker='o', linewidth=2, color='blue', label='Forecast')
-            
-            # Plot confidence interval
-            self.forecast_ax.fill_between(months, lower_bounds, upper_bounds, alpha=0.3, color='lightblue', label='Confidence Interval')
-            
-            self.forecast_ax.set_xlabel('Months Ahead')
-            self.forecast_ax.set_ylabel('Revenue ($)')
-            self.forecast_ax.set_title('Revenue Forecast')
-            self.forecast_ax.legend()
-            self.forecast_ax.grid(True, alpha=0.3)
-        
-        # Use subplots_adjust instead of tight_layout to avoid warnings
-        try:
-            self.forecast_fig.tight_layout(pad=1.0)
-        except:
-            # Fallback to subplots_adjust if tight_layout fails
-            self.forecast_fig.subplots_adjust(left=0.1, bottom=0.12, right=0.95, top=0.9)
-        self.forecast_canvas.draw()
     
     def run_pricing_optimization(self):
         """Run pricing optimization analysis"""
@@ -601,16 +603,6 @@ class SimulationUI(DashboardBaseUI):
             # Clear scenarios listbox
             self.scenarios_listbox.delete(0, tk.END)
             
-            # Clear charts
-            for ax in [self.price_ax, self.forecast_ax]:
-                ax.clear()
-                ax.text(0.5, 0.5, 'Run simulation to view results', 
-                       horizontalalignment='center', verticalalignment='center',
-                       transform=ax.transAxes)
-            
-            for canvas in [self.price_canvas, self.forecast_canvas]:
-                canvas.draw()
-            
             messagebox.showinfo("Success", "Simulation data refreshed")
             
         except Exception as e:
@@ -619,3 +611,103 @@ class SimulationUI(DashboardBaseUI):
     def refresh_data(self, filters):
         """Override to refresh simulation data"""
         pass  # Simulations are run on-demand
+    
+    def browse_products(self):
+        """Open a product browser window"""
+        try:
+            # Create a new window for product selection
+            browse_window = tk.Toplevel(self.parent)
+            browse_window.title("Select Product")
+            browse_window.geometry("600x400")
+            browse_window.transient(self.parent)
+            browse_window.grab_set()
+            
+            # Search frame
+            search_frame = ttk.Frame(browse_window)
+            search_frame.pack(fill='x', padx=10, pady=5)
+            
+            ttk.Label(search_frame, text="Search:").pack(side='left', padx=(0, 5))
+            search_var = tk.StringVar()
+            search_entry = ttk.Entry(search_frame, textvariable=search_var, width=30)
+            search_entry.pack(side='left', padx=(0, 10))
+            
+            def filter_products():
+                """Filter products based on search text"""
+                search_text = search_var.get().lower()
+                for item in product_tree.get_children():
+                    product_tree.delete(item)
+                
+                try:
+                    products = inventory.get_all_products()
+                    filtered_products = [p for p in products 
+                                       if search_text in p.get('name', '').lower() 
+                                       or search_text in p.get('SKU', '').lower()
+                                       or search_text in p.get('category', '').lower()]
+                    
+                    for product in filtered_products[:50]:  # Limit to 50 results
+                        product_tree.insert('', 'end', values=(
+                            product.get('SKU', ''),
+                            product.get('name', ''),
+                            product.get('category', ''),
+                            f"${product.get('price', 0):.2f}",
+                            product.get('stock', 0)
+                        ))
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to load products: {str(e)}")
+            
+            ttk.Button(search_frame, text="Search", command=filter_products).pack(side='left')
+            
+            # Products table
+            table_frame = ttk.Frame(browse_window)
+            table_frame.pack(fill='both', expand=True, padx=10, pady=5)
+            
+            columns = ('SKU', 'Name', 'Category', 'Price', 'Stock')
+            product_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15, style="Simulation.Treeview")
+            
+            for col in columns:
+                product_tree.heading(col, text=col)
+                if col == 'Name':
+                    product_tree.column(col, width=200)
+                elif col in ['Category']:
+                    product_tree.column(col, width=120)
+                else:
+                    product_tree.column(col, width=80)
+            
+            # Scrollbars
+            v_scrollbar = ttk.Scrollbar(table_frame, orient='vertical', command=product_tree.yview)
+            h_scrollbar = ttk.Scrollbar(table_frame, orient='horizontal', command=product_tree.xview)
+            product_tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+            
+            product_tree.pack(side='left', fill='both', expand=True)
+            v_scrollbar.pack(side='right', fill='y')
+            h_scrollbar.pack(side='bottom', fill='x')
+            
+            # Buttons
+            button_frame = ttk.Frame(browse_window)
+            button_frame.pack(fill='x', padx=10, pady=5)
+            
+            def select_product():
+                """Select the highlighted product"""
+                selection = product_tree.selection()
+                if selection:
+                    item = product_tree.item(selection[0])
+                    sku = item['values'][0]
+                    self.price_sku_var.set(sku)
+                    browse_window.destroy()
+                else:
+                    messagebox.showwarning("No Selection", "Please select a product")
+            
+            ttk.Button(button_frame, text="Select", command=select_product).pack(side='right', padx=(5, 0))
+            ttk.Button(button_frame, text="Cancel", command=browse_window.destroy).pack(side='right')
+            
+            # Load initial products
+            filter_products()
+            
+            # Center the window
+            browse_window.update_idletasks()
+            x = (browse_window.winfo_screenwidth() // 2) - (browse_window.winfo_width() // 2)
+            y = (browse_window.winfo_screenheight() // 2) - (browse_window.winfo_height() // 2)
+            browse_window.geometry(f"+{x}+{y}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open product browser: {str(e)}")

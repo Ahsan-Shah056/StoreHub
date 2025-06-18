@@ -983,32 +983,79 @@ class DashboardAnalytics:
                 
                 if product_data:
                     current_stock = int(product_data['stock'])
-                    daily_sales = float(product_data['avg_daily_sales']) if product_data['avg_daily_sales'] else 0
+                    avg_daily_sales = float(product_data['avg_daily_sales']) if product_data['avg_daily_sales'] else 0
+                    sales_days = int(product_data['sales_days']) if product_data['sales_days'] else 1
+                    cost_per_unit = float(product_data['cost'])
+                    price_per_unit = float(product_data['price'])
                     
-                    # Calculate days until stockout
-                    days_until_stockout = (current_stock / daily_sales) if daily_sales > 0 else float('inf')
-                    days_until_reorder = ((current_stock - new_reorder_level) / daily_sales) if daily_sales > 0 else float('inf')
+                    # Normalize daily sales rate (handle cases with sparse sales data)
+                    if sales_days > 0 and avg_daily_sales > 0:
+                        actual_daily_sales = avg_daily_sales * (sales_days / 30)  # Adjust for actual selling days
+                    else:
+                        actual_daily_sales = 0.1  # Minimum assumption for rarely sold items
                     
-                    # Estimate carrying costs and stockout costs
-                    carrying_cost_per_unit_per_day = float(product_data['cost']) * 0.001  # 0.1% per day
-                    stockout_cost_per_unit = float(product_data['price']) * 0.5  # Lost profit
+                    # Calculate realistic inventory metrics
+                    if actual_daily_sales > 0:
+                        days_until_stockout = current_stock / actual_daily_sales
+                        days_until_reorder = max(0, (current_stock - new_reorder_level) / actual_daily_sales)
+                    else:
+                        days_until_stockout = float('inf')
+                        days_until_reorder = float('inf')
                     
-                    # Simulate 30-day scenario
-                    total_carrying_cost = new_reorder_level * carrying_cost_per_unit_per_day * 30
-                    potential_stockout_days = max(0, 30 - days_until_stockout)
-                    stockout_cost = potential_stockout_days * daily_sales * stockout_cost_per_unit
+                    # More realistic carrying cost calculation
+                    # Annual carrying cost typically 20-30% of inventory value
+                    annual_carrying_rate = 0.25  # 25% annually
+                    daily_carrying_rate = annual_carrying_rate / 365
+                    carrying_cost_per_unit_per_day = cost_per_unit * daily_carrying_rate
+                    
+                    # More realistic stockout cost (consider profit margin and customer impact)
+                    profit_margin = max(0, price_per_unit - cost_per_unit)
+                    # Stockout cost includes lost profit + customer goodwill impact
+                    stockout_cost_per_unit = profit_margin + (price_per_unit * 0.1)  # 10% goodwill impact
+                    
+                    # Simulate 60-day scenario for better accuracy
+                    simulation_days = 60
+                    
+                    # Calculate inventory costs
+                    avg_inventory_level = (current_stock + new_reorder_level) / 2
+                    total_carrying_cost = avg_inventory_level * carrying_cost_per_unit_per_day * simulation_days
+                    
+                    # Calculate stockout risk and cost
+                    if days_until_stockout < simulation_days:
+                        potential_stockout_days = simulation_days - days_until_stockout
+                        stockout_units = potential_stockout_days * actual_daily_sales
+                        stockout_cost = stockout_units * stockout_cost_per_unit
+                    else:
+                        stockout_cost = 0
+                    
+                    # Service level calculation
+                    if days_until_stockout >= 30:
+                        service_level = "Excellent (30+ days)"
+                        risk_level = "Low"
+                    elif days_until_stockout >= 14:
+                        service_level = "Good (14-30 days)"
+                        risk_level = "Medium"
+                    elif days_until_stockout >= 7:
+                        service_level = "Adequate (7-14 days)"
+                        risk_level = "Medium"
+                    else:
+                        service_level = f"Critical ({days_until_stockout:.1f} days)"
+                        risk_level = "High"
                     
                     simulation_results[sku] = {
                         'product_name': product_data['name'],
                         'current_stock': current_stock,
                         'new_reorder_level': new_reorder_level,
-                        'avg_daily_sales': daily_sales,
+                        'avg_daily_sales': actual_daily_sales,
                         'days_until_stockout': days_until_stockout,
                         'days_until_reorder': days_until_reorder,
                         'estimated_carrying_cost': total_carrying_cost,
                         'estimated_stockout_cost': stockout_cost,
                         'total_estimated_cost': total_carrying_cost + stockout_cost,
-                        'risk_level': 'High' if days_until_stockout < 7 else 'Medium' if days_until_stockout < 14 else 'Low'
+                        'risk_level': risk_level,
+                        'service_level': service_level,
+                        'profit_margin': profit_margin,
+                        'simulation_period_days': simulation_days
                     }
             
             return simulation_results
@@ -1021,7 +1068,7 @@ class DashboardAnalytics:
                 cursor.close()
 
     def forecast_revenue(self, months_ahead: int = 3) -> List[Dict[str, Any]]:
-        """Forecast revenue for the next specified months"""
+        """Forecast revenue for the next specified months with improved statistical methods"""
         try:
             conn = self.get_connection()
             cursor = conn.cursor(dictionary=True)
@@ -1046,9 +1093,14 @@ class DashboardAnalytics:
             if len(historical_data) < 3:  # Need at least 3 months of data
                 return []
             
-            # Simple trend analysis for forecasting
+            # Extract revenue data and calculate statistics
             revenues = [float(row['monthly_revenue']) for row in historical_data]
             months_count = len(revenues)
+            
+            # Calculate basic statistics for validation
+            mean_revenue = sum(revenues) / months_count
+            revenue_std = (sum((r - mean_revenue) ** 2 for r in revenues) / months_count) ** 0.5
+            coefficient_of_variation = revenue_std / mean_revenue if mean_revenue > 0 else 0
             
             # Calculate trend (simple linear regression)
             x_values = list(range(months_count))
@@ -1065,28 +1117,75 @@ class DashboardAnalytics:
             
             intercept = y_mean - slope * x_mean
             
+            # Calculate R-squared for model quality assessment
+            y_pred = [intercept + slope * x for x in x_values]
+            ss_res = sum((revenues[i] - y_pred[i]) ** 2 for i in range(months_count))
+            ss_tot = sum((revenues[i] - y_mean) ** 2 for i in range(months_count))
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+            
+            # Adjust confidence based on model quality and data stability
+            base_confidence = 0.85
+            if r_squared < 0.3:  # Poor trend fit
+                base_confidence *= 0.7
+            if coefficient_of_variation > 0.5:  # High volatility
+                base_confidence *= 0.8
+            if months_count < 6:  # Limited data
+                base_confidence *= 0.9
+            
             # Generate forecasts
             forecasts = []
             for i in range(1, months_ahead + 1):
                 future_month_index = months_count + i - 1
-                forecasted_revenue = intercept + slope * future_month_index
                 
-                # Add some seasonal adjustment (simplified)
+                # Use hybrid approach: trend + recent average for stability
+                trend_forecast = intercept + slope * future_month_index
+                recent_average = sum(revenues[-min(3, months_count):]) / min(3, months_count)
+                
+                # Weight trend vs recent average based on trend quality
+                trend_weight = max(0.3, r_squared) if r_squared > 0 else 0.3
+                recent_weight = 1 - trend_weight
+                
+                base_forecast = (trend_forecast * trend_weight) + (recent_average * recent_weight)
+                
+                # Apply seasonal adjustment
                 current_month = (datetime.now().month + i - 1) % 12 + 1
                 seasonal_factor = 1.1 if current_month in [11, 12] else 0.95 if current_month in [1, 2] else 1.0
                 
-                forecasted_revenue *= seasonal_factor
+                forecasted_revenue = base_forecast * seasonal_factor
                 
-                # Calculate confidence intervals (simplified)
-                confidence_range = forecasted_revenue * 0.15  # ±15%
+                # Calculate adaptive confidence intervals based on data quality
+                # Higher uncertainty for poor fits and volatile data
+                base_uncertainty = 0.15  # 15% base uncertainty
+                if r_squared < 0.3:
+                    base_uncertainty *= 1.5  # Increase uncertainty for poor trends
+                if coefficient_of_variation > 0.5:
+                    base_uncertainty *= 1.3  # Increase for high volatility
+                
+                # Increase uncertainty for longer forecasts
+                time_factor = 1 + (i - 1) * 0.1  # 10% increase per month
+                adjusted_uncertainty = base_uncertainty * time_factor
+                
+                confidence_range = forecasted_revenue * adjusted_uncertainty
+                
+                # Ensure realistic bounds
+                lower_bound = max(0, forecasted_revenue - confidence_range)
+                upper_bound = forecasted_revenue + confidence_range
+                
+                # Cap unrealistic forecasts (prevent exponential growth)
+                max_realistic_growth = mean_revenue * 2  # Don't exceed 2x historical average
+                if forecasted_revenue > max_realistic_growth:
+                    forecasted_revenue = max_realistic_growth
+                    upper_bound = min(upper_bound, max_realistic_growth * 1.2)
                 
                 forecasts.append({
                     'month_ahead': i,
                     'forecasted_revenue': max(0, forecasted_revenue),
-                    'lower_bound': max(0, forecasted_revenue - confidence_range),
-                    'upper_bound': forecasted_revenue + confidence_range,
-                    'confidence_level': 0.85,
-                    'trend_direction': 'Increasing' if slope > 0 else 'Decreasing' if slope < 0 else 'Stable'
+                    'lower_bound': lower_bound,
+                    'upper_bound': upper_bound,
+                    'confidence_level': base_confidence,
+                    'trend_direction': 'Increasing' if slope > 0 else 'Decreasing' if slope < 0 else 'Stable',
+                    'model_quality': 'Good' if r_squared > 0.7 else 'Fair' if r_squared > 0.3 else 'Poor',
+                    'data_reliability': 'High' if coefficient_of_variation < 0.3 else 'Medium' if coefficient_of_variation < 0.5 else 'Low'
                 })
             
             return forecasts

@@ -143,3 +143,36 @@ def adjust_stock(connection, cursor, sku, quantity_change, reason, employee_id):
         return get_item(connection, cursor, sku)
     except Exception as e:
         handle_error(connection, cursor, f"Error adjusting stock: {e}")
+
+
+def get_all_products():
+    """Get all products from the database for simulation purposes"""
+    try:
+        from database import get_db
+        connection, cursor = get_db()
+        
+        cursor.execute(
+            "SELECT p.SKU, p.name, c.name AS category, p.price, p.stock, p.supplier_id, p.cost "
+            "FROM Products p JOIN Categories c ON c.category_id = p.category_id ORDER BY p.name"
+        )
+        results = cursor.fetchall()
+        
+        products = [
+            {
+                "SKU": row["SKU"],
+                "name": row["name"],
+                "category": row["category"],
+                "price": row["price"],
+                "stock": row["stock"],
+                "supplier_id": row["supplier_id"],
+                "cost": row["cost"],
+            }
+            for row in results
+        ]
+        
+        close_db(connection, cursor)
+        return products
+        
+    except Exception as e:
+        print(f"Error getting all products: {e}")
+        return []
