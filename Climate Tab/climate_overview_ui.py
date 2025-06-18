@@ -23,36 +23,74 @@ class ClimateOverviewUI(ClimateBaseUI):
         self.create_interface()
     
     def create_interface(self):
-        """Create the enhanced overview interface with improved layout"""
-        # Create main scrollable frame without separate canvas/scrollbar to prevent white space
-        # Use a simpler approach that fills the entire parent
+        """Create the enhanced overview interface with proper scrolling and full width"""
+        # Create main container frame
+        main_container = ttk.Frame(self.parent)
+        main_container.pack(fill='both', expand=True)
         
-        # Main content frame that fills the parent
-        main_frame = ttk.Frame(self.parent)
-        main_frame.pack(fill='both', expand=True)
+        # Create canvas for scrolling that fills the entire width
+        self.canvas = tk.Canvas(main_container, highlightthickness=0, bg='white')
         
-        # Create scrollable text widget for main content (better than canvas approach)
-        # This eliminates the white space issue entirely
-        self.main_container = tk.Frame(main_frame, bg='white')
-        self.main_container.pack(fill='both', expand=True, padx=10, pady=10)
+        # Create scrollbar on the right
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=self.canvas.yview)
         
-        # Header section with better styling
-        self.create_enhanced_header_section(self.main_container)
+        # Create the scrollable frame
+        self.scrollable_frame = ttk.Frame(self.canvas)
         
-        # Quick stats dashboard
-        self.create_quick_stats_dashboard(self.main_container)
+        # Configure canvas scrolling
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
         
-        # Material status cards with improved design
-        self.create_enhanced_status_cards_section(self.main_container)
+        # Create window in canvas
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         
-        # Detailed information with collapsible design (remove analytics)
-        self.create_collapsible_details_section(self.main_container)
+        # Configure canvas to resize with container and maintain full width
+        def configure_canvas(event):
+            # Make the scrollable frame fill the entire canvas width
+            canvas_width = event.width
+            self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+            
+        self.canvas.bind('<Configure>', configure_canvas)
+        self.canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack scrollbar first (right side), then canvas fills remaining space
+        scrollbar.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+        
+        # Content frame with padding
+        content_frame = ttk.Frame(self.scrollable_frame)
+        content_frame.pack(fill='both', expand=True, padx=15, pady=10)
+        
+        # Create sections
+        self.create_enhanced_header_section(content_frame)
+        self.create_quick_stats_dashboard(content_frame)
+        self.create_enhanced_status_cards_section(content_frame)
+        self.create_collapsible_details_section(content_frame)
         
         # Load initial data
         self.refresh_data()
         
-        # Make sure the main container updates its size properly
-        self.main_container.update_idletasks()
+        # Bind mouse wheel for scrolling
+        def _on_mousewheel(event):
+            self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        # Bind mousewheel to all widgets
+        def bind_to_mousewheel(widget):
+            widget.bind("<MouseWheel>", _on_mousewheel)
+            for child in widget.winfo_children():
+                try:
+                    bind_to_mousewheel(child)
+                except:
+                    pass
+        
+        bind_to_mousewheel(self.scrollable_frame)
+        self.canvas.bind("<MouseWheel>", _on_mousewheel)
+        
+        # Update scroll region
+        self.scrollable_frame.update_idletasks()
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def create_enhanced_header_section(self, parent):
         """Create an enhanced header with modern styling and key metrics"""
@@ -191,7 +229,7 @@ class ClimateOverviewUI(ClimateBaseUI):
             self.cards_container.columnconfigure(i, weight=1)
 
     def create_collapsible_details_section(self, parent):
-        """Create a collapsible detailed information section"""
+        """Create a collapsible detailed information section with simple layout"""
         # Details frame with expand/collapse functionality
         self.details_main_frame = ttk.LabelFrame(parent, text="📋 Detailed Climate Data", padding="15")
         self.details_main_frame.pack(fill='both', expand=True, pady=(0, 10))
@@ -211,16 +249,30 @@ class ClimateOverviewUI(ClimateBaseUI):
         ttk.Label(details_header, text="Complete material data with real-time updates",
                  font=('Arial', 10, 'italic'), foreground='#7f8c8d').pack(side='left')
         
-        # Details content frame with better organization
+        # Details content frame
         self.details_content_frame = ttk.Frame(self.details_main_frame)
         self.details_content_frame.pack(fill='both', expand=True)
         
-        # Enhanced treeview with modern styling
-        columns = ('Material', 'Status', 'Condition', 'Category', 'Impact', 'Risk', 'Updated')
-        self.details_tree = ttk.Treeview(self.details_content_frame, columns=columns, 
-                                       show='headings', height=10, style="Treeview")
+        # Summary statistics section at the top (more prominent)
+        summary_frame = ttk.LabelFrame(self.details_content_frame, text="📈 Summary Statistics", padding="12")
+        summary_frame.pack(fill='x', pady=(0, 15))
         
-        # Configure columns with appropriate widths and modern headings
+        self.summary_stats_label = ttk.Label(summary_frame, 
+                                           text="Loading summary statistics...",
+                                           font=('Arial', 11, 'bold'),
+                                           foreground='#2c3e50')
+        self.summary_stats_label.pack(anchor='w')
+        
+        # Simple treeview section (no scrollbars needed)
+        tree_frame = ttk.LabelFrame(self.details_content_frame, text="📊 Material Details", padding="12")
+        tree_frame.pack(fill='both', expand=True)
+        
+        # Create simple treeview with appropriate height
+        columns = ('Material', 'Status', 'Condition', 'Category', 'Impact', 'Risk', 'Updated')
+        self.details_tree = ttk.Treeview(tree_frame, columns=columns, 
+                                       show='headings', height=6, style="Treeview")
+        
+        # Configure columns with appropriate widths
         column_config = {
             'Material': (100, 'Material Name'),
             'Status': (70, 'Status'),
@@ -235,46 +287,15 @@ class ClimateOverviewUI(ClimateBaseUI):
             self.details_tree.heading(col, text=heading, anchor='w')
             self.details_tree.column(col, width=width, minwidth=60, anchor='w')
         
-        # Configure alternating row colors and risk-based styling
+        # Configure risk-based row styling
         self.details_tree.tag_configure('critical', background='#fdf2f2', foreground='#721c24')
         self.details_tree.tag_configure('high', background='#fef7ec', foreground='#92400e')
         self.details_tree.tag_configure('medium', background='#fffbeb', foreground='#a16207')
         self.details_tree.tag_configure('low', background='#f0fdf4', foreground='#166534')
         self.details_tree.tag_configure('evenrow', background='#f8fafc')
         
-        # Create frame for treeview and scrollbars
-        tree_frame = ttk.Frame(self.details_content_frame)
-        tree_frame.pack(fill='both', expand=True)
-        
-        # Create scrollbars
-        tree_v_scroll = ttk.Scrollbar(tree_frame, orient="vertical", 
-                                    command=self.details_tree.yview)
-        tree_h_scroll = ttk.Scrollbar(self.details_content_frame, orient="horizontal",
-                                    command=self.details_tree.xview)
-        
-        # Configure treeview scrolling
-        self.details_tree.configure(yscrollcommand=tree_v_scroll.set,
-                                  xscrollcommand=tree_h_scroll.set)
-        
-        # Pack treeview and scrollbars using pack instead of grid
-        self.details_tree.pack(side='left', fill='both', expand=True)
-        tree_v_scroll.pack(side='right', fill='y')
-        
-        # Horizontal scrollbar in a separate frame
-        h_scroll_frame = ttk.Frame(self.details_content_frame)
-        h_scroll_frame.pack(fill='x')
-        tree_h_scroll.pack(fill='x')
-        
-        # Add summary stats below the tree
-        summary_frame = ttk.Frame(self.details_content_frame)
-        summary_frame.pack(fill='x', pady=(10, 0))
-        
-        # Summary statistics
-        self.summary_stats_label = ttk.Label(summary_frame, 
-                                           text="Loading summary statistics...",
-                                           font=('Arial', 9, 'italic'),
-                                           foreground='#6c757d')
-        self.summary_stats_label.pack(anchor='w')
+        # Pack the treeview (no scrollbars needed - content fits easily)
+        self.details_tree.pack(fill='both', expand=True, padx=5, pady=5)
 
     def toggle_details_section(self):
         """Toggle the visibility of the details section"""
@@ -447,14 +468,14 @@ class ClimateOverviewUI(ClimateBaseUI):
                 icon = material_icons.get(material['material_name'], '📦')
                 
                 ttk.Label(header_frame, text=f"{icon} {material['material_name']}", 
-                         font=('Arial', 12, 'bold'), foreground='#2c3e50').pack(side='left')
+                         font=('Arial', 14, 'bold'), foreground='#2c3e50').pack(side='left')
                 
                 # Risk level badge
                 risk_colors = {'CRITICAL': '#e74c3c', 'HIGH': '#f39c12', 'MEDIUM': '#f1c40f', 'LOW': '#27ae60'}
                 risk_color = risk_colors.get(material['risk_level'], '#95a5a6')
                 
                 risk_badge = tk.Label(header_frame, text=material['risk_level'], 
-                                    font=('Arial', 8, 'bold'), fg='white', bg=risk_color,
+                                    font=('Arial', 10, 'bold'), fg='white', bg=risk_color,
                                     padx=8, pady=2)
                 risk_badge.pack(side='right')
                 
@@ -470,29 +491,29 @@ class ClimateOverviewUI(ClimateBaseUI):
                 delay_frame = ttk.Frame(content_frame)
                 delay_frame.pack(fill='x', pady=2)
                 
-                ttk.Label(delay_frame, text="⏱️ Delay:", font=('Arial', 9, 'bold')).pack(side='left')
+                ttk.Label(delay_frame, text="⏱️ Delay:", font=('Arial', 11, 'bold')).pack(side='left')
                 delay_color = '#e74c3c' if material['delay_percent'] > 15 else '#f39c12' if material['delay_percent'] > 5 else '#27ae60'
                 ttk.Label(delay_frame, text=f"{material['delay_percent']:.1f}%", 
-                         font=('Arial', 9), foreground=delay_color).pack(side='right')
+                         font=('Arial', 11), foreground=delay_color).pack(side='right')
                 
                 # Impact information
                 impact_frame = ttk.Frame(content_frame)
                 impact_frame.pack(fill='x', pady=2)
                 
-                ttk.Label(impact_frame, text="📊 Impact:", font=('Arial', 9, 'bold')).pack(side='left')
+                ttk.Label(impact_frame, text="📊 Impact:", font=('Arial', 11, 'bold')).pack(side='left')
                 impact_color = '#e74c3c' if abs(material['production_impact']) > 100 else '#f39c12' if abs(material['production_impact']) > 50 else '#27ae60'
                 ttk.Label(impact_frame, text=f"{material['production_impact']:+.0f} units", 
-                         font=('Arial', 9), foreground=impact_color).pack(side='right')
+                         font=('Arial', 11), foreground=impact_color).pack(side='right')
                 
                 # Condition preview
                 condition_frame = ttk.Frame(content_frame)
                 condition_frame.pack(fill='x', pady=(5, 0))
                 
-                ttk.Label(condition_frame, text="📋 Condition:", font=('Arial', 9, 'bold')).pack(anchor='w')
+                ttk.Label(condition_frame, text="📋 Condition:", font=('Arial', 11, 'bold')).pack(anchor='w')
                 condition_text = material['current_condition']
                 if len(condition_text) > 60:
                     condition_text = condition_text[:57] + "..."
-                ttk.Label(condition_frame, text=condition_text, font=('Arial', 8), 
+                ttk.Label(condition_frame, text=condition_text, font=('Arial', 10), 
                          foreground='#7f8c8d', wraplength=200).pack(anchor='w', pady=(2, 0))
                 
         except Exception as e:
@@ -502,131 +523,6 @@ class ClimateOverviewUI(ClimateBaseUI):
             error_frame.grid(row=0, column=0, columnspan=2, pady=20)
             ttk.Label(error_frame, text=f"❌ Error loading data: {str(e)}", 
                      font=('Arial', 10), foreground='#e74c3c').pack()
-
-    def update_production_impact_tab(self, status_data):
-        """Update production impact tab"""
-        try:
-            # Update impact metric cards
-            total_impact = sum(abs(m['production_impact']) for m in status_data)
-            self.impact_total_impact_label.config(text=f"{total_impact:.0f} units")
-            
-            # Material-specific impacts
-            material_impacts = {m['material_name']: m['production_impact'] for m in status_data}
-            
-            if hasattr(self, 'impact_wheat_impact_label'):
-                wheat_impact = material_impacts.get('Wheat', 0)
-                self.impact_wheat_impact_label.config(text=f"{abs(wheat_impact):.0f} units")
-            
-            if hasattr(self, 'impact_cotton_impact_label'):
-                cotton_impact = material_impacts.get('Cotton', 0)
-                self.impact_cotton_impact_label.config(text=f"{abs(cotton_impact):.0f} units")
-            
-            if hasattr(self, 'impact_rice_impact_label'):
-                rice_impact = material_impacts.get('Rice', 0)
-                self.impact_rice_impact_label.config(text=f"{abs(rice_impact):.0f} units")
-            
-            # Update details text
-            self.impact_details_text.config(state=tk.NORMAL)
-            self.impact_details_text.delete('1.0', tk.END)
-            
-            self.impact_details_text.insert(tk.END, "PRODUCTION IMPACT ANALYSIS\n", 'header')
-            self.impact_details_text.insert(tk.END, "=" * 40 + "\n\n")
-            
-            for material in status_data:
-                impact = material['production_impact']
-                impact_type = "Loss" if impact < 0 else "Gain"
-                
-                self.impact_details_text.insert(tk.END, f"{material['material_name']}:\n", 'material')
-                self.impact_details_text.insert(tk.END, f"  • {impact_type}: {abs(impact):.1f} units\n")
-                self.impact_details_text.insert(tk.END, f"  • Delay: {material['delay_percent']:.1f}%\n")
-                self.impact_details_text.insert(tk.END, f"  • Risk Level: {material['risk_level']}\n")
-                self.impact_details_text.insert(tk.END, f"  • Condition: {material['current_condition']}\n\n")
-            
-            self.impact_details_text.config(state=tk.DISABLED)
-            
-        except Exception as e:
-            print(f"Error updating production impact tab: {e}")
-
-    def update_risk_analysis_tab(self, status_data):
-        """Update risk analysis tab"""
-        try:
-            # Count materials by risk level
-            risk_counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0}
-            for material in status_data:
-                risk_level = material['risk_level'].title()
-                if risk_level in risk_counts:
-                    risk_counts[risk_level] += 1
-            
-            # Update risk level cards
-            for level, count in risk_counts.items():
-                label = getattr(self, f"risk_{level.lower()}_count_label", None)
-                if label:
-                    label.config(text=str(count))
-            
-            # Update risk analysis text
-            self.risk_analysis_text.config(state=tk.NORMAL)
-            self.risk_analysis_text.delete('1.0', tk.END)
-            
-            self.risk_analysis_text.insert(tk.END, "RISK ANALYSIS REPORT\n", 'header')
-            self.risk_analysis_text.insert(tk.END, "=" * 40 + "\n\n")
-            
-            total_materials = len(status_data)
-            high_risk_materials = risk_counts['Critical'] + risk_counts['High']
-            
-            self.risk_analysis_text.insert(tk.END, f"Total Materials Monitored: {total_materials}\n")
-            self.risk_analysis_text.insert(tk.END, f"High Risk Materials: {high_risk_materials}\n")
-            self.risk_analysis_text.insert(tk.END, f"Risk Percentage: {(high_risk_materials/total_materials*100):.1f}%\n\n")
-            
-            for material in status_data:
-                if material['risk_level'] in ['CRITICAL', 'HIGH']:
-                    self.risk_analysis_text.insert(tk.END, f"⚠️ {material['material_name']}\n", 'material')
-                    self.risk_analysis_text.insert(tk.END, f"   Risk: {material['risk_level']}\n")
-                    self.risk_analysis_text.insert(tk.END, f"   Delay: {material['delay_percent']:.1f}%\n")
-                    self.risk_analysis_text.insert(tk.END, f"   Category: {material.get('category', 'Unknown')}\n\n")
-            
-            self.risk_analysis_text.config(state=tk.DISABLED)
-            
-        except Exception as e:
-            print(f"Error updating risk analysis tab: {e}")
-
-    def update_trends_tab(self):
-        """Update trends and forecasts tab"""
-        try:
-            # Update trends summary
-            self.trends_summary_text.config(state=tk.NORMAL)
-            self.trends_summary_text.delete('1.0', tk.END)
-            
-            self.trends_summary_text.insert(tk.END, "📈 Recent trends show climate volatility affecting production schedules. ")
-            self.trends_summary_text.insert(tk.END, "Monitoring indicates increased risk in wheat and sugarcane sectors. ")
-            self.trends_summary_text.insert(tk.END, "Cotton and rice markets remain relatively stable with minor fluctuations.")
-            
-            self.trends_summary_text.config(state=tk.DISABLED)
-            
-            # Update forecast
-            forecast_data = self.climate_manager.get_climate_forecast(7)
-            
-            self.forecast_text.config(state=tk.NORMAL)
-            self.forecast_text.delete('1.0', tk.END)
-            
-            self.forecast_text.insert(tk.END, "7-DAY CLIMATE FORECAST\n", 'header')
-            self.forecast_text.insert(tk.END, "=" * 30 + "\n\n")
-            
-            if forecast_data:
-                current_date = datetime.now()
-                for i, forecast in enumerate(forecast_data[:7]):
-                    forecast_date = current_date + timedelta(days=i)
-                    
-                    self.forecast_text.insert(tk.END, f"Day {i+1} ({forecast_date.strftime('%m/%d')}):\n", 'date')
-                    self.forecast_text.insert(tk.END, f"  Condition: {forecast.get('expected_condition', 'Unknown')}\n")
-                    self.forecast_text.insert(tk.END, f"  Category: {forecast.get('category', 'Normal')}\n")
-                    self.forecast_text.insert(tk.END, f"  Risk Level: {forecast.get('risk_level', 'Low')}\n\n")
-            else:
-                self.forecast_text.insert(tk.END, "No forecast data available.\n")
-            
-            self.forecast_text.config(state=tk.DISABLED)
-            
-        except Exception as e:
-            print(f"Error updating trends tab: {e}")
 
     def update_details_table(self, status_data):
         """Update the detailed information table with enhanced data"""
@@ -751,7 +647,8 @@ class ClimateOverviewUI(ClimateBaseUI):
             self.summary_stats_label.config(text=summary_text)
             
         except Exception as e:
-            self.summary_stats_label.config(text=f"Error calculating statistics: {str(e)}")
+            error_msg = f"Error calculating statistics: {str(e)}"
+            self.summary_stats_label.config(text=error_msg)
     
     def update_status_cards(self, status_data):
         """Update material status cards"""
@@ -912,81 +809,4 @@ class ClimateOverviewUI(ClimateBaseUI):
                                      font=ClimateConstants.BODY_FONT)
                 risk_info.pack(anchor='w')
     
-    def update_details_table(self, status_data):
-        """Update the detailed information table"""
-        # Clear existing data
-        self.details_tree.delete(*self.details_tree.get_children())
-        
-        # Populate with current data
-        for data in status_data:
-            # Format production impact
-            impact = data['production_impact']
-            impact_text = f"{impact:+,.0f}"
-            
-            # Format last updated
-            last_updated = data['last_updated']
-            if hasattr(last_updated, 'strftime'):
-                updated_text = last_updated.strftime('%Y-%m-%d %H:%M')
-            else:
-                updated_text = str(last_updated)
-            
-            # Insert row
-            self.details_tree.insert('', 'end', values=(
-                data['material_name'],
-                data['current_condition'][:40] + "..." if len(data['current_condition']) > 40 else data['current_condition'],
-                data['category'],
-                impact_text,
-                data['risk_level'],
-                updated_text
-            ))
-        
-        # Apply alternating row colors using tags instead of set()
-        for i, item in enumerate(self.details_tree.get_children()):
-            if i % 2 == 0:
-                self.details_tree.item(item, tags=('evenrow',))
-        
-        # Configure tag for alternating colors
-        self.details_tree.tag_configure('evenrow', background='#f8f9fa')
 
-    def refresh_recommendations(self):
-        """Refresh the smart recommendations"""
-        try:
-            recommendations = self.climate_manager.get_smart_recommendations()
-            
-            self.recommendations_text.config(state=tk.NORMAL)
-            self.recommendations_text.delete('1.0', tk.END)
-            
-            if recommendations:
-                self.recommendations_text.insert(tk.END, "🎯 SMART RECOMMENDATIONS\n", 'header')
-                self.recommendations_text.insert(tk.END, "=" * 50 + "\n\n", 'separator')
-                
-                for i, rec in enumerate(recommendations, 1):
-                    self.recommendations_text.insert(tk.END, f"{i}. {rec['material_name']}\n", 'material')
-                    self.recommendations_text.insert(tk.END, f"   Risk Level: {rec['current_risk_level']}\n")
-                    self.recommendations_text.insert(tk.END, f"   Urgency Score: {rec['urgency_score']:.1f}/100\n")
-                    self.recommendations_text.insert(tk.END, f"   \n")
-                    
-                    # Top 3 recommendations
-                    for j, action in enumerate(rec['recommendations'][:3], 1):
-                        self.recommendations_text.insert(tk.END, f"   • {action}\n", 'action')
-                    
-                    if len(rec['recommendations']) > 3:
-                        self.recommendations_text.insert(tk.END, f"   ... and {len(rec['recommendations'])-3} more actions\n")
-                    
-                    self.recommendations_text.insert(tk.END, f"\n")
-            else:
-                self.recommendations_text.insert(tk.END, "✅ No urgent recommendations at this time.\n")
-                self.recommendations_text.insert(tk.END, "All materials are within acceptable risk levels.")
-            
-            # Configure text tags for styling
-            self.recommendations_text.tag_config('header', font=('Arial', 11, 'bold'))
-            self.recommendations_text.tag_config('material', font=('Arial', 10, 'bold'), foreground='navy')
-            self.recommendations_text.tag_config('action', foreground='darkgreen')
-            
-            self.recommendations_text.config(state=tk.DISABLED)
-            
-        except Exception as e:
-            self.recommendations_text.config(state=tk.NORMAL)
-            self.recommendations_text.delete('1.0', tk.END)
-            self.recommendations_text.insert(tk.END, f"Error loading recommendations: {e}")
-            self.recommendations_text.config(state=tk.DISABLED)
