@@ -1,5 +1,5 @@
 """
-Enhanced Dashboard Backend Functions for Storecore POS & Inventory System
+Enhanced Dashboard Backend Functions for DigiClimate Store Hub POS & Inventory System
 Provides comprehensive business intelligence and analytics capabilities
 """
 

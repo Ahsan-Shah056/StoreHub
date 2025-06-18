@@ -342,7 +342,7 @@ def generate_receipt_text(cursor, sale_id, customer_id, totals):
     customer_name = customer_result['name'] if customer_result else f"Customer #{customer_id}"
     
     receipt = f"""
-        STORECORE ENTERPRISE SYSTEM
+        DIGICLIMATE STORE HUB ENTERPRISE SYSTEM
         {'='*45}
         Date: {sale_datetime.strftime('%Y-%m-%d %H:%M:%S')}
         Customer: {customer_name} (ID: {customer_id})
@@ -362,7 +362,7 @@ def generate_receipt_text(cursor, sale_id, customer_id, totals):
     receipt += f"{'TOTAL:':>32} ${totals['total']:>6.2f}\n"
     receipt += f"{'='*45}\n"
     receipt += "Thank you for your purchase!\n"
-    receipt += "       Storecore v1.0\n"
+    receipt += "    DigiClimate Store Hub v2.0\n"
     
     return receipt
 
@@ -453,7 +453,7 @@ def print_receipt_to_pdf(receipt_text):
                 print(f"Could not add logo: {e}")
         
         # Add company name and title
-        story.append(Paragraph("STORECORE ENTERPRISE SYSTEM", title_style))
+        story.append(Paragraph("DIGICLIMATE STORE HUB ENTERPRISE SYSTEM", title_style))
         story.append(Spacer(1, 20))
         
         # Parse receipt text to extract information
@@ -550,7 +550,7 @@ def print_receipt_to_pdf(receipt_text):
         
         story.append(Paragraph("Thank you for your purchase!", footer_style))
         story.append(Spacer(1, 10))
-        story.append(Paragraph("Storecore v1.0 - Professional POS System", center_style))
+        story.append(Paragraph("DigiClimate Store Hub v1.0 - Professional POS System", center_style))
         
         # Build PDF
         doc.build(story)
@@ -628,7 +628,7 @@ def generate_pdf_for_email(receipt_text, sale_id):
                 print(f"Could not add logo to email PDF: {e}")
         
         # Add company name and title
-        story.append(Paragraph("STORECORE ENTERPRISE SYSTEM", title_style))
+        story.append(Paragraph("DIGICLIMATE STORE HUB ENTERPRISE SYSTEM", title_style))
         story.append(Spacer(1, 20))
         
         # Parse receipt text to extract information
@@ -721,7 +721,7 @@ def generate_pdf_for_email(receipt_text, sale_id):
         
         story.append(Paragraph("Thank you for your purchase!", footer_style))
         story.append(Spacer(1, 10))
-        story.append(Paragraph("Storecore v1.0 - Professional POS System", center_style))
+        story.append(Paragraph("DigiClimate Store Hub v1.0 - Professional POS System", center_style))
         
         # Build PDF
         doc.build(story)
@@ -765,7 +765,7 @@ We've also attached a professional PDF receipt for your records.
 If you have any questions about your purchase, please don't hesitate to contact us.
 
 Best regards,
-Storecore Team
+DigiClimate Store Hub Team
 
 ---
 This is an automated message. Please do not reply to this email.
@@ -1516,7 +1516,7 @@ def create_login_window(root):
     
     # Create alternative red button using tk.Button (more reliable for color)
     login_window = tk.Toplevel(root)
-    login_window.title("Login - Storecore")
+    login_window.title("Login - DigiClimate Store Hub")
     login_window.protocol("WM_DELETE_WINDOW", lambda: exit())  # Close app if login window is closed
     login_window.resizable(False, False)
     
@@ -1554,7 +1554,7 @@ def create_login_window(root):
         print(f"Error loading logo: {e}")
     
     # Title
-    title_label = ttk.Label(login_frame, text="Storecore Login", font=("TkDefaultFont", 16, "bold"))
+    title_label = ttk.Label(login_frame, text="DigiClimate Store Hub Login", font=("TkDefaultFont", 16, "bold"))
     title_label.pack(pady=(0, 20))
     
     # Username
@@ -1615,7 +1615,7 @@ def create_login_window(root):
 
 if __name__ == "__main__":
     root = ThemedTk(theme="arc")
-    root.title("Storecore")
+    root.title("DigiClimate Store Hub")
     
     # Function to handle logout and return to login screen
     def handle_logout():

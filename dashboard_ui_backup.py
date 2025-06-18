@@ -1,5 +1,5 @@
 """
-Dashboard UI Components for Storecore POS & Inventory System
+Dashboard UI Components for DigiClimate Store Hub POS & Inventory System
 Provides comprehensive business intelligence interface with advanced filtering
 """
 

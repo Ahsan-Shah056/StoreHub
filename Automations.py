@@ -162,7 +162,7 @@ Date & Time: {sale_data.get('sale_datetime', 'Unknown')}
 
 Please review this transaction.
 
-Storecore Security System
+DigiClimate Store Hub Security System
 """
         
         msg.attach(MIMEText(email_body, 'plain'))
@@ -352,7 +352,7 @@ def send_end_of_day_report(cursor):
             try:
                 # Create temporary PDF file
                 temp_dir = tempfile.gettempdir()
-                pdf_filename = os.path.join(temp_dir, f"Storecore_Daily_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
+                pdf_filename = os.path.join(temp_dir, f"DigiClimate_Store_Hub_Daily_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
                 created_pdf = create_pdf_report(report_data, pdf_filename)
                 if created_pdf:
                     print(f"PDF report created: {pdf_filename}")
@@ -455,11 +455,11 @@ The PDF includes:
         email_body += f"""
 
 {'=' * 60}
-Report generated automatically by Storecore POS System
+Report generated automatically by DigiClimate Store Hub POS System
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
 Have a great evening!
-Storecore Management System
+DigiClimate Store Hub Management System
 """
         
         # Attach text body
@@ -540,7 +540,7 @@ def create_pdf_report(report_data, filename):
         
         # Header
         today = datetime.now()
-        story.append(Paragraph("📊 STORECORE DAILY BUSINESS REPORT", title_style))
+        story.append(Paragraph("📊 DIGICLIMATE STORE HUB DAILY BUSINESS REPORT", title_style))
         story.append(Paragraph(f"Report Date: {today.strftime('%A, %B %d, %Y')}", styles['Normal']))
         story.append(Paragraph(f"Generated: {today.strftime('%H:%M:%S')}", styles['Normal']))
         story.append(Spacer(1, 20))
@@ -824,7 +824,7 @@ def create_pdf_report(report_data, filename):
             textColor=colors.gray
         )
         
-        story.append(Paragraph("Report generated automatically by Storecore POS System", footer_style))
+        story.append(Paragraph("Report generated automatically by DigiClimate Store Hub POS System", footer_style))
         story.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}", footer_style))
         story.append(Paragraph("For questions about this report, please contact your system administrator.", footer_style))
         

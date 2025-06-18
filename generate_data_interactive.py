@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Interactive Data Generator for Storecore
+Interactive Data Generator for DigiClimate Store Hub
 Generates user-defined numbers of purchases, purchase items, and inventory adjustments
 """
 
@@ -59,7 +59,7 @@ class DataGenerator:
         """Get user input for number of records to generate"""
         try:
             print("\n" + "="*50)
-            print("STORECORE DATA GENERATOR")
+            print("DIGICLIMATE STORE HUB DATA GENERATOR")
             print("="*50)
             
             # Get purchases and purchase items count

@@ -4,7 +4,7 @@
 <h1>
   <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Shopping%20Cart.png" alt="Shopping Cart" width="80" height="80" />
   <br>
-  <strong>STORECORE</strong>
+  <strong>DIGICLIMATE STORE HUB</strong>
   <br>
   <sub><em>Next-Generation Point-of-Sale & Inventory Management</em></sub>
 </h1>
@@ -95,13 +95,13 @@
 
 </div>
 
-**Storecore** is a comprehensive, enterprise-grade Point-of-Sale (POS) and inventory management solution designed specifically for **retail businesses**, **warehouses**, and **small-to-medium enterprises**. 
+**DigiClimate Store Hub** is a comprehensive, enterprise-grade Point-of-Sale (POS) and inventory management solution designed specifically for **retail businesses**, **warehouses**, and **small-to-medium enterprises**. 
 
 <br>
 
 <div align="center">
 
-### 💫 **Why Choose Storecore Over Others?**
+### 💫 **Why Choose DigiClimate Store Hub Over Others?**
 
 <table>
 <tr>
@@ -430,7 +430,7 @@
 
 ### 📈 **Comprehensive Business Intelligence Dashboard**
 
-*Transform your business data into actionable insights with Storecore's powerful reporting engine*
+*Transform your business data into actionable insights with DigiClimate Store Hub's powerful reporting engine*
 
 </div>
 
@@ -747,7 +747,7 @@
 
 ### 🚀 **Intelligent Operations on Autopilot**
 
-*Storecore's AI-powered automation systems work 24/7 to monitor, alert, and optimize your business operations*
+*DigiClimate Store Hub's AI-powered automation systems work 24/7 to monitor, alert, and optimize your business operations*
 
 </div>
 
@@ -967,7 +967,7 @@
 
 <div align="center">
 
-### 🚀 **Get Storecore Running in Under 5 Minutes**
+### 🚀 **Get DigiClimate Store Hub Running in Under 5 Minutes**
 
 </div>
 
@@ -1017,13 +1017,13 @@ cd Storecore
 
 ```bash
 # Create virtual environment
-python3 -m venv storecore_env
+python3 -m venv digiclimate_env
 
 # Activate environment
 # On macOS/Linux:
-source storecore_env/bin/activate
+source digiclimate_env/bin/activate
 # On Windows:
-storecore_env\Scripts\activate
+digiclimate_env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -1055,7 +1055,7 @@ mysql -u root -p store < storecore.sql
 # (Optional) Load sample data
 python sample_data.py
 
-# Launch Storecore
+# Launch DigiClimate Store Hub
 python main.py
 ```
 
@@ -1078,8 +1078,8 @@ python main.py
   "password": "your-app-password",
   "users": [
     {
-      "username": "admin",
-      "password": "admin123",
+      "username": "ahsan",
+      "password": "123",
       "role": "manager",
       "email": "admin@yourstore.com"
     }
@@ -1088,8 +1088,8 @@ python main.py
 ```
 
 2. **Login with default credentials:**
-   - Username: `admin`
-   - Password: `admin123`
+   - Username: `ahsan`
+   - Password: `123`
 
 </details>
 
@@ -1287,7 +1287,7 @@ python sample_data.py
 
 <div align="center">
 
-### 📱 **See Storecore in Action**
+### 📱 **See DigiClimate Store Hub in Action**
 
 <table>
 <tr>
@@ -1296,7 +1296,7 @@ python sample_data.py
 <div style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; background: #f9f9f9;">
 <pre>
 ┌─────────────────────────────────────────┐
-│  🏪 STORECORE POS System        👤 Manager │
+│  🏪 DIGICLIMATE STORE HUB POS System        👤 Manager │
 ├─────────────────────────────────────────┤
 │  📊 Sales  👥 Customers  📦 Inventory    │
 │  🏭 Suppliers  📈 Reports  🔧 Settings   │
@@ -1352,26 +1352,90 @@ python sample_data.py
 ## 🗂️ Project Structure
 
 ```plaintext
-Storecore/
-├── main.py                # Main application (Tkinter GUI, app entrypoint)
-├── Ui.py                  # All UI classes and logic (modular, extensible)
-├── database.py            # Database connection logic (MySQL, parameterized)
-├── inventory.py           # Inventory management logic (CRUD, adjustments)
-├── sales.py               # Sales/cart logic (transactional, atomic)
-├── customers.py           # Customer management (CRUD)
-├── suppliers.py           # Supplier management (CRUD, search)
-├── employees.py           # Employee management (CRUD)
-├── reporting.py           # Business reports logic (optimized SQL)
-├── Automations.py         # Business automation (alerts, reports, notifications)
-├── Data_exporting.py      # CSV export functionality for all tables/reports
-├── credentials.json       # User credentials, roles, and email configuration
-├── sample_data.py         # Script to populate sample data
-├── schema.sql             # (Legacy) MySQL schema
-├── storecore.sql          # **Recommended**: Full SQL schema for Storecore 
-├── receipts/              # Generated sales receipts storage
-├── logo.jpeg             # Company logo for UI display
-└── README.md              # Project documentation
+DigiClimate-Store-Hub/
+├── 📁 Core Application Files
+│   ├── main.py                      # 🚀 Main application entry point (Tkinter GUI)
+│   ├── Ui.py                        # 🎨 Core UI classes and logic (modular, extensible)
+│   ├── database.py                  # 🗄️ Database connection logic (MySQL, parameterized)
+│   └── credentials.json             # 🔐 User credentials, roles, and email configuration
+│
+├── 📁 Business Logic Modules
+│   ├── inventory.py                 # 📦 Inventory management logic (CRUD, adjustments)
+│   ├── sales.py                     # 💰 Sales/cart logic (transactional, atomic)
+│   ├── customers.py                 # 👥 Customer management (CRUD)
+│   ├── suppliers.py                 # 🏭 Supplier management (CRUD, search)
+│   ├── employees.py                 # 👤 Employee management (CRUD)
+│   └── reporting.py                 # 📊 Business reports logic (optimized SQL)
+│
+├── 📁 Advanced Dashboard & Analytics
+│   ├── dashboard.py                 # 📈 Backend dashboard functions and data processing
+│   ├── dashboard_base.py            # 🏗️ Base dashboard framework and utilities
+│   ├── dashboard_ui.py              # 🖥️ Main dashboard UI components
+│   ├── dashboard_overview_ui.py     # 📋 Overview dashboard with key metrics
+│   ├── dashboard_analytics_ui.py    # 📊 Advanced analytics and visualizations
+│   ├── dashboard_performance_ui.py  # ⚡ Performance metrics and reporting
+│   ├── dashboard_simulation_ui.py   # 🎯 Business simulation and forecasting
+│   └── dashboard_ui_backup.py       # 💾 Dashboard UI backup/legacy version
+│
+├── 📁 Automation & Intelligence
+│   ├── Automations.py               # 🤖 Business automation (alerts, reports, notifications)
+│   ├── Data_exporting.py            # 📤 CSV export functionality for all tables/reports
+│   └── data_importing.py            # 📥 Data import utilities and validation
+│
+├── 📁 Data Generation & Testing
+│   ├── generate_customers.py        # 👥 Generate realistic customer test data
+│   ├── generate_sales.py            # 💳 Generate realistic sales transaction data
+│   └── generate_data_interactive.py # 🎮 Interactive data generation utility
+│
+├── 📁 Database Schema & Setup
+│   ├── schema.sql                   # 🗃️ Basic MySQL schema (legacy)
+│   ├── DigiClimate_Store_Hub.sql               # 🗄️ **Recommended**: Complete SQL schema with data for DigiClimate Store Hub
+│   └── DigiClimate_Store_Hub_ER.vpp            # 📐 Entity-Relationship diagram (Visual Paradigm) 
+│
+├── 📁 Configuration & Data Files
+│   ├── requirements.txt             # 📋 Python dependencies list
+│   ├── products.csv                 # 📦 Sample product data for import
+│   ├── supplier data.csv            # 🏭 Sample supplier data for import
+│   └── logo.jpeg                    # 🎨 Company logo for UI display
+│
+├── 📁 Generated Content
+│   ├── receipts/                    # 🧾 Generated sales receipts storage
+│   │   ├── receipt_*.pdf           # 📄 PDF receipt files
+│   │   └── receipt_*.txt           # 📝 Text receipt files
+│   └── __pycache__/                # 🐍 Python cache files
+│
+└── 📁 Documentation
+    └── README.md                    # 📖 Project documentation and setup guide
 ```
+
+---
+
+### 🔍 **Key Component Details**
+
+#### 📈 **Advanced Dashboard System**
+- **`dashboard.py`**: Backend data processing and analytics calculations
+- **`dashboard_analytics_ui.py`**: Interactive charts, graphs, and business intelligence
+- **`dashboard_performance_ui.py`**: Employee performance, product rankings, cost analysis
+- **`dashboard_overview_ui.py`**: Real-time business overview with key metrics
+- **`dashboard_simulation_ui.py`**: Predictive modeling and business forecasting
+
+#### 🤖 **Smart Automation Features**
+- **`Automations.py`**: 
+  - 📧 Professional PDF daily reports via email
+  - ⚠️ Low stock alerts with individual product thresholds
+  - 💰 Large transaction monitoring and alerts
+  - 📊 Automated business intelligence reports
+
+#### 🔄 **Data Management**
+- **`data_importing.py`**: Robust data import with validation
+- **`Data_exporting.py`**: Comprehensive export functionality
+- **`generate_*` files**: Realistic test data generation for development
+
+#### 🎨 **Enhanced User Experience**
+- **Modern dashboard interface** with real-time analytics
+- **Responsive design** with professional charts and visualizations
+- **Theme-aware UI** with consistent styling
+- **Professional PDF receipts** with company branding
 
 ---
 
@@ -1379,7 +1443,7 @@ Storecore/
 
 ### Database Setup
 
-- Use `storecore.sql` to set up your MySQL database schema. This file contains all necessary CREATE TABLE and relationship statements for Storecore.
+- Use `DigiClimate_Store_Hub.sql` to set up your MySQL database schema. This file contains all necessary CREATE TABLE and relationship statements for DigiClimate Store Hub.
 - Edit `database.py` to set your MySQL username, password, and database name (`store`).
 - Ensure MySQL server is running before launching the app.
 - All DB credentials are kept in code for simplicity; for production, use environment variables or a config file.
@@ -1526,7 +1590,7 @@ def top_selling_products_callback():
 
 <div align="center">
 
-### 🌟 **Help Us Make Storecore Even Better!**
+### 🌟 **Help Us Make DigiClimate Store Hub Even Better!**
 
 We welcome contributions from developers of all skill levels. Whether you're fixing bugs, adding features, or improving documentation, every contribution matters.
 
@@ -1595,7 +1659,7 @@ We welcome contributions from developers of all skill levels. Whether you're fix
 
 <div align="center">
 
-### 🏆 **Thank You for Using Storecore!**
+### 🏆 **Thank You for Using DigiClimate Store Hub!**
 
 <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Trophy.png" width="60" alt="Trophy">
 
@@ -1605,12 +1669,12 @@ We welcome contributions from developers of all skill levels. Whether you're fix
 <img src="https://img.shields.io/badge/⭐_Star_this_repo-if_it_helped_you-yellow?style=for-the-badge" alt="Star this repo">
 </p>
 
-*© 2024 Storecore. Licensed under the MIT License.*
+*© 2024 DigiClimate Store Hub. Licensed under the MIT License.*
 
 ---
 
 <sub>
-🚀 **Storecore** - Empowering businesses worldwide with intelligent POS solutions  
+🚀 **DigiClimate Store Hub** - Empowering businesses worldwide with intelligent POS solutions  
 📊 **Built for:** Small to Medium Enterprises | Retail Stores | Warehouses  
 💻 **Tech Stack:** Python | MySQL | Tkinter | Email Automation  
 </sub>
