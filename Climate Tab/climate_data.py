@@ -881,6 +881,10 @@ class ClimateDataManager:
             current_alerts = self._get_current_condition_alerts()
             all_alerts.extend(current_alerts)
             
+            # Add stock depletion alerts
+            stock_alerts = self.get_stock_depletion_alerts()
+            all_alerts.extend(stock_alerts)
+            
             # Sort by urgency (most urgent first)
             all_alerts = sorted(all_alerts, key=lambda x: x.get('urgency_score', 0), reverse=True)
             
@@ -925,6 +929,96 @@ class ClimateDataManager:
             logger.error(f"Error getting current condition alerts: {e}")
         
         return alerts
+
+    def get_stock_depletion_alerts(self) -> List[Dict[str, Any]]:
+        """Generate alerts for materials that will run out based on current consumption rates"""
+        alerts = []
+        
+        try:
+            connection, cursor = self.get_connection()
+            
+            # Check each material's stock status
+            for material_id, material_name in self.material_mapping.items():
+                try:
+                    # For demonstration, let's simulate stock levels and consumption rates
+                    # In a real system, this would come from inventory management
+                    simulated_stock_data = {
+                        "Wheat": {"current_stock": 500, "daily_consumption": 25, "safety_stock": 100},
+                        "Sugarcane": {"current_stock": 290, "daily_consumption": 15, "safety_stock": 50},  # Will run out in ~19 days
+                        "Cotton": {"current_stock": 800, "daily_consumption": 20, "safety_stock": 150},
+                        "Rice": {"current_stock": 420, "daily_consumption": 30, "safety_stock": 120}  # Will run out in ~14 days
+                    }
+                    
+                    if material_name in simulated_stock_data:
+                        stock_info = simulated_stock_data[material_name]
+                        current_stock = stock_info["current_stock"]
+                        daily_consumption = stock_info["daily_consumption"]
+                        safety_stock = stock_info["safety_stock"]
+                        
+                        # Calculate days until stock runs out
+                        days_until_empty = current_stock / daily_consumption if daily_consumption > 0 else 999
+                        days_until_safety = (current_stock - safety_stock) / daily_consumption if daily_consumption > 0 else 999
+                        
+                        # Generate alerts based on stock levels
+                        if days_until_empty <= 7:  # Critical - will run out in a week
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_DEPLETION_CRITICAL',
+                                'severity': 'CRITICAL',
+                                'days_until_impact': max(1, int(days_until_empty)),
+                                'days_until_empty': int(days_until_empty),
+                                'current_stock': current_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 100 - int(days_until_empty),
+                                'message': f"{material_name} will run out in {int(days_until_empty)} days",
+                                'recommendation': f"Immediate restocking required for {material_name}",
+                                'stock_status': 'CRITICAL'
+                            })
+                        elif days_until_empty <= 21:  # High - will run out in three weeks
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_DEPLETION_HIGH',
+                                'severity': 'HIGH',
+                                'days_until_impact': int(days_until_empty),
+                                'days_until_empty': int(days_until_empty),
+                                'current_stock': current_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 85 - int(days_until_empty * 2),
+                                'message': f"{material_name} will run out in {int(days_until_empty)} days",
+                                'recommendation': f"Order {material_name} within the next week",
+                                'stock_status': 'LOW'
+                            })
+                        elif days_until_safety <= 10:  # Medium - approaching safety stock
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_SAFETY_WARNING',
+                                'severity': 'MEDIUM',
+                                'days_until_impact': max(1, int(days_until_safety)),
+                                'days_until_safety': int(days_until_safety),
+                                'current_stock': current_stock,
+                                'safety_stock': safety_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 70 - int(days_until_safety),
+                                'message': f"{material_name} will reach safety stock levels in {int(days_until_safety)} days",
+                                'recommendation': f"Plan to reorder {material_name} soon",
+                                'stock_status': 'APPROACHING_SAFETY'
+                            })
+                        
+                except Exception as e:
+                    logger.error(f"Error checking stock for {material_name}: {e}")
+                    continue
+            
+            cursor.close()
+            connection.close()
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error getting stock depletion alerts: {e}")
+            return []
 
     def get_smart_recommendations(self, material_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get rule-based smart recommendations for materials"""
@@ -1295,6 +1389,103 @@ Immediate action recommended.
                 'enabled': False
             }
         
+    def get_stock_depletion_alerts(self) -> List[Dict[str, Any]]:
+        """Generate alerts for materials that will run out based on current consumption rates"""
+        alerts = []
+        
+        try:
+            connection, cursor = self.get_connection()
+            
+            # Check each material's stock status
+            for material_id, material_name in self.material_mapping.items():
+                try:
+                    # Get current stock level
+                    cursor.execute("SELECT name FROM RawMaterials WHERE material_id = %s", (material_id,))
+                    result = cursor.fetchone()
+                    
+                    if not result:
+                        continue
+                    
+                    # For demonstration, let's simulate stock levels and consumption rates
+                    # In a real system, this would come from inventory management
+                    simulated_stock_data = {
+                        "Wheat": {"current_stock": 500, "daily_consumption": 25, "safety_stock": 100},
+                        "Sugarcane": {"current_stock": 300, "daily_consumption": 15, "safety_stock": 50},
+                        "Cotton": {"current_stock": 800, "daily_consumption": 20, "safety_stock": 150},
+                        "Rice": {"current_stock": 600, "daily_consumption": 30, "safety_stock": 120}
+                    }
+                    
+                    if material_name in simulated_stock_data:
+                        stock_info = simulated_stock_data[material_name]
+                        current_stock = stock_info["current_stock"]
+                        daily_consumption = stock_info["daily_consumption"]
+                        safety_stock = stock_info["safety_stock"]
+                        
+                        # Calculate days until stock runs out
+                        days_until_empty = current_stock / daily_consumption if daily_consumption > 0 else 999
+                        days_until_safety = (current_stock - safety_stock) / daily_consumption if daily_consumption > 0 else 999
+                        
+                        # Generate alerts based on stock levels
+                        if days_until_empty <= 7:  # Critical - will run out in a week
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_DEPLETION_CRITICAL',
+                                'severity': 'CRITICAL',
+                                'days_until_impact': max(1, int(days_until_empty)),
+                                'days_until_empty': int(days_until_empty),
+                                'current_stock': current_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 100 - int(days_until_empty),
+                                'message': f"{material_name} will run out in {int(days_until_empty)} days",
+                                'recommendation': f"Immediate restocking required for {material_name}",
+                                'stock_status': 'CRITICAL'
+                            })
+                        elif days_until_empty <= 14:  # High - will run out in two weeks
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_DEPLETION_HIGH',
+                                'severity': 'HIGH',
+                                'days_until_impact': int(days_until_empty),
+                                'days_until_empty': int(days_until_empty),
+                                'current_stock': current_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 90 - int(days_until_empty),
+                                'message': f"{material_name} will run out in {int(days_until_empty)} days",
+                                'recommendation': f"Order {material_name} within the next few days",
+                                'stock_status': 'LOW'
+                            })
+                        elif days_until_safety <= 7:  # Medium - approaching safety stock
+                            alerts.append({
+                                'material_name': material_name,
+                                'material_id': material_id,
+                                'alert_type': 'STOCK_SAFETY_WARNING',
+                                'severity': 'MEDIUM',
+                                'days_until_impact': max(1, int(days_until_safety)),
+                                'days_until_safety': int(days_until_safety),
+                                'current_stock': current_stock,
+                                'safety_stock': safety_stock,
+                                'daily_consumption': daily_consumption,
+                                'urgency_score': 80 - int(days_until_safety),
+                                'message': f"{material_name} will reach safety stock levels in {int(days_until_safety)} days",
+                                'recommendation': f"Plan to reorder {material_name} soon",
+                                'stock_status': 'APPROACHING_SAFETY'
+                            })
+                        
+                except Exception as e:
+                    logger.error(f"Error checking stock for {material_name}: {e}")
+                    continue
+            
+            cursor.close()
+            connection.close()
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error getting stock depletion alerts: {e}")
+            return []
+
 # Global instance for easy access
 climate_manager = ClimateDataManager()
 
