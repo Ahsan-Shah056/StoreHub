@@ -1468,7 +1468,6 @@ class POSApp:
         # Dashboard tab access for manager and accountant (business intelligence users)
         if user_role in ["manager", "accountant"]:
             self.notebook.add(self.dashboard_tab, text="📊 Dashboard")
-            self.notebook.add(self.climate_tab, text="🌍 Climate")
         
         self.notebook.add(self.sales_tab, text="Sales")
         
@@ -1486,6 +1485,10 @@ class POSApp:
         # Reports tab access for manager and accountant
         if user_role in ["manager", "accountant"]:
             self.notebook.add(self.reports_tab, text="Reports")
+        
+        # Climate tab as the last tab for manager and accountant
+        if user_role in ["manager", "accountant"]:
+            self.notebook.add(self.climate_tab, text="🌍 Climate")
 
         # Always instantiate these UI classes as all roles have some form of access
         self.sales_ui = SalesUI(self.sales_tab)
