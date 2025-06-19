@@ -7,6 +7,17 @@ from email import encoders
 from datetime import datetime
 import os
 import tempfile
+import sys
+
+# Import climate data functionality
+climate_tab_path = os.path.join(os.path.dirname(__file__), 'Climate Tab')
+sys.path.append(climate_tab_path)
+try:
+    from climate_data import ClimateDataManager
+    CLIMATE_AVAILABLE = True
+except ImportError:
+    print("Climate data module not available")
+    CLIMATE_AVAILABLE = False
 
 # Try to import PDF generation libraries
 try:
@@ -113,7 +124,7 @@ def check_and_alert_low_stock(cursor, updated_sku):
         print(f"Error checking low stock for SKU {updated_sku}: {e}")
 
 # Large Transaction Alert Automation
-LARGE_TRANSACTION_THRESHOLD = 10000.0
+LARGE_TRANSACTION_THRESHOLD = 4000
 
 def send_large_transaction_alert(cursor, sale_data):
     """Send large transaction alert email to manager"""
@@ -321,6 +332,54 @@ def generate_end_of_day_report(cursor):
         inventory_adjustments = cursor.fetchall()
         report_data['adjustments'] = inventory_adjustments or []
         
+        # 7. Climate Alerts and Raw Materials Status
+        if CLIMATE_AVAILABLE:
+            try:
+                climate_manager = ClimateDataManager()
+                climate_alerts = climate_manager.get_climate_alerts()
+                
+                # Organize alerts by type for better reporting
+                current_alerts = []
+                predictive_alerts = []
+                stock_alerts = []
+                
+                for alert in climate_alerts:
+                    alert_type = alert.get('alert_type', '')
+                    if 'STOCK' in alert_type.upper() or 'DEPLETION' in alert_type.upper():
+                        stock_alerts.append(alert)
+                    elif 'CURRENT' in alert_type.upper() or alert.get('days_until_impact', 99) == 0:
+                        current_alerts.append(alert)
+                    else:
+                        predictive_alerts.append(alert)
+                
+                report_data['climate_alerts'] = {
+                    'current': current_alerts,
+                    'predictive': predictive_alerts,
+                    'stock': stock_alerts,
+                    'total_count': len(climate_alerts)
+                }
+                
+                # Get raw materials status summary
+                materials_status = {}
+                material_mapping = {1: "wheat", 2: "sugarcane", 3: "cotton", 4: "rice"}
+                for material_id, material_name in material_mapping.items():
+                    try:
+                        status = climate_manager.get_material_status(material_id)
+                        materials_status[material_name] = status
+                    except Exception as e:
+                        print(f"Error getting status for {material_name}: {e}")
+                        materials_status[material_name] = None
+                
+                report_data['materials_status'] = materials_status
+                
+            except Exception as e:
+                print(f"Error getting climate data for report: {e}")
+                report_data['climate_alerts'] = {'current': [], 'predictive': [], 'stock': [], 'total_count': 0}
+                report_data['materials_status'] = {}
+        else:
+            report_data['climate_alerts'] = {'current': [], 'predictive': [], 'stock': [], 'total_count': 0}
+            report_data['materials_status'] = {}
+        
         return report_data
         
     except Exception as e:
@@ -386,35 +445,92 @@ def send_end_of_day_report(cursor):
         msg['Subject'] = f"{trend_emoji} Daily Report - {datetime.now().strftime('%Y-%m-%d')} | Revenue: ${today_revenue:,.0f} ({revenue_change_pct:+.1f}%)"
         
         # Create executive summary for email body
-        email_body = f"""
-{trend_emoji} DAILY BUSINESS REPORT - EXECUTIVE SUMMARY
-{'=' * 60}
+        email_body = f"""📊 DIGICLIMATE STORE HUB - DAILY EXECUTIVE SUMMARY
+{'=' * 70}
 Date: {datetime.now().strftime('%A, %B %d, %Y')}
+Generated: {datetime.now().strftime('%H:%M:%S')}
 
-� KEY PERFORMANCE INDICATORS
-{'─' * 40}
-💰 Revenue Today: ${today_revenue:,.2f} ({revenue_change_pct:+.1f}% vs yesterday)
-🛒 Transactions: {today_transactions:,} ({transaction_change:+,} vs yesterday)
-💵 Average Sale: ${report_data['today_sales']['avg_transaction']:,.2f}
-🎯 Largest Sale: ${report_data['today_sales']['max_transaction']:,.2f}
+🎯 BUSINESS PERFORMANCE OVERVIEW
+{'─' * 50}
+💰 Revenue Performance:
+   • Today: ${today_revenue:,.2f} ({revenue_change_pct:+.1f}% vs yesterday)
+   • Transactions: {today_transactions:,} ({transaction_change:+,} vs yesterday)  
+   • Average Sale: ${report_data['today_sales']['avg_transaction']:,.2f}
+   • Peak Sale: ${report_data['today_sales']['max_transaction']:,.2f}
 
 """
         
         # Add top highlights
+        email_body += f"🏆 TOP PERFORMERS\n{'─' * 30}\n"
         if report_data['top_products']:
             top_product = report_data['top_products'][0]
-            email_body += f"🏆 Best Seller: {top_product['name']} ({top_product['total_sold']} units, ${top_product['total_revenue']:,.2f})\n"
+            email_body += f"📦 Best Seller: {top_product['name']} ({top_product['total_sold']} units, ${top_product['total_revenue']:,.2f})\n"
         
         if report_data['employees']:
             top_employee = max(report_data['employees'], key=lambda x: x.get('revenue', 0))
-            email_body += f"⭐ Top Performer: {top_employee['name']} (${top_employee['revenue']:,.2f} in sales)\n"
+            email_body += f"⭐ Top Staff: {top_employee['name']} (${top_employee['revenue']:,.2f} in sales)\n"
         
-        # Add alerts
+        email_body += f"\n🚨 CRITICAL ALERTS & STATUS\n{'─' * 40}\n"
+        
+        # Add inventory alerts first
         low_stock_count = len(report_data.get('low_stock', []))
         if low_stock_count > 0:
-            email_body += f"⚠️  Inventory Alert: {low_stock_count} products need restocking\n"
+            email_body += f"📦 Inventory: {low_stock_count} products need restocking\n"
         else:
             email_body += f"✅ Inventory: All products adequately stocked\n"
+        
+        # Add detailed climate alerts with actual data
+        climate_alerts = report_data.get('climate_alerts', {})
+        total_climate_alerts = climate_alerts.get('total_count', 0)
+        
+        if total_climate_alerts > 0:
+            current_alerts = climate_alerts.get('current', [])
+            predictive_alerts = climate_alerts.get('predictive', [])
+            stock_alerts = climate_alerts.get('stock', [])
+            
+            # Count high severity alerts
+            high_severity_count = 0
+            critical_materials = []
+            
+            for alert in (current_alerts + predictive_alerts + stock_alerts):
+                severity = alert.get('severity', '').upper()
+                if severity in ['HIGH', 'CRITICAL']:
+                    high_severity_count += 1
+                    material = alert.get('material_name', 'Unknown')
+                    if material not in critical_materials:
+                        critical_materials.append(material)
+            
+            email_body += f"🌡️ Climate & Supply Chain: {total_climate_alerts} alerts detected\n"
+            if high_severity_count > 0:
+                email_body += f"   ⚠️  HIGH PRIORITY: {high_severity_count} critical issues\n"
+                email_body += f"   🏭 Affected Materials: {', '.join(critical_materials[:3])}"
+                if len(critical_materials) > 3:
+                    email_body += f" +{len(critical_materials)-3} more"
+                email_body += f"\n"
+            
+            # Show most critical current alert
+            if current_alerts:
+                critical_current = [a for a in current_alerts if a.get('severity', '').upper() == 'CRITICAL']
+                if critical_current:
+                    alert = critical_current[0]
+                    delay_val = alert.get('delay_percent', 0)
+                    try:
+                        delay_num = float(delay_val) if delay_val is not None else 0.0
+                        email_body += f"   🔴 URGENT: {alert.get('material_name', 'Unknown')} - {delay_num:.1f}% delays\n"
+                    except (ValueError, TypeError):
+                        email_body += f"   🔴 URGENT: {alert.get('material_name', 'Unknown')} - experiencing delays\n"
+            
+            # Show most critical predictive alert
+            if predictive_alerts:
+                high_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'HIGH']
+                if high_risk:
+                    alert = high_risk[0]
+                    days = alert.get('days_until_impact', 0)
+                    products = alert.get('affected_products_count', 0)
+                    email_body += f"   ⏰ UPCOMING: {alert.get('material_name', 'Unknown')} risk in {days} days ({products} products affected)\n"
+            
+        else:
+            email_body += f"🌱 Climate & Supply Chain: All systems normal\n"
         
         adjustment_count = len(report_data.get('adjustments', []))
         if adjustment_count > 0:
@@ -439,18 +555,159 @@ The PDF includes:
         else:
             email_body += f"\n{'─' * 40}\n⚠️  PDF report could not be generated. Please check system logs.\n"
         
-        # Quick action items
+        # Add comprehensive climate alerts section
+        climate_alerts = report_data.get('climate_alerts', {})
+        total_climate_alerts = climate_alerts.get('total_count', 0)
+        
+        if total_climate_alerts > 0:
+            email_body += f"\n{'─' * 70}\n🌡️ CLIMATE & SUPPLY CHAIN DETAILED ANALYSIS\n{'─' * 70}\n"
+            
+            current_alerts = climate_alerts.get('current', [])
+            predictive_alerts = climate_alerts.get('predictive', [])
+            stock_alerts = climate_alerts.get('stock', [])
+            
+            # Current Critical Issues
+            if current_alerts:
+                email_body += f"\n⚠️ IMMEDIATE ATTENTION REQUIRED ({len(current_alerts)} alerts):\n"
+                for i, alert in enumerate(current_alerts[:3], 1):
+                    severity = alert.get('severity', 'UNKNOWN').upper()
+                    material = alert.get('material_name', 'Unknown Material')
+                    delay = alert.get('delay_percent', 0)
+                    
+                    # Convert delay to float to prevent format errors
+                    try:
+                        delay_num = float(delay) if delay is not None else 0.0
+                    except (ValueError, TypeError):
+                        delay_num = 0.0
+                    
+                    severity_icon = "🔴" if severity == "CRITICAL" else "🟠" if severity == "HIGH" else "🟠"
+                    
+                    email_body += f"   {i}. {severity_icon} {material.upper()}\n"
+                    email_body += f"      • Status: {severity} - {delay_num:.1f}% supply delays\n"
+                    email_body += f"      • Action: {alert.get('recommendation', 'Review supply chain immediately')}\n\n"
+                
+                if len(current_alerts) > 3:
+                    email_body += f"   ... plus {len(current_alerts) - 3} additional current alerts (see PDF)\n\n"
+            
+            # Predictive Risk Analysis  
+            if predictive_alerts:
+                email_body += f"🔮 PREDICTIVE RISK ANALYSIS ({len(predictive_alerts)} upcoming risks):\n"
+                
+                # Group by urgency
+                high_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'HIGH']
+                medium_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'MEDIUM']
+                
+                if high_risk:
+                    email_body += f"\n   🟠 HIGH RISK PREDICTIONS:\n"
+                    for alert in high_risk[:2]:  # Show top 2 high risk
+                        material = alert.get('material_name', 'Unknown')
+                        days = alert.get('days_until_impact', 0)
+                        products = alert.get('affected_products_count', 0)
+                        risk_days = alert.get('risk_days_count', 0)
+                        avg_delay = alert.get('avg_delay', 0)
+                        
+                        # Convert avg_delay to float to prevent format errors
+                        try:
+                            avg_delay_num = float(avg_delay) if avg_delay is not None else 0.0
+                        except (ValueError, TypeError):
+                            avg_delay_num = 0.0
+                        
+                        email_body += f"      • {material}: Risk starts in {days} days\n"
+                        email_body += f"        - {risk_days} problematic days expected\n"
+                        email_body += f"        - {products} products at risk\n"
+                        email_body += f"        - Average delays: {avg_delay_num:.1f}%\n"
+                        email_body += f"        - Action: {alert.get('recommendation', 'Prepare contingency plans')}\n\n"
+                
+                if medium_risk:
+                    medium_materials = [a.get('material_name', 'Unknown') for a in medium_risk]
+                    email_body += f"   🟡 MEDIUM RISK: {len(medium_risk)} materials ({', '.join(medium_materials[:3])})\n\n"
+            
+            # Stock Depletion Warnings
+            if stock_alerts:
+                email_body += f"📦 STOCK DEPLETION WARNINGS ({len(stock_alerts)} alerts):\n"
+                for alert in stock_alerts[:3]:
+                    material = alert.get('material_name', 'Unknown')
+                    # Extract days from message if available
+                    message = alert.get('message', '')
+                    email_body += f"   • {material}: {message}\n"
+                    email_body += f"     Action: {alert.get('recommendation', 'Order immediately')}\n\n"
+            
+            # Summary and next steps
+            total_materials_affected = len(set([
+                alert.get('material_name', '') for alert in 
+                current_alerts + predictive_alerts + stock_alerts
+            ]))
+            
+            email_body += f"🟠 IMPACT SUMMARY:\n"
+            email_body += f"   • {total_materials_affected} different raw materials affected\n"
+            email_body += f"   • {len(current_alerts)} requiring immediate action\n"
+            email_body += f"   • {len(predictive_alerts)} future risks to monitor\n"
+            email_body += f"   • Detailed analysis and charts available in PDF attachment\n"
+            
+        else:
+            email_body += f"\n{'─' * 70}\n🌱 CLIMATE & SUPPLY CHAIN STATUS: ALL CLEAR\n{'─' * 70}\n"
+            email_body += f"✅ No climate alerts detected for any raw materials\n"
+            email_body += f"✅ All supply chains operating normally\n"
+            email_body += f"✅ No predictive risks identified\n"
+        
+        # Enhanced action items with specific climate recommendations
         action_items = []
+        
+        # Business performance actions
         if low_stock_count > 5:
-            action_items.append(f"• Review and reorder {low_stock_count} low-stock items")
+            action_items.append(f"📦 INVENTORY: Review and reorder {low_stock_count} low-stock products")
         if revenue_change_pct < -10:
-            action_items.append("• Investigate significant revenue decline")
+            action_items.append(f"📉 REVENUE: Investigate {revenue_change_pct:.1f}% revenue decline - implement recovery strategy")
         if today_transactions < 10:
-            action_items.append("• Low transaction volume - review marketing efforts")
+            action_items.append("📱 MARKETING: Low transaction volume - boost promotional activities")
+        
+        # Climate-specific action items with priority levels
+        climate_alerts = report_data.get('climate_alerts', {})
+        current_alerts = climate_alerts.get('current', [])
+        predictive_alerts = climate_alerts.get('predictive', [])
+        stock_alerts = climate_alerts.get('stock', [])
+        
+        # Critical immediate actions
+        critical_current = [a for a in current_alerts if a.get('severity', '').upper() == 'CRITICAL']
+        if critical_current:
+            materials = [a.get('material_name', 'Unknown') for a in critical_current]
+            action_items.append(f"🚨 URGENT: Address critical supply issues for {', '.join(materials[:2])}")
+        
+        # High priority actions
+        high_priority_current = [a for a in current_alerts if a.get('severity', '').upper() == 'HIGH']
+        if high_priority_current:
+            # Convert all delay values to float and calculate average
+            delay_values = []
+            for a in high_priority_current:
+                try:
+                    delay_val = float(a.get('delay_percent', 0))
+                    delay_values.append(delay_val)
+                except (ValueError, TypeError):
+                    delay_values.append(0.0)
+            
+            avg_delay = sum(delay_values) / len(delay_values) if delay_values else 0.0
+            action_items.append(f"⚠️  HIGH PRIORITY: Resolve {len(high_priority_current)} supply chain issues (avg {avg_delay:.1f}% delays)")
+        
+        # Predictive planning actions
+        high_risk_predictive = [a for a in predictive_alerts if a.get('severity', '').upper() == 'HIGH']
+        if high_risk_predictive:
+            nearest_risk = min([a.get('days_until_impact', 999) for a in high_risk_predictive])
+            total_products = sum([a.get('affected_products_count', 0) for a in high_risk_predictive])
+            action_items.append(f"🔮 PLANNING: Prepare for supply risks starting in {nearest_risk} days ({total_products} products at risk)")
+        
+        # Stock management actions
+        if stock_alerts:
+            action_items.append(f"📦 PROCUREMENT: Urgent restocking needed for {len(stock_alerts)} raw materials")
+        
+        # Long-term strategic actions
+        if len(predictive_alerts) > 2:
+            affected_materials = len(set([a.get('material_name', '') for a in predictive_alerts]))
+            action_items.append(f"🏭 STRATEGY: Diversify suppliers for {affected_materials} materials to reduce future risks")
         
         if action_items:
-            email_body += f"\n🎯 RECOMMENDED ACTIONS\n{'─' * 40}\n"
-            email_body += "\n".join(action_items)
+            email_body += f"\n{'─' * 70}\n🎯 PRIORITY ACTION ITEMS\n{'─' * 70}\n"
+            for i, item in enumerate(action_items, 1):
+                email_body += f"{i}. {item}\n"
         
         email_body += f"""
 
@@ -583,6 +840,23 @@ def create_pdf_report(report_data, filename):
             summary_text += f"⚠️ Stock Alerts: <b>{low_stock_count} items</b> need restocking<br/>"
         else:
             summary_text += f"✅ Inventory Status: <b>All products adequately stocked</b><br/>"
+        
+        # Add climate alerts to summary
+        climate_alerts = report_data.get('climate_alerts', {})
+        total_climate_alerts = climate_alerts.get('total_count', 0)
+        if total_climate_alerts > 0:
+            current_count = len(climate_alerts.get('current', []))
+            stock_count = len(climate_alerts.get('stock', []))
+            predictive_count = len(climate_alerts.get('predictive', []))
+            
+            if current_count > 0:
+                summary_text += f"🌡️ Climate Alerts: <b>{current_count} active</b> weather/supply issues<br/>"
+            if stock_count > 0:
+                summary_text += f"📦 Stock Depletion: <b>{stock_count} materials</b> running low<br/>"
+            if predictive_count > 0:
+                summary_text += f"🔮 Predictive Risks: <b>{predictive_count} potential</b> future issues<br/>"
+        else:
+            summary_text += f"🌱 Climate Status: <b>No active alerts</b> for raw materials<br/>"
         
         story.append(Paragraph(summary_text, exec_summary_style))
         story.append(Spacer(1, 20))
@@ -810,6 +1084,289 @@ def create_pdf_report(report_data, filename):
             story.append(adj_table)
         else:
             story.append(Paragraph("No inventory adjustments were made today.", styles['Normal']))
+        
+        story.append(Spacer(1, 20))
+        
+        # Climate Alerts and Raw Materials Section
+        story.append(Paragraph("🌡️ CLIMATE & RAW MATERIALS STATUS", section_style))
+        
+        climate_alerts = report_data.get('climate_alerts', {})
+        materials_status = report_data.get('materials_status', {})
+        total_climate_alerts = climate_alerts.get('total_count', 0)
+        
+        if total_climate_alerts > 0:
+            # Current alerts
+            current_alerts = climate_alerts.get('current', [])
+            if current_alerts:
+                story.append(Paragraph("⚠️ ACTIVE CLIMATE ALERTS", ParagraphStyle(
+                    'SubSection',
+                    parent=styles['Heading3'],
+                    fontSize=12,
+                    spaceAfter=8,
+                    textColor=colors.red
+                )))
+                
+                current_data = [['Material', 'Severity', 'Issue Description', 'Action Required']]
+                for alert in current_alerts:
+                    # Use correct field names from climate data
+                    material = alert.get('material_name', 'Unknown')
+                    severity = alert.get('severity', 'Unknown')
+                    message = alert.get('message', 'No description available')
+                    recommendation = alert.get('recommendation', 'No recommendation available')
+                    
+                    # More aggressive text truncation for narrow columns
+                    material_short = material.title()[:12] + '..' if len(material) > 12 else material.title()
+                    severity_short = severity.title()[:8] if len(severity) <= 8 else severity.title()[:7] + '.'
+                    desc_text = message[:25] + '...' if len(message) > 25 else message
+                    rec_text = recommendation[:30] + '...' if len(recommendation) > 30 else recommendation
+                    
+                    current_data.append([
+                        material_short,
+                        severity_short,
+                        desc_text,
+                        rec_text
+                    ])
+                
+                current_table = Table(current_data, colWidths=[1*inch, 0.8*inch, 2*inch, 2.2*inch])
+                current_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.red),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF5F5')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('WORDWRAP', (0, 0), (-1, -1), True),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                    ('TOPPADDING', (0, 1), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFF5F5'), colors.HexColor('#FFEBEE')]),
+                ]))
+                story.append(current_table)
+                story.append(Spacer(1, 10))
+            
+            # Stock depletion alerts
+            stock_alerts = climate_alerts.get('stock', [])
+            if stock_alerts:
+                story.append(Paragraph("📦 STOCK DEPLETION ALERTS", ParagraphStyle(
+                    'SubSection',
+                    parent=styles['Heading3'],
+                    fontSize=12,
+                    spaceAfter=8,
+                    textColor=colors.orange
+                )))
+                
+                stock_data = [['Material', 'Days Left', 'Status', 'Action Needed']]
+                for alert in stock_alerts:
+                    # Use correct field names for stock alerts
+                    material = alert.get('material_name', 'Unknown')
+                    message = alert.get('message', '')
+                    recommendation = alert.get('recommendation', 'Order immediately')
+                    
+                    # Extract days from message if available
+                    days_remaining = 'Unknown'
+                    if 'days' in message.lower():
+                        try:
+                            # Try to extract number before 'days'
+                            words = message.split()
+                            for i, word in enumerate(words):
+                                if 'day' in word.lower() and i > 0:
+                                    days_remaining = words[i-1]
+                                    break
+                        except:
+                            days_remaining = 'Unknown'
+                    
+                    # Determine status
+                    try:
+                        days_num = int(days_remaining) if days_remaining.isdigit() else 999
+                        status = '🔴 Critical' if days_num < 30 else '🟡 Low'
+                    except:
+                        status = '⚠️ Unknown'
+                    
+                    # Better text truncation
+                    material_short = material.title()[:15] + '..' if len(material) > 15 else material.title()
+                    days_text = f"{days_remaining}d" if days_remaining != 'Unknown' else 'N/A'
+                    rec_text = recommendation[:35] + '...' if len(recommendation) > 35 else recommendation
+                    
+                    stock_data.append([
+                        material_short,
+                        days_text,
+                        status,
+                        rec_text
+                    ])
+                
+                stock_table = Table(stock_data, colWidths=[1.2*inch, 0.8*inch, 1*inch, 3*inch])
+                stock_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.orange),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF8E1')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                    ('TOPPADDING', (0, 1), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('WORDWRAP', (0, 0), (-1, -1), True),
+                ]))
+                story.append(stock_table)
+                story.append(Spacer(1, 10))
+            
+            # Predictive alerts summary
+            predictive_alerts = climate_alerts.get('predictive', [])
+            if predictive_alerts:
+                story.append(Paragraph("🔮 PREDICTIVE RISK ANALYSIS", ParagraphStyle(
+                    'SubSection',
+                    parent=styles['Heading3'],
+                    fontSize=12,
+                    spaceAfter=8,
+                    textColor=colors.blue
+                )))
+                
+                # Group predictive alerts by severity (not urgency)
+                high_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'HIGH']
+                medium_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'MEDIUM']
+                low_risk = [a for a in predictive_alerts if a.get('severity', '').upper() == 'LOW']
+                
+                # Show detailed predictive alerts table
+                pred_data = [['Material', 'Risk Level', 'Days', 'Products', 'Risk Description', 'Action Required']]
+                
+                # Add high risk alerts first
+                for alert in high_risk:
+                    material = alert.get('material_name', 'Unknown')
+                    severity = alert.get('severity', 'Unknown')
+                    days = alert.get('days_until_impact', 'N/A')
+                    products = alert.get('affected_products_count', 'N/A')
+                    message = alert.get('message', 'No description')
+                    recommendation = alert.get('recommendation', 'Monitor closely')
+                    
+                    # Better text truncation for table readability
+                    material_short = material.title()[:10] + '..' if len(material) > 10 else material.title()
+                    severity_short = severity.title()[:6] if len(severity) <= 6 else severity.title()[:5] + '.'
+                    desc_text = message[:30] + '...' if len(message) > 30 else message
+                    rec_text = recommendation[:25] + '...' if len(recommendation) > 25 else recommendation
+                    
+                    pred_data.append([
+                        material_short,
+                        severity_short,
+                        f"{days}d",
+                        str(products),
+                        desc_text,
+                        rec_text
+                    ])
+                
+                # Add medium and low risk alerts
+                for alert in medium_risk + low_risk:
+                    material = alert.get('material_name', 'Unknown')
+                    severity = alert.get('severity', 'Unknown')
+                    days = alert.get('days_until_impact', 'N/A')
+                    products = alert.get('affected_products_count', 'N/A')
+                    message = alert.get('message', 'No description')
+                    recommendation = alert.get('recommendation', 'Monitor closely')
+                    
+                    # Better text truncation for table readability
+                    material_short = material.title()[:10] + '..' if len(material) > 10 else material.title()
+                    severity_short = severity.title()[:6] if len(severity) <= 6 else severity.title()[:5] + '.'
+                    desc_text = message[:30] + '...' if len(message) > 30 else message
+                    rec_text = recommendation[:25] + '...' if len(recommendation) > 25 else recommendation
+                    
+                    pred_data.append([
+                        material_short,
+                        severity_short,
+                        f"{days}d",
+                        str(products),
+                        desc_text,
+                        rec_text
+                    ])
+                
+                # Create the predictive alerts table with better column widths
+                pred_table = Table(pred_data, colWidths=[0.8*inch, 0.6*inch, 0.4*inch, 0.5*inch, 2*inch, 1.7*inch])
+                pred_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0F8FF')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('WORDWRAP', (0, 0), (-1, -1), True),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                    ('TOPPADDING', (0, 1), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F0F8FF'), colors.HexColor('#E6F3FF')]),
+                ]))
+                story.append(pred_table)
+                
+                # Add summary paragraph after the table
+                pred_summary = f"""
+                <b>Summary:</b> {len(high_risk)} high-risk, {len(medium_risk)} medium-risk, and {len(low_risk)} low-risk predictions identified. 
+                Priority focus should be on high-risk alerts requiring immediate planning and supplier diversification.
+                """
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(pred_summary, styles['Italic']))
+                story.append(Spacer(1, 10))
+        
+        # Raw materials status summary
+        if materials_status:
+            story.append(Paragraph("🌱 RAW MATERIALS STATUS OVERVIEW", ParagraphStyle(
+                'SubSection',
+                parent=styles['Heading3'],
+                fontSize=12,
+                spaceAfter=8,
+                textColor=colors.green
+            )))
+            
+            materials_data = [['Material', 'Current Condition', 'Risk Level', 'Production Impact', 'Delay %']]
+            for material, status in materials_status.items():
+                if status:
+                    # Use actual available fields from climate data
+                    condition = status.get('current_condition', 'Unknown')
+                    risk_level = status.get('risk_level', 'Unknown')
+                    production_impact = status.get('production_impact', 0)
+                    delay_percent = status.get('delay_percent', 0)
+                    
+                    # Format values appropriately
+                    condition_text = condition[:25] + '...' if len(condition) > 25 else condition
+                    impact_text = f"{production_impact:,.1f} tons" if isinstance(production_impact, (int, float)) else str(production_impact)
+                    delay_text = f"{delay_percent:.1f}%" if isinstance(delay_percent, (int, float)) else str(delay_percent)
+                    
+                    materials_data.append([
+                        material.title(),
+                        condition_text,
+                        risk_level.title(),
+                        impact_text,
+                        delay_text
+                    ])
+            
+            if len(materials_data) > 1:  # Only create table if we have data
+                materials_table = Table(materials_data, colWidths=[1.2*inch, 1.2*inch, 1*inch, 1.2*inch, 1.4*inch])
+                materials_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.green),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F1F8E9')),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ]))
+                story.append(materials_table)
+        
+        else:
+            story.append(Paragraph("✅ No climate alerts detected. All raw materials are in good condition.", styles['Normal']))
         
         # Footer
         story.append(Spacer(1, 30))
