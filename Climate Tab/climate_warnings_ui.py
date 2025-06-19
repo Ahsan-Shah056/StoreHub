@@ -250,7 +250,7 @@ class ClimateWarningsUI(ClimateBaseUI):
         self.forecast_desc_label.config(text="Days covered")
     
     def update_alerts_table(self, alerts_data):
-        """Update active alerts table"""
+        """Update active alerts table with predictive alerts"""
         # Clear existing data
         self.alerts_tree.delete(*self.alerts_tree.get_children())
         
@@ -264,15 +264,52 @@ class ClimateWarningsUI(ClimateBaseUI):
         
         # Populate with alerts data
         for alert in alerts_data:
-            severity_icon = '🔴' if alert.get('severity') == 'CRITICAL' else '🟡'
+            # Determine severity icon
+            severity = alert.get('severity', 'MEDIUM')
+            if severity == 'CRITICAL':
+                severity_icon = '�'
+            elif severity == 'HIGH':
+                severity_icon = '🟡'
+            else:
+                severity_icon = '🟢'
+            
+            # Format alert type for display
+            alert_type = alert.get('alert_type', 'General')
+            if alert_type.startswith('LONG_TERM_'):
+                alert_type = alert_type.replace('LONG_TERM_', '').replace('_', ' ').title()
+                display_type = f"📅 {alert_type}"
+            elif alert_type.startswith('PREDICTED_'):
+                alert_type = alert_type.replace('PREDICTED_', '').replace('_', ' ').title()
+                display_type = f"⚡ {alert_type}"
+            else:
+                display_type = alert_type.replace('_', ' ').title()
+            
+            # Format time until impact
+            days_until = alert.get('days_until_impact', 0)
+            if days_until == 0:
+                time_display = "Now"
+            elif days_until == 1:
+                time_display = "1 day"
+            else:
+                time_display = f"{days_until} days"
+            
+            # Get recommendation or default action
+            action = alert.get('recommendation', alert.get('recommended_action', 'Review'))
+            if len(action) > 40:
+                action = action[:37] + "..."
+            
+            # Format message for display
+            message = alert.get('message', 'No message')
+            if len(message) > 80:
+                message = message[:77] + "..."
             
             self.alerts_tree.insert('', 'end', values=(
                 severity_icon,
                 alert.get('material_name', 'Unknown'),
-                alert.get('alert_type', 'General'),
-                alert.get('message', 'No message')[:60] + "..." if len(alert.get('message', '')) > 60 else alert.get('message', ''),
-                alert.get('created_at', datetime.now()).strftime('%H:%M') if hasattr(alert.get('created_at'), 'strftime') else str(alert.get('created_at', '')),
-                alert.get('recommended_action', 'Review')
+                display_type,
+                message,
+                time_display,
+                action
             ))
     
     def update_forecast_data(self, forecast_data):
@@ -294,15 +331,59 @@ class ClimateWarningsUI(ClimateBaseUI):
     
     
     def on_alert_details(self, event):
-        """Handle alert details view"""
+        """Handle alert details view with enhanced predictive information"""
         selection = self.alerts_tree.selection()
         if selection:
             item = self.alerts_tree.item(selection[0])
             values = item['values']
             if len(values) >= 4:
-                messagebox.showinfo("Alert Details", 
-                                   f"Material: {values[1]}\n"
-                                   f"Type: {values[2]}\n"
-                                   f"Message: {values[3]}\n"
-                                   f"Time: {values[4]}\n"
-                                   f"Recommended Action: {values[5] if len(values) > 5 else 'Review'}")
+                # Get the alert data for more detailed information
+                alerts_data = self.climate_manager.get_climate_alerts()
+                
+                # Find the matching alert based on material and message
+                selected_alert = None
+                for alert in alerts_data:
+                    if (alert.get('material_name') == values[1] and 
+                        alert.get('message', '')[:77] == values[3][:77]):
+                        selected_alert = alert
+                        break
+                
+                if selected_alert:
+                    # Show detailed information for predictive alerts
+                    details = f"📊 PREDICTIVE ALERT DETAILS\n\n"
+                    details += f"🏷️ Material: {selected_alert['material_name']}\n"
+                    details += f"⚠️ Alert Type: {selected_alert['alert_type']}\n"
+                    details += f"🔥 Severity: {selected_alert['severity']}\n"
+                    details += f"⏰ Impact Timeline: {selected_alert['days_until_impact']} days\n"
+                    details += f"🎯 Urgency Score: {selected_alert.get('urgency_score', 0)}/100\n\n"
+                    
+                    details += f"📝 Description:\n{selected_alert['message']}\n\n"
+                    
+                    if 'recommendation' in selected_alert:
+                        details += f"💡 Recommendation:\n{selected_alert['recommendation']}\n\n"
+                    
+                    # Add specific details based on alert type
+                    if 'expected_delay' in selected_alert:
+                        details += f"📉 Expected Delay: {selected_alert['expected_delay']}\n"
+                    if 'peak_delay' in selected_alert:
+                        details += f"📈 Peak Delay: {selected_alert['peak_delay']}\n"
+                    if 'duration_days' in selected_alert:
+                        details += f"⏳ Duration: {selected_alert['duration_days']} days\n"
+                    if 'affected_products_count' in selected_alert:
+                        details += f"📦 Affected Products: {selected_alert['affected_products_count']}\n"
+                    if 'production_drop' in selected_alert:
+                        details += f"📊 Production Drop: {selected_alert['production_drop']}\n"
+                    if 'weather_condition' in selected_alert:
+                        details += f"🌦️ Weather: {selected_alert['weather_condition']}\n"
+                    
+                    details += f"\n🕐 Horizon: {selected_alert.get('horizon', 'Unknown')}"
+                    
+                    messagebox.showinfo("Predictive Alert Details", details)
+                else:
+                    # Fallback to basic information
+                    messagebox.showinfo("Alert Details", 
+                                       f"Material: {values[1]}\n"
+                                       f"Type: {values[2]}\n"
+                                       f"Message: {values[3]}\n"
+                                       f"Time: {values[4]}\n"
+                                       f"Recommended Action: {values[5] if len(values) > 5 else 'Review'}")

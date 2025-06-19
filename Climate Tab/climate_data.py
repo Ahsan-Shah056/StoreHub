@@ -220,6 +220,8 @@ class ClimateDataManager:
             logger.debug("Returning cached climate status data")
             return cached_data
             
+        connection = None
+        cursor = None
         try:
             connection, cursor = self.get_connection()
             
@@ -248,12 +250,32 @@ class ClimateDataManager:
                         expected_production
                     FROM {table}
                     WHERE material_id = %s
+                    AND timestamp >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                     ORDER BY timestamp DESC
                     LIMIT 1
                 """
                 
                 cursor.execute(query, (material_id,))
                 result = cursor.fetchone()
+                
+                # If no recent data found, get the most recent data but use current date for display
+                if not result:
+                    query_fallback = f"""
+                        SELECT 
+                            material_id,
+                            timestamp,
+                            expected_condition,
+                            category,
+                            original_production,
+                            delay_percent,
+                            expected_production
+                        FROM {table}
+                        WHERE material_id = %s
+                        ORDER BY timestamp DESC
+                        LIMIT 1
+                    """
+                    cursor.execute(query_fallback, (material_id,))
+                    result = cursor.fetchone()
                 
                 if result:
                     # Calculate production impact
@@ -263,6 +285,10 @@ class ClimateDataManager:
                     
                     # Determine risk level
                     risk_level = self._calculate_risk_level(delay_percent)
+                    
+                    # Use current date if data is not from today or within the last 7 days
+                    data_age = abs((datetime.now() - result['timestamp']).days)
+                    display_timestamp = datetime.now() if data_age > 7 else result['timestamp']
                     
                     results.append({
                         'material_id': material_id,
@@ -274,7 +300,7 @@ class ClimateDataManager:
                         'delay_percent': delay_percent,
                         'production_impact': expected - original,
                         'risk_level': risk_level,
-                        'last_updated': result['timestamp']
+                        'last_updated': display_timestamp
                     })
             
             # Cache the results
@@ -292,8 +318,111 @@ class ClimateDataManager:
             if connection:
                 connection.close()
 
+    def get_material_status(self, material_id: int) -> Optional[Dict[str, Any]]:
+        """Get current climate status for a specific material"""
+        connection = None
+        cursor = None
+        try:
+            # Get all current status data
+            all_status = self.get_current_climate_status()
+            
+            # Find the specific material
+            for material_status in all_status:
+                if material_status.get('material_id') == material_id:
+                    return material_status
+            
+            # If not found in current status, get latest data directly
+            connection, cursor = self.get_connection()
+            
+            material_name = self.material_mapping.get(material_id)
+            if not material_name:
+                return None
+                
+            # Get table name for the material
+            table_map = {
+                "Wheat": "WheatProduction",
+                "Cotton": "CottonProduction", 
+                "Rice": "RiceProduction",
+                "Sugarcane": "SugarcaneProduction"
+            }
+            
+            table = table_map.get(material_name)
+            if not table:
+                return None
+            
+            query = f"""
+                SELECT 
+                    material_id,
+                    timestamp,
+                    expected_condition,
+                    category,
+                    original_production,
+                    delay_percent,
+                    expected_production
+                FROM {table}
+                WHERE material_id = %s
+                AND timestamp >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY timestamp DESC
+                LIMIT 1
+            """
+            
+            cursor.execute(query, (material_id,))
+            row = cursor.fetchone()
+            
+            # If no recent data found, get the most recent data
+            if not row:
+                query_fallback = f"""
+                    SELECT 
+                        material_id,
+                        timestamp,
+                        expected_condition,
+                        category,
+                        original_production,
+                        delay_percent,
+                        expected_production
+                    FROM {table}
+                    WHERE material_id = %s
+                    ORDER BY timestamp DESC
+                    LIMIT 1
+                """
+                cursor.execute(query_fallback, (material_id,))
+                row = cursor.fetchone()
+            
+            if row:
+                risk_level = self._calculate_risk_level(float(row['delay_percent']))
+                
+                # Use current date if data is not from today or within the last 7 days
+                data_age = abs((datetime.now() - row['timestamp']).days)
+                display_timestamp = datetime.now() if data_age > 7 else row['timestamp']
+                
+                return {
+                    'material_id': row['material_id'],
+                    'material_name': material_name,
+                    'last_updated': display_timestamp,
+                    'current_condition': row['expected_condition'],
+                    'category': row['category'],
+                    'delay_percent': float(row['delay_percent']),
+                    'risk_level': risk_level,
+                    'original_production': row['original_production'],
+                    'expected_production': row['expected_production'],
+                    'production_impact': float(row['expected_production']) - float(row['original_production'])
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting material status for material_id {material_id}: {e}")
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+            if connection:
+                connection.close()
+
     def get_climate_forecast(self, days_ahead: int = 7) -> List[Dict[str, Any]]:
         """Get climate forecast for next N days"""
+        connection = None
+        cursor = None
         try:
             connection, cursor = self.get_connection()
             
@@ -359,6 +488,8 @@ class ClimateDataManager:
 
     def get_affected_products(self, material_id: int) -> List[Dict[str, Any]]:
         """Get products that use a specific raw material"""
+        connection = None
+        cursor = None
         try:
             connection, cursor = self.get_connection()
             
@@ -514,6 +645,286 @@ class ClimateDataManager:
         except Exception as e:
             logger.error(f"Error getting climate alerts: {e}")
             return []
+
+    def get_predictive_alerts(self, time_horizon: str = 'week') -> List[Dict[str, Any]]:
+        """Get predictive alerts based on upcoming climate data (week/month ahead)"""
+        try:
+            alerts = []
+            
+            # Set time horizon
+            if time_horizon == 'week':
+                days_ahead = 7
+                horizon_label = "next week"
+            elif time_horizon == 'month':
+                days_ahead = 30
+                horizon_label = "next month"
+            else:
+                days_ahead = 14
+                horizon_label = "next 2 weeks"
+            
+            # Get forecast data for the specified period
+            forecast_data = self.get_climate_forecast(days_ahead)
+            
+            # Group by material for analysis
+            material_forecasts = {}
+            for item in forecast_data:
+                material = item['material_name']
+                if material not in material_forecasts:
+                    material_forecasts[material] = []
+                material_forecasts[material].append(item)
+            
+            # Analyze each material for predictive concerns
+            for material, forecasts in material_forecasts.items():
+                material_id = forecasts[0]['material_id']
+                
+                # Sort by date to analyze trends
+                forecasts = sorted(forecasts, key=lambda x: x['forecast_date'])
+                
+                # Check for various predictive scenarios
+                alerts.extend(self._analyze_delay_patterns(material, material_id, forecasts, horizon_label))
+                alerts.extend(self._analyze_production_drops(material, material_id, forecasts, horizon_label))
+                alerts.extend(self._analyze_weather_extremes(material, material_id, forecasts, horizon_label))
+                alerts.extend(self._analyze_supply_chain_risks(material, material_id, forecasts, horizon_label))
+            
+            # Sort by urgency and days until impact
+            alerts = sorted(alerts, key=lambda x: (x['urgency_score'], x['days_until_impact']))
+            
+            return alerts
+            
+        except Exception as e:
+            logger.error(f"Error getting predictive alerts: {e}")
+            return []
+
+    def _analyze_delay_patterns(self, material: str, material_id: int, forecasts: List[Dict], horizon: str) -> List[Dict]:
+        """Analyze for upcoming delay patterns"""
+        alerts = []
+        
+        try:
+            # Look for consecutive high-delay periods
+            high_delay_periods = []
+            current_period = []
+            
+            for forecast in forecasts:
+                if forecast['delay_percent'] > 20:  # 20% delay threshold
+                    current_period.append(forecast)
+                else:
+                    if len(current_period) >= 2:  # 2+ consecutive days
+                        high_delay_periods.append(current_period)
+                    current_period = []
+            
+            # Check final period
+            if len(current_period) >= 2:
+                high_delay_periods.append(current_period)
+            
+            # Generate alerts for significant delay periods
+            for period in high_delay_periods:
+                start_day = period[0]['days_from_now']
+                end_day = period[-1]['days_from_now']
+                max_delay = max(f['delay_percent'] for f in period)
+                avg_delay = sum(f['delay_percent'] for f in period) / len(period)
+                
+                severity = 'CRITICAL' if max_delay > 40 else 'HIGH' if max_delay > 25 else 'MEDIUM'
+                urgency = 100 - start_day  # More urgent if happening sooner
+                
+                alert = {
+                    'material_name': material,
+                    'material_id': material_id,
+                    'alert_type': 'PREDICTED_DELAYS',
+                    'severity': severity,
+                    'days_until_impact': start_day,
+                    'duration_days': len(period),
+                    'expected_delay': f"{avg_delay:.1f}%",
+                    'peak_delay': f"{max_delay:.1f}%",
+                    'urgency_score': urgency,
+                    'message': f"{material} expected {avg_delay:.1f}% delays for {len(period)} days starting in {start_day} days ({horizon})",
+                    'recommendation': f"Consider ordering {material} earlier or sourcing from alternative suppliers",
+                    'horizon': horizon
+                }
+                alerts.append(alert)
+                
+        except Exception as e:
+            logger.error(f"Error analyzing delay patterns for {material}: {e}")
+        
+        return alerts
+
+    def _analyze_production_drops(self, material: str, material_id: int, forecasts: List[Dict], horizon: str) -> List[Dict]:
+        """Analyze for upcoming production drops"""
+        alerts = []
+        
+        try:
+            for forecast in forecasts:
+                # Calculate production impact if data is available
+                if 'expected_production' in forecast and 'original_production' in forecast:
+                    if forecast['expected_production'] and forecast['original_production']:
+                        production_drop = ((forecast['original_production'] - forecast['expected_production']) 
+                                         / forecast['original_production']) * 100
+                        
+                        if production_drop > 15:  # 15% production drop threshold
+                            severity = 'CRITICAL' if production_drop > 30 else 'HIGH'
+                            urgency = 100 - forecast['days_from_now']
+                            
+                            alert = {
+                                'material_name': material,
+                                'material_id': material_id,
+                                'alert_type': 'PREDICTED_PRODUCTION_DROP',
+                                'severity': severity,
+                                'days_until_impact': forecast['days_from_now'],
+                                'production_drop': f"{production_drop:.1f}%",
+                                'urgency_score': urgency,
+                                'message': f"{material} production expected to drop {production_drop:.1f}% in {forecast['days_from_now']} days",
+                                'recommendation': f"Increase {material} inventory buffer by {int(production_drop * 1.5)}% before impact",
+                                'horizon': horizon,
+                                'expected_condition': forecast.get('expected_condition', 'Unknown')
+                            }
+                            alerts.append(alert)
+                            
+        except Exception as e:
+            logger.error(f"Error analyzing production drops for {material}: {e}")
+        
+        return alerts
+
+    def _analyze_weather_extremes(self, material: str, material_id: int, forecasts: List[Dict], horizon: str) -> List[Dict]:
+        """Analyze for extreme weather conditions"""
+        alerts = []
+        
+        try:
+            extreme_conditions = ['severe_drought', 'flooding', 'extreme_heat', 'frost', 'storm']
+            
+            for forecast in forecasts:
+                condition = forecast.get('expected_condition', '').lower()
+                
+                # Check if condition contains extreme weather keywords
+                for extreme in extreme_conditions:
+                    if extreme in condition or any(word in condition for word in ['severe', 'extreme', 'critical', 'emergency']):
+                        urgency = 100 - forecast['days_from_now']
+                        
+                        alert = {
+                            'material_name': material,
+                            'material_id': material_id,
+                            'alert_type': 'EXTREME_WEATHER_WARNING',
+                            'severity': 'CRITICAL',
+                            'days_until_impact': forecast['days_from_now'],
+                            'urgency_score': urgency,
+                            'weather_condition': forecast['expected_condition'],
+                            'message': f"Extreme weather ({forecast['expected_condition']}) predicted for {material} in {forecast['days_from_now']} days",
+                            'recommendation': f"Secure {material} inventory and consider emergency sourcing arrangements",
+                            'horizon': horizon
+                        }
+                        alerts.append(alert)
+                        break  # One alert per forecast day
+                        
+        except Exception as e:
+            logger.error(f"Error analyzing weather extremes for {material}: {e}")
+        
+        return alerts
+
+    def _analyze_supply_chain_risks(self, material: str, material_id: int, forecasts: List[Dict], horizon: str) -> List[Dict]:
+        """Analyze for supply chain disruption risks"""
+        alerts = []
+        
+        try:
+            # Look for patterns that indicate supply chain risks
+            risk_days = [f for f in forecasts if f['delay_percent'] > 15 or f['risk_level'] in ['HIGH', 'CRITICAL']]
+            
+            if len(risk_days) >= 3:  # Multiple risky days indicate supply chain concern
+                avg_risk_delay = sum(f['delay_percent'] for f in risk_days) / len(risk_days)
+                earliest_impact = min(f['days_from_now'] for f in risk_days)
+                
+                # Check if this affects multiple products
+                affected_products = self.get_affected_products(material_id)
+                affected_count = len(affected_products)
+                
+                if affected_count > 0:
+                    urgency = (100 - earliest_impact) + (affected_count * 2)  # More products = higher urgency
+                    
+                    alert = {
+                        'material_name': material,
+                        'material_id': material_id,
+                        'alert_type': 'SUPPLY_CHAIN_RISK',
+                        'severity': 'HIGH' if affected_count > 3 else 'MEDIUM',
+                        'days_until_impact': earliest_impact,
+                        'affected_products_count': affected_count,
+                        'risk_days_count': len(risk_days),
+                        'avg_delay': f"{avg_risk_delay:.1f}%",
+                        'urgency_score': min(urgency, 100),
+                        'message': f"{material} supply chain at risk - {len(risk_days)} problematic days in {horizon}, affecting {affected_count} products",
+                        'recommendation': f"Review {material} suppliers and consider diversifying sources for {affected_count} affected products",
+                        'horizon': horizon
+                    }
+                    alerts.append(alert)
+                    
+        except Exception as e:
+            logger.error(f"Error analyzing supply chain risks for {material}: {e}")
+        
+        return alerts
+
+    def get_climate_alerts(self) -> List[Dict[str, Any]]:
+        """Get comprehensive climate alerts combining current and predictive analysis"""
+        try:
+            all_alerts = []
+            
+            # Get immediate alerts (next 7 days)
+            immediate_alerts = self.get_predictive_alerts('week')
+            all_alerts.extend(immediate_alerts)
+            
+            # Get longer-term alerts (next month) for planning
+            monthly_alerts = self.get_predictive_alerts('month')
+            
+            # Filter monthly alerts to avoid duplicates with weekly alerts
+            for monthly_alert in monthly_alerts:
+                # Only include monthly alerts that are more than 7 days away
+                if monthly_alert['days_until_impact'] > 7:
+                    monthly_alert['alert_type'] = f"LONG_TERM_{monthly_alert['alert_type']}"
+                    all_alerts.append(monthly_alert)
+            
+            # Add any critical current conditions
+            current_alerts = self._get_current_condition_alerts()
+            all_alerts.extend(current_alerts)
+            
+            # Sort by urgency (most urgent first)
+            all_alerts = sorted(all_alerts, key=lambda x: x.get('urgency_score', 0), reverse=True)
+            
+            # Limit to top 20 alerts to avoid overwhelming the user
+            return all_alerts[:20]
+            
+        except Exception as e:
+            logger.error(f"Error getting comprehensive climate alerts: {e}")
+            return []
+
+    def _get_current_condition_alerts(self) -> List[Dict[str, Any]]:
+        """Get alerts for current critical conditions"""
+        alerts = []
+        
+        try:
+            # Get today's data for all materials
+            today = datetime.now().date()
+            
+            for material_id, material_name in self.material_mapping.items():
+                current_conditions = self.get_material_status(material_id)
+                
+                if current_conditions:
+                    risk_level = current_conditions.get('risk_level', 'LOW')
+                    delay_percent = current_conditions.get('delay_percent', 0)
+                    
+                    if risk_level in ['CRITICAL', 'HIGH'] or delay_percent > 25:
+                        alert = {
+                            'material_name': material_name,
+                            'material_id': material_id,
+                            'alert_type': 'CURRENT_CRITICAL_CONDITION',
+                            'severity': risk_level,
+                            'days_until_impact': 0,
+                            'urgency_score': 100,  # Current conditions are most urgent
+                            'delay_percent': delay_percent,
+                            'message': f"{material_name} currently experiencing {risk_level.lower()} conditions with {delay_percent:.1f}% delays",
+                            'recommendation': f"Immediate action required for {material_name} supply chain",
+                            'horizon': 'current'
+                        }
+                        alerts.append(alert)
+                        
+        except Exception as e:
+            logger.error(f"Error getting current condition alerts: {e}")
+        
+        return alerts
 
     def get_smart_recommendations(self, material_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get rule-based smart recommendations for materials"""
