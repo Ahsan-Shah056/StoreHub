@@ -536,24 +536,6 @@ Generated: {datetime.now().strftime('%H:%M:%S')}
         if adjustment_count > 0:
             email_body += f"🔄 Inventory Adjustments: {adjustment_count} made today\n"
         
-        # PDF attachment notice
-        if pdf_filename and os.path.exists(pdf_filename):
-            email_body += f"""
-{'─' * 40}
-📎 DETAILED REPORT
-A comprehensive PDF report with detailed analytics, charts, and 
-tables has been attached to this email for your review.
-
-The PDF includes:
-• Complete sales analysis and comparisons
-• Top products performance ranking
-• Employee performance breakdown  
-• Inventory status and low stock alerts
-• All inventory adjustments made today
-• Professional charts and visualizations
-"""
-        else:
-            email_body += f"\n{'─' * 40}\n⚠️  PDF report could not be generated. Please check system logs.\n"
         
         # Add comprehensive climate alerts section
         climate_alerts = report_data.get('climate_alerts', {})
@@ -709,6 +691,25 @@ The PDF includes:
             for i, item in enumerate(action_items, 1):
                 email_body += f"{i}. {item}\n"
         
+        # PDF attachment notice
+        if pdf_filename and os.path.exists(pdf_filename):
+            email_body += f"""
+{'─' * 40}
+📎 DETAILED REPORT
+A comprehensive PDF report with detailed analytics, charts, and 
+tables has been attached to this email for your review.
+
+The PDF includes:
+• Complete sales analysis and comparisons
+• Top products performance ranking
+• Employee performance breakdown  
+• Inventory status and low stock alerts
+• All inventory adjustments made today
+• Professional charts and visualizations
+"""
+        else:
+            email_body += f"\n{'─' * 40}\n⚠️  PDF report could not be generated. Please check system logs.\n"
+        
         email_body += f"""
 
 {'=' * 60}
@@ -762,333 +763,711 @@ DigiClimate Store Hub Management System
         return False
 
 def create_pdf_report(report_data, filename):
-    """Create a professional PDF report"""
+    """Create a premium, professional PDF report with advanced styling and layout"""
     if not PDF_AVAILABLE:
         print("PDF libraries not available - using text report instead")
         return None
     
     try:
-        # Create document
-        doc = SimpleDocTemplate(filename, pagesize=A4)
+        # Create PDF document with premium settings
+        doc = SimpleDocTemplate(
+            filename, 
+            pagesize=letter,
+            leftMargin=0.5*inch, 
+            rightMargin=0.5*inch,
+            topMargin=0.4*inch, 
+            bottomMargin=0.5*inch,
+            title="DigiClimate Store Hub - Daily Business Report",
+            author="DigiClimate Store Hub",
+            subject="Daily Business Analytics Report"
+        )
+        
         story = []
         styles = getSampleStyleSheet()
         
-        # Custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
+        # Define premium color palette
+        primary_blue = colors.Color(0.1, 0.2, 0.4)      # Dark professional blue
+        accent_green = colors.Color(0.0, 0.5, 0.3)      # Professional green
+        light_gray = colors.Color(0.95, 0.95, 0.95)     # Light background
+        dark_gray = colors.Color(0.3, 0.3, 0.3)         # Dark text
+        gold_accent = colors.Color(0.8, 0.6, 0.1)       # Gold highlight
+        warning_orange = colors.Color(0.9, 0.4, 0.0)    # Warning orange
+        success_green = colors.Color(0.0, 0.6, 0.2)     # Success green
+        danger_red = colors.Color(0.8, 0.1, 0.1)        # Danger red
+        
+        # Create sophisticated custom styles
+        company_title_style = ParagraphStyle(
+            'CompanyTitle',
             parent=styles['Heading1'],
-            fontSize=20,
-            spaceAfter=30,
+            fontSize=32,
+            fontName='Helvetica-Bold',
+            textColor=primary_blue,
             alignment=TA_CENTER,
-            textColor=colors.HexColor('#2E86AB')
+            spaceAfter=10,
+            spaceBefore=0,
+            leading=36,
+            letterSpacing=1.5
         )
         
-        section_style = ParagraphStyle(
+        report_title_style = ParagraphStyle(
+            'ReportTitle',
+            parent=styles['Heading2'],
+            fontSize=18,
+            fontName='Helvetica-Bold',
+            textColor=accent_green,
+            alignment=TA_CENTER,
+            spaceAfter=25,
+            leading=22
+        )
+        
+        section_header_style = ParagraphStyle(
             'SectionHeader',
             parent=styles['Heading2'],
-            fontSize=14,
-            spaceAfter=12,
-            spaceBefore=20,
-            textColor=colors.HexColor('#2E86AB'),
+            fontSize=16,
+            fontName='Helvetica-Bold',
+            textColor=primary_blue,
+            alignment=TA_LEFT,
+            spaceAfter=15,
+            spaceBefore=25,
+            borderPadding=8,
+            backColor=light_gray,
+            borderColor=primary_blue,
             borderWidth=1,
-            borderColor=colors.HexColor('#2E86AB'),
-            borderPadding=5
+            leading=20
         )
         
-        # Header
-        today = datetime.now()
-        story.append(Paragraph("📊 DIGICLIMATE STORE HUB DAILY BUSINESS REPORT", title_style))
-        story.append(Paragraph(f"Report Date: {today.strftime('%A, %B %d, %Y')}", styles['Normal']))
-        story.append(Paragraph(f"Generated: {today.strftime('%H:%M:%S')}", styles['Normal']))
-        story.append(Spacer(1, 20))
-        story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#2E86AB')))
-        story.append(Spacer(1, 20))
+        subsection_header_style = ParagraphStyle(
+            'SubsectionHeader',
+            parent=styles['Heading3'],
+            fontSize=14,
+            fontName='Helvetica-Bold',
+            textColor=accent_green,
+            alignment=TA_LEFT,
+            spaceAfter=10,
+            spaceBefore=15,
+            leading=16
+        )
         
-        # Executive Summary Box
-        exec_summary_style = ParagraphStyle(
-            'ExecSummary',
+        summary_box_style = ParagraphStyle(
+            'SummaryBox',
             parent=styles['Normal'],
             fontSize=11,
-            spaceAfter=10,
-            leftIndent=10,
-            rightIndent=10,
-            borderWidth=1,
-            borderColor=colors.HexColor('#2E86AB'),
-            borderPadding=15,
-            backColor=colors.HexColor('#F0F8FF')
+            fontName='Helvetica',
+            textColor=dark_gray,
+            alignment=TA_LEFT,
+            spaceAfter=15,
+            leftIndent=20,
+            rightIndent=20,
+            borderWidth=2,
+            borderColor=primary_blue,
+            borderPadding=20,
+            backColor=colors.Color(0.97, 0.99, 1.0),
+            leading=14
         )
         
+        footer_style = ParagraphStyle(
+            'FooterText',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=dark_gray,
+            alignment=TA_CENTER,
+            spaceAfter=5,
+            leading=12
+        )
+        
+        # === PREMIUM HEADER SECTION ===
+        
+        # Add company logo with professional styling
+        logo_path = "logo.png"
+        if os.path.exists(logo_path):
+            try:
+                logo_table_data = [
+                    [Image(logo_path, width=3*inch, height=2.2*inch)]
+                ]
+                logo_table = Table(logo_table_data, colWidths=[7.5*inch])
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                    ('BOX', (0, 0), (-1, -1), 1, light_gray),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+                ]))
+                story.append(logo_table)
+                story.append(Spacer(1, 20))
+            except Exception as e:
+                print(f"Could not add logo: {e}")
+        
+        # Company name and report title with elegant typography
+        story.append(Paragraph("DIGICLIMATE STORE HUB", company_title_style))
+        story.append(Paragraph("Daily Business Analytics Report", report_title_style))
+        
+        # Date and generation info
+        today = datetime.now()
+        date_info_data = [
+            ['Report Date:', today.strftime('%A, %B %d, %Y')],
+            ['Generated:', today.strftime('%H:%M:%S %Z')],
+            ['Report Type:', 'End-of-Day Business Summary']
+        ]
+        
+        date_table = Table(date_info_data, colWidths=[2*inch, 4*inch])
+        date_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+            ('ALIGN', (1, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        
+        story.append(date_table)
+        story.append(Spacer(1, 25))
+        
+        # Decorative separator line
+        line_table = Table([['']], colWidths=[7.5*inch], rowHeights=[4])
+        line_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -1), 3, gold_accent),
+        ]))
+        story.append(line_table)
+        story.append(Spacer(1, 25))
+        
+        # === EXECUTIVE SUMMARY BOX ===
+        
         today_sales = report_data.get('today_sales', {})
         yesterday_sales = report_data.get('yesterday_sales', {})
-        revenue_change = today_sales.get('revenue', 0) - yesterday_sales.get('revenue', 0)
-        revenue_change_pct = (revenue_change / yesterday_sales.get('revenue', 1) * 100) if yesterday_sales.get('revenue', 0) > 0 else 0
-        
-        summary_text = f"""
-<b>📋 EXECUTIVE SUMMARY</b><br/>
-<br/>
-💰 Today's Revenue: <b>${today_sales.get('revenue', 0):,.2f}</b> ({revenue_change_pct:+.1f}% vs yesterday)<br/>
-🛒 Total Transactions: <b>{today_sales.get('transactions', 0):,}</b><br/>
-💵 Average Transaction: <b>${today_sales.get('avg_transaction', 0):,.2f}</b><br/>
-"""
-        
-        if report_data.get('top_products'):
-            top_product = report_data['top_products'][0]
-            summary_text += f"🏆 Top Product: <b>{top_product['name']}</b> ({top_product['total_sold']} units)<br/>"
-        
-        low_stock_count = len(report_data.get('low_stock', []))
-        if low_stock_count > 0:
-            summary_text += f"⚠️ Stock Alerts: <b>{low_stock_count} items</b> need restocking<br/>"
-        else:
-            summary_text += f"✅ Inventory Status: <b>All products adequately stocked</b><br/>"
-        
-        # Add climate alerts to summary
-        climate_alerts = report_data.get('climate_alerts', {})
-        total_climate_alerts = climate_alerts.get('total_count', 0)
-        if total_climate_alerts > 0:
-            current_count = len(climate_alerts.get('current', []))
-            stock_count = len(climate_alerts.get('stock', []))
-            predictive_count = len(climate_alerts.get('predictive', []))
-            
-            if current_count > 0:
-                summary_text += f"🌡️ Climate Alerts: <b>{current_count} active</b> weather/supply issues<br/>"
-            if stock_count > 0:
-                summary_text += f"📦 Stock Depletion: <b>{stock_count} materials</b> running low<br/>"
-            if predictive_count > 0:
-                summary_text += f"🔮 Predictive Risks: <b>{predictive_count} potential</b> future issues<br/>"
-        else:
-            summary_text += f"🌱 Climate Status: <b>No active alerts</b> for raw materials<br/>"
-        
-        story.append(Paragraph(summary_text, exec_summary_style))
-        story.append(Spacer(1, 20))
-        
-        # Sales Summary Section
-        story.append(Paragraph("📈 TODAY'S SALES PERFORMANCE", section_style))
-        
-        today_sales = report_data.get('today_sales', {})
-        yesterday_sales = report_data.get('yesterday_sales', {})
-        
-        # Calculate changes
         revenue_change = today_sales.get('revenue', 0) - yesterday_sales.get('revenue', 0)
         revenue_change_pct = (revenue_change / yesterday_sales.get('revenue', 1) * 100) if yesterday_sales.get('revenue', 0) > 0 else 0
         transaction_change = today_sales.get('transactions', 0) - yesterday_sales.get('transactions', 0)
         
+        # Determine trend indicators
+        revenue_trend = "📈" if revenue_change > 0 else "📉" if revenue_change < 0 else "📊"
+        transaction_trend = "📈" if transaction_change > 0 else "📉" if transaction_change < 0 else "📊"
+        
+        summary_text = f"""
+<b>📋 EXECUTIVE SUMMARY</b><br/>
+<br/>
+<b>💰 FINANCIAL PERFORMANCE</b><br/>
+• Today's Revenue: <b>${today_sales.get('revenue', 0):,.2f}</b> {revenue_trend} ({revenue_change_pct:+.1f}% vs yesterday)<br/>
+• Total Transactions: <b>{today_sales.get('transactions', 0):,}</b> {transaction_trend} ({transaction_change:+,} vs yesterday)<br/>
+• Average Transaction: <b>${today_sales.get('avg_transaction', 0):,.2f}</b><br/>
+• Peak Transaction: <b>${today_sales.get('max_transaction', 0):,.2f}</b><br/>
+<br/>
+<b>🏆 TOP PERFORMERS</b><br/>"""
+        
+        if report_data.get('top_products'):
+            top_product = report_data['top_products'][0]
+            summary_text += f"• Best Selling Product: <b>{top_product['name']}</b> ({top_product['total_sold']} units, ${top_product['total_revenue']:,.2f})<br/>"
+        
+        if report_data.get('employees'):
+            top_employee = max(report_data['employees'], key=lambda x: x.get('revenue', 0))
+            summary_text += f"• Top Performing Staff: <b>{top_employee['name']}</b> (${top_employee['revenue']:,.2f} in sales)<br/>"
+        
+        summary_text += f"<br/><b>🚨 OPERATIONAL STATUS</b><br/>"
+        
+        # Inventory status
+        low_stock_count = len(report_data.get('low_stock', []))
+        if low_stock_count > 0:
+            summary_text += f"• ⚠️ Inventory Alerts: <b>{low_stock_count} products</b> need restocking<br/>"
+        else:
+            summary_text += f"• ✅ Inventory Status: <b>All products adequately stocked</b><br/>"
+        
+        # Climate and supply chain status
+        climate_alerts = report_data.get('climate_alerts', {})
+        total_climate_alerts = climate_alerts.get('total_count', 0)
+        if total_climate_alerts > 0:
+            current_count = len(climate_alerts.get('current', []))
+            if current_count > 0:
+                summary_text += f"• 🌡️ Climate Alerts: <b>{current_count} active</b> weather/supply issues detected<br/>"
+            else:
+                summary_text += f"• � Predictive Alerts: <b>{total_climate_alerts} potential</b> future supply risks<br/>"
+        else:
+            summary_text += f"• 🌱 Supply Chain Status: <b>No active alerts</b> for raw materials<br/>"
+        
+        # Adjustments summary
+        adjustment_count = len(report_data.get('adjustments', []))
+        if adjustment_count > 0:
+            summary_text += f"• 🔄 Inventory Adjustments: <b>{adjustment_count} modifications</b> made today<br/>"
+        
+        story.append(Paragraph(summary_text, summary_box_style))
+        story.append(Spacer(1, 30))
+        
+        # === SALES PERFORMANCE SECTION ===
+        
+        story.append(Paragraph("📈 SALES PERFORMANCE ANALYSIS", section_header_style))
+        
+        # Sales comparison table with premium styling
         sales_data = [
-            ['Metric', 'Today', 'Yesterday', 'Change'],
+            ['Performance Metric', 'Today', 'Yesterday', 'Change', 'Trend'],
             ['Total Transactions', f"{today_sales.get('transactions', 0):,}", 
-             f"{yesterday_sales.get('transactions', 0):,}", f"{transaction_change:+,}"],
+             f"{yesterday_sales.get('transactions', 0):,}", 
+             f"{transaction_change:+,}", transaction_trend],
             ['Total Revenue', f"${today_sales.get('revenue', 0):,.2f}", 
-             f"${yesterday_sales.get('revenue', 0):,.2f}", f"${revenue_change:+,.2f} ({revenue_change_pct:+.1f}%)"],
-            ['Average Transaction', f"${today_sales.get('avg_transaction', 0):,.2f}", 
-             f"${yesterday_sales.get('avg_transaction', 0):,.2f}", ""],
-            ['Largest Sale', f"${today_sales.get('max_transaction', 0):,.2f}", "", ""],
-            ['Smallest Sale', f"${today_sales.get('min_transaction', 0):,.2f}", "", ""]
+             f"${yesterday_sales.get('revenue', 0):,.2f}", 
+             f"${revenue_change:+,.2f} ({revenue_change_pct:+.1f}%)", revenue_trend],
+            ['Average Sale Value', f"${today_sales.get('avg_transaction', 0):,.2f}", 
+             f"${yesterday_sales.get('avg_transaction', 0):,.2f}", "", ""],
+            ['Peak Transaction', f"${today_sales.get('max_transaction', 0):,.2f}", "", "", "🏆"],
+            ['Minimum Transaction', f"${today_sales.get('min_transaction', 0):,.2f}", "", "", "📉"]
         ]
         
-        sales_table = Table(sales_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1.8*inch])
+        sales_table = Table(sales_data, colWidths=[2.2*inch, 1.5*inch, 1.5*inch, 1.8*inch, 0.5*inch])
         sales_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            # Header styling
+            ('BACKGROUND', (0, 0), (-1, 0), primary_blue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            # Data rows styling
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            # Grid and styling
+            ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+            ('LINEBELOW', (0, 0), (-1, 0), 2, primary_blue),
+            # Padding
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ]))
         
-        story.append(sales_table)
-        story.append(Spacer(1, 20))
+        # Add alternating row colors
+        for i in range(1, len(sales_data)):
+            if i % 2 == 0:
+                sales_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, i), (-1, i), light_gray)
+                ]))
         
-        # Add a simple performance chart
+        story.append(sales_table)
+        story.append(Spacer(1, 25))
+        
+        
+        # === REVENUE COMPARISON VISUALIZATION ===
+        
         if today_sales.get('revenue', 0) > 0 or yesterday_sales.get('revenue', 0) > 0:
-            story.append(Paragraph("📈 REVENUE COMPARISON CHART", section_style))
+            story.append(Paragraph("� REVENUE COMPARISON VISUALIZATION", section_header_style))
             
-            # Create a simple bar chart using table formatting
+            # Create visual comparison chart using table formatting
             max_revenue = max(today_sales.get('revenue', 0), yesterday_sales.get('revenue', 0))
             if max_revenue > 0:
-                today_bar_width = (today_sales.get('revenue', 0) / max_revenue) * 4  # Max 4 inches
-                yesterday_bar_width = (yesterday_sales.get('revenue', 0) / max_revenue) * 4
+                today_bar_width = max(1, int((today_sales.get('revenue', 0) / max_revenue) * 40))
+                yesterday_bar_width = max(1, int((yesterday_sales.get('revenue', 0) / max_revenue) * 40))
                 
                 chart_data = [
-                    ['Period', 'Revenue', 'Visual Comparison'],
-                    ['Today', f"${today_sales.get('revenue', 0):,.2f}", '█' * int(today_bar_width * 10)],
-                    ['Yesterday', f"${yesterday_sales.get('revenue', 0):,.2f}", '█' * int(yesterday_bar_width * 10)]
+                    ['Period', 'Revenue Amount', 'Performance Visual', 'Comparison'],
+                    ['Today', f"${today_sales.get('revenue', 0):,.2f}", 
+                     '█' * today_bar_width, revenue_trend],
+                    ['Yesterday', f"${yesterday_sales.get('revenue', 0):,.2f}", 
+                     '█' * yesterday_bar_width, "📊"]
                 ]
                 
-                chart_table = Table(chart_data, colWidths=[1.5*inch, 1.5*inch, 3*inch])
+                chart_table = Table(chart_data, colWidths=[1.2*inch, 1.8*inch, 3.5*inch, 1*inch])
                 chart_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E86AB')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    # Header styling
+                    ('BACKGROUND', (0, 0), (-1, 0), accent_green),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 0), (-1, 0), 11),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    # Data rows styling
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
                     ('FONTNAME', (0, 1), (1, -1), 'Helvetica'),
                     ('FONTNAME', (2, 1), (2, -1), 'Courier'),  # Monospace for bars
-                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('FONTSIZE', (0, 1), (1, -1), 10),
+                    ('FONTSIZE', (2, 1), (2, -1), 8),
+                    ('FONTSIZE', (3, 1), (3, -1), 12),
+                    ('ALIGN', (0, 1), (1, -1), 'CENTER'),
+                    ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+                    ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    # Grid and styling
+                    ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                    ('LINEBELOW', (0, 0), (-1, 0), 2, accent_green),
+                    # Padding
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ]))
                 
+                # Add alternating row colors
+                for i in range(1, len(chart_data)):
+                    if i % 2 == 0:
+                        chart_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, i), (-1, i), light_gray)
+                        ]))
+                
                 story.append(chart_table)
-                story.append(Spacer(1, 20))
+                story.append(Spacer(1, 25))
         
-        # Top Products Section
-        story.append(Paragraph("🏆 TOP SELLING PRODUCTS", section_style))
+        # === TOP PRODUCTS SECTION ===
+        
+        story.append(Paragraph("🏆 TOP SELLING PRODUCTS ANALYSIS", section_header_style))
         
         top_products = report_data.get('top_products', [])
         if top_products:
-            products_data = [['Rank', 'Product Name', 'SKU', 'Units Sold', 'Revenue']]
+            products_data = [['Rank', 'Product Name', 'SKU', 'Units Sold', 'Revenue', 'Performance']]
             for i, product in enumerate(top_products[:10], 1):
+                # Add performance indicator
+                units_sold = product.get('total_sold', 0)
+                if i == 1:
+                    performance = "🥇"
+                elif i == 2:
+                    performance = "🥈"
+                elif i == 3:
+                    performance = "🥉"
+                elif units_sold > 20:
+                    performance = "⭐"
+                else:
+                    performance = "📦"
+                
                 products_data.append([
                     str(i),
-                    product.get('name', 'N/A')[:30],  # Truncate long names
+                    product.get('name', 'N/A')[:25],
                     product.get('SKU', 'N/A'),
                     f"{product.get('total_sold', 0):,}",
-                    f"${product.get('total_revenue', 0):,.2f}"
+                    f"${product.get('total_revenue', 0):,.2f}",
+                    performance
                 ])
             
-            products_table = Table(products_data, colWidths=[0.5*inch, 2.5*inch, 1*inch, 1*inch, 1.2*inch])
+            products_table = Table(products_data, colWidths=[0.6*inch, 2.3*inch, 1.1*inch, 1*inch, 1.3*inch, 0.7*inch])
             products_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F18F01')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), gold_accent),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF8E1')),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                # Data rows styling
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Rank
+                ('ALIGN', (1, 1), (1, -1), 'LEFT'),    # Product name
+                ('ALIGN', (2, 1), (-1, -1), 'CENTER'), # SKU, units, revenue, performance
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                # Grid and styling
+                ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, gold_accent),
+                # Padding
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
+            
+            # Add alternating row colors and special highlighting for top 3
+            for i in range(1, len(products_data)):
+                if i <= 3:  # Top 3 products
+                    products_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.95, 0.8))  # Light gold
+                    ]))
+                elif i % 2 == 0:
+                    products_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), light_gray)
+                    ]))
+            
             story.append(products_table)
         else:
-            story.append(Paragraph("No sales recorded today.", styles['Normal']))
+            story.append(Paragraph("📊 No sales recorded today - no product performance data available.", styles['Normal']))
         
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 25))
         
-        # Employee Performance Section
-        story.append(Paragraph("👥 EMPLOYEE PERFORMANCE", section_style))
+        # === EMPLOYEE PERFORMANCE SECTION ===
+        
+        story.append(Paragraph("👥 EMPLOYEE PERFORMANCE DASHBOARD", section_header_style))
         
         employees = report_data.get('employees', [])
         if employees:
-            emp_data = [['Employee Name', 'Transactions', 'Total Revenue', 'Avg per Sale']]
-            for emp in employees:
-                avg_sale = emp.get('revenue', 0) / emp.get('transactions', 1) if emp.get('transactions', 0) > 0 else 0
+            emp_data = [['Employee Name', 'Transactions', 'Total Revenue', 'Avg per Sale', 'Performance']]
+            
+            # Sort employees by revenue to identify top performers
+            sorted_employees = sorted(employees, key=lambda x: x.get('revenue', 0), reverse=True)
+            
+            for i, emp in enumerate(sorted_employees):
+                transactions = emp.get('transactions', 0)
+                revenue = emp.get('revenue', 0)
+                avg_sale = revenue / transactions if transactions > 0 else 0
+                
+                # Performance indicator
+                if i == 0 and revenue > 0:
+                    performance = "🏆 Top"
+                elif revenue > 1000:
+                    performance = "⭐ High"
+                elif revenue > 500:
+                    performance = "📈 Good"
+                else:
+                    performance = "📊 Active"
+                
                 emp_data.append([
                     emp.get('name', 'N/A'),
-                    f"{emp.get('transactions', 0):,}",
-                    f"${emp.get('revenue', 0):,.2f}",
-                    f"${avg_sale:.2f}"
+                    f"{transactions:,}",
+                    f"${revenue:,.2f}",
+                    f"${avg_sale:.2f}",
+                    performance
                 ])
             
-            emp_table = Table(emp_data, colWidths=[2*inch, 1.2*inch, 1.5*inch, 1.2*inch])
+            emp_table = Table(emp_data, colWidths=[2*inch, 1.2*inch, 1.4*inch, 1.2*inch, 1.2*inch])
             emp_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#A23B72')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), primary_blue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F3E5F5')),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                # Data rows styling
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('ALIGN', (0, 1), (0, -1), 'LEFT'),    # Employee name
+                ('ALIGN', (1, 1), (-1, -1), 'CENTER'), # Numbers and performance
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                # Grid and styling
+                ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, primary_blue),
+                # Padding
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
+            
+            # Highlight top performer and add alternating colors
+            for i in range(1, len(emp_data)):
+                if i == 1:  # Top performer
+                    emp_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(0.9, 1.0, 0.9))  # Light green
+                    ]))
+                elif i % 2 == 0:
+                    emp_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), light_gray)
+                    ]))
+            
             story.append(emp_table)
         else:
-            story.append(Paragraph("No employee sales recorded today.", styles['Normal']))
+            story.append(Paragraph("📊 No employee sales recorded today.", styles['Normal']))
         
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 25))
         
-        # Inventory Status Section
-        story.append(Paragraph("📦 INVENTORY STATUS & ALERTS", section_style))
+        
+        # === INVENTORY STATUS & ALERTS SECTION ===
+        
+        story.append(Paragraph("📦 INVENTORY STATUS & CRITICAL ALERTS", section_header_style))
         
         low_stock = report_data.get('low_stock', [])
         if low_stock:
-            story.append(Paragraph(f"⚠️ {len(low_stock)} items are running low on stock:", styles['Normal']))
+            # Add severity summary
+            critical_count = sum(1 for item in low_stock if item.get('stock', 0) <= (item.get('low_stock_threshold', 5) * 0.5))
+            warning_count = len(low_stock) - critical_count
+            
+            severity_text = f"⚠️ <b>{len(low_stock)} products</b> require attention: "
+            if critical_count > 0:
+                severity_text += f"<b>{critical_count} critical</b>, "
+            if warning_count > 0:
+                severity_text += f"<b>{warning_count} low stock</b>"
+            
+            story.append(Paragraph(severity_text, subsection_header_style))
             story.append(Spacer(1, 10))
             
-            stock_data = [['Product Name', 'SKU', 'Current Stock', 'Status']]
-            for item in low_stock[:15]:  # Show top 15
-                # Dynamic status based on how far below threshold the item is
+            stock_data = [['Product Name', 'SKU', 'Current Stock', 'Threshold', 'Severity', 'Action']]
+            for item in low_stock[:15]:  # Show top 15 most critical
                 threshold = item.get('low_stock_threshold', 5)
                 current_stock = item.get('stock', 0)
                 percentage_of_threshold = (current_stock / threshold * 100) if threshold > 0 else 0
                 
-                if percentage_of_threshold <= 50:  # Less than 50% of threshold
-                    status = "🔴 Critical"
-                elif percentage_of_threshold <= 100:  # Below threshold but above 50%
-                    status = "🟡 Low"
+                # Enhanced severity determination
+                if current_stock == 0:
+                    severity = "🔴 Out of Stock"
+                    action = "🚨 URGENT: Restock immediately"
+                elif percentage_of_threshold <= 25:
+                    severity = "🔴 Critical"
+                    action = "⚡ Order today"
+                elif percentage_of_threshold <= 50:
+                    severity = "🟠 Very Low"
+                    action = "� Contact supplier"
+                elif percentage_of_threshold <= 100:
+                    severity = "🟡 Low"
+                    action = "� Plan reorder"
                 else:
-                    status = "🟢 OK"  # This shouldn't happen in low stock report, but just in case
+                    severity = "🟢 OK"
+                    action = "✅ Monitor"
                 
                 stock_data.append([
-                    item.get('name', 'N/A')[:25],
+                    item.get('name', 'N/A')[:20],
                     item.get('SKU', 'N/A'),
-                    f"{current_stock} units (threshold: {threshold})",
-                    status
+                    f"{current_stock}",
+                    f"{threshold}",
+                    severity,
+                    action
                 ])
             
-            stock_table = Table(stock_data, colWidths=[2.2*inch, 1*inch, 1.2*inch, 1.5*inch])
+            stock_table = Table(stock_data, colWidths=[1.8*inch, 0.9*inch, 0.8*inch, 0.8*inch, 1.2*inch, 1.5*inch])
             stock_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#C73E1D')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), danger_red),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFEBEE')),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                # Data rows styling
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 1), (1, -1), 'LEFT'),    # Product name and SKU
+                ('ALIGN', (2, 1), (3, -1), 'CENTER'),  # Stock numbers
+                ('ALIGN', (4, 1), (-1, -1), 'LEFT'),   # Severity and action
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                # Grid and styling
+                ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, danger_red),
+                # Padding
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ]))
+            
+            # Add color coding for severity levels
+            for i in range(1, len(stock_data)):
+                severity_cell = stock_data[i][4]
+                if "Out of Stock" in severity_cell or "Critical" in severity_cell:
+                    stock_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.9, 0.9))  # Light red
+                    ]))
+                elif "Very Low" in severity_cell:
+                    stock_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.95, 0.8))  # Light orange
+                    ]))
+                elif "Low" in severity_cell:
+                    stock_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 1.0, 0.9))  # Light yellow
+                    ]))
+                elif i % 2 == 0:
+                    stock_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), light_gray)
+                    ]))
+            
             story.append(stock_table)
             
             if len(low_stock) > 15:
-                story.append(Spacer(1, 5))
-                story.append(Paragraph(f"... and {len(low_stock) - 15} more items need attention.", styles['Italic']))
+                story.append(Spacer(1, 8))
+                story.append(Paragraph(f"📋 <i>... and {len(low_stock) - 15} additional items require attention. See inventory management system for complete details.</i>", styles['Italic']))
         else:
-            story.append(Paragraph("✅ All products are adequately stocked.", styles['Normal']))
+            story.append(Paragraph("✅ <b>Excellent!</b> All products are adequately stocked above threshold levels.", 
+                                 ParagraphStyle('GoodNews', parent=styles['Normal'], fontSize=12, 
+                                              textColor=success_green, fontName='Helvetica-Bold')))
         
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 25))
         
-        # Inventory Adjustments Section
-        story.append(Paragraph("🔄 INVENTORY ADJUSTMENTS", section_style))
+        # === INVENTORY ADJUSTMENTS SECTION ===
+        
+        story.append(Paragraph("🔄 INVENTORY ADJUSTMENTS & MODIFICATIONS", section_header_style))
         
         adjustments = report_data.get('adjustments', [])
         if adjustments:
-            adj_data = [['Product', 'SKU', 'Change', 'Reason', 'Employee', 'Time']]
-            for adj in adjustments[:10]:  # Show recent 10
-                change_text = f"+{adj.get('quantity_change', 0)}" if adj.get('quantity_change', 0) > 0 else str(adj.get('quantity_change', 0))
+            # Calculate adjustment summary
+            total_positive = sum(adj.get('quantity_change', 0) for adj in adjustments if adj.get('quantity_change', 0) > 0)
+            total_negative = sum(adj.get('quantity_change', 0) for adj in adjustments if adj.get('quantity_change', 0) < 0)
+            net_change = total_positive + total_negative
+            
+            summary_text = f"📊 Today's Activity: <b>{len(adjustments)} adjustments</b> made. "
+            summary_text += f"Added: <b>+{total_positive}</b> units, "
+            summary_text += f"Removed: <b>{total_negative}</b> units, "
+            summary_text += f"Net Change: <b>{net_change:+}</b> units"
+            
+            story.append(Paragraph(summary_text, subsection_header_style))
+            story.append(Spacer(1, 10))
+            
+            adj_data = [['Time', 'Product', 'SKU', 'Change', 'Reason', 'Employee', 'Impact']]
+            for adj in adjustments[:12]:  # Show most recent 12
+                change = adj.get('quantity_change', 0)
+                change_text = f"+{change}" if change > 0 else str(change)
+                
+                # Determine impact
+                if change > 50:
+                    impact = "📈 Major+"
+                elif change > 10:
+                    impact = "📊 Increase"
+                elif change > 0:
+                    impact = "⬆️ Add"
+                elif change > -10:
+                    impact = "⬇️ Reduce"
+                elif change > -50:
+                    impact = "📉 Decrease"
+                else:
+                    impact = "🔻 Major-"
+                
                 adj_data.append([
-                    adj.get('name', 'N/A')[:20],
+                    adj.get('adjustment_time', 'N/A')[:8],  # Time only
+                    adj.get('name', 'N/A')[:15],
                     adj.get('SKU', 'N/A'),
                     change_text,
-                    adj.get('reason', 'N/A')[:15],
-                    adj.get('employee_name', 'N/A'),
-                    adj.get('adjustment_time', 'N/A')
+                    adj.get('reason', 'N/A')[:12],
+                    adj.get('employee_name', 'N/A')[:10],
+                    impact
                 ])
             
-            adj_table = Table(adj_data, colWidths=[1.5*inch, 0.8*inch, 0.7*inch, 1.2*inch, 1*inch, 0.8*inch])
+            adj_table = Table(adj_data, colWidths=[0.8*inch, 1.3*inch, 0.8*inch, 0.7*inch, 1.1*inch, 0.9*inch, 1.4*inch])
             adj_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3D5A80')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), accent_green),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#E8F4FD')),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                # Data rows styling
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 1), (2, -1), 'LEFT'),    # Time, product, SKU
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Change
+                ('ALIGN', (4, 1), (-1, -1), 'LEFT'),   # Reason, employee, impact
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                # Grid and styling
+                ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, accent_green),
+                # Padding
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
             ]))
+            
+            # Color code positive/negative changes
+            for i in range(1, len(adj_data)):
+                change_val = adjustments[i-1].get('quantity_change', 0) if i-1 < len(adjustments) else 0
+                if change_val > 0:
+                    adj_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(0.9, 1.0, 0.9))  # Light green
+                    ]))
+                elif change_val < 0:
+                    adj_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.95, 0.95))  # Light red
+                    ]))
+                elif i % 2 == 0:
+                    adj_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), light_gray)
+                    ]))
+            
             story.append(adj_table)
         else:
-            story.append(Paragraph("No inventory adjustments were made today.", styles['Normal']))
+            story.append(Paragraph("📊 No inventory adjustments were made today - all stock levels remained stable.", styles['Normal']))
         
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 25))
         
         # Climate Alerts and Raw Materials Section
-        story.append(Paragraph("🌡️ CLIMATE & RAW MATERIALS STATUS", section_style))
+        story.append(Paragraph("🌡️ CLIMATE & RAW MATERIALS STATUS", section_header_style))
         
         climate_alerts = report_data.get('climate_alerts', {})
         materials_status = report_data.get('materials_status', {})
@@ -1129,23 +1508,30 @@ def create_pdf_report(report_data, filename):
                 
                 current_table = Table(current_data, colWidths=[1*inch, 0.8*inch, 2*inch, 2.2*inch])
                 current_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.red),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, 0), danger_red),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF5F5')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.Color(1.0, 0.96, 0.96)),
+                    ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('WORDWRAP', (0, 0), (-1, -1), True),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                    ('TOPPADDING', (0, 1), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#FFF5F5'), colors.HexColor('#FFEBEE')]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
                 ]))
+                
+                # Add alternating row colors for current alerts
+                for i in range(1, len(current_data)):
+                    if i % 2 == 0:
+                        current_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.92, 0.92))
+                        ]))
+                
                 story.append(current_table)
                 story.append(Spacer(1, 10))
             
@@ -1201,22 +1587,30 @@ def create_pdf_report(report_data, filename):
                 
                 stock_table = Table(stock_data, colWidths=[1.2*inch, 0.8*inch, 1*inch, 3*inch])
                 stock_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.orange),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, 0), warning_orange),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF8E1')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.Color(1.0, 0.97, 0.89)),
+                    ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                    ('TOPPADDING', (0, 1), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
                     ('WORDWRAP', (0, 0), (-1, -1), True),
                 ]))
+                
+                # Add alternating row colors for stock alerts
+                for i in range(1, len(stock_data)):
+                    if i % 2 == 0:
+                        stock_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, i), (-1, i), colors.Color(1.0, 0.94, 0.82))
+                        ]))
+                
                 story.append(stock_table)
                 story.append(Spacer(1, 10))
             
@@ -1290,23 +1684,30 @@ def create_pdf_report(report_data, filename):
                 # Create the predictive alerts table with better column widths
                 pred_table = Table(pred_data, colWidths=[0.8*inch, 0.6*inch, 0.4*inch, 0.5*inch, 2*inch, 1.7*inch])
                 pred_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.blue),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, 0), primary_blue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0F8FF')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.Color(0.94, 0.97, 1.0)),
+                    ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('WORDWRAP', (0, 0), (-1, -1), True),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                    ('TOPPADDING', (0, 1), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F0F8FF'), colors.HexColor('#E6F3FF')]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
                 ]))
+                
+                # Add alternating row colors for predictive alerts
+                for i in range(1, len(pred_data)):
+                    if i % 2 == 0:
+                        pred_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, i), (-1, i), colors.Color(0.90, 0.95, 1.0))
+                        ]))
+                
                 story.append(pred_table)
                 
                 # Add summary paragraph after the table
@@ -1353,37 +1754,87 @@ def create_pdf_report(report_data, filename):
             if len(materials_data) > 1:  # Only create table if we have data
                 materials_table = Table(materials_data, colWidths=[1.2*inch, 1.2*inch, 1*inch, 1.2*inch, 1.4*inch])
                 materials_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.green),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, 0), success_green),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
                     ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F1F8E9')),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('FONTSIZE', (0, 1), (-1, -1), 7),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.Color(0.94, 0.99, 0.91)),
+                    ('GRID', (0, 0), (-1, -1), 1, dark_gray),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
                 ]))
+                
+                # Add alternating row colors for materials status
+                for i in range(1, len(materials_data)):
+                    if i % 2 == 0:
+                        materials_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, i), (-1, i), colors.Color(0.90, 0.98, 0.85))
+                        ]))
+                
                 story.append(materials_table)
         
         else:
             story.append(Paragraph("✅ No climate alerts detected. All raw materials are in good condition.", styles['Normal']))
         
-        # Footer
+        # Premium footer section with enhanced styling
         story.append(Spacer(1, 30))
-        story.append(HRFlowable(width="100%", thickness=1, color=colors.gray))
-        story.append(Spacer(1, 10))
         
-        footer_style = ParagraphStyle(
-            'Footer',
-            parent=styles['Normal'],
-            fontSize=8,
-            alignment=TA_CENTER,
-            textColor=colors.gray
-        )
+        # Decorative separator line
+        footer_line_table = Table([['']], colWidths=[7.5*inch], rowHeights=[4])
+        footer_line_table.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, -1), 3, gold_accent),
+        ]))
+        story.append(footer_line_table)
+        story.append(Spacer(1, 15))
         
-        story.append(Paragraph("Report generated automatically by DigiClimate Store Hub POS System", footer_style))
-        story.append(Paragraph(f"Generated on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}", footer_style))
-        story.append(Paragraph("For questions about this report, please contact your system administrator.", footer_style))
+        # Professional footer content
+        footer_data = [
+            ['📋 REPORT INFORMATION'],
+            ['Generated by: DigiClimate Store Hub POS System'],
+            [f'Report Date: {datetime.now().strftime("%Y-%m-%d at %H:%M:%S")}'],
+            ['Report Type: End-of-Day Business Analytics Summary'],
+            [''],
+            ['📞 SUPPORT INFORMATION'],
+            ['For questions about this report, contact your system administrator'],
+            ['Visit: www.digiclimate-storehub.com | Email: support@digiclimate.com'],
+            [''],
+            ['⚡ Powered by DigiClimate Analytics Engine v2.0']
+        ]
+        
+        footer_table = Table(footer_data, colWidths=[7.5*inch])
+        footer_table.setStyle(TableStyle([
+            # Section headers
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 5), (-1, 5), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTSIZE', (0, 5), (-1, 5), 11),
+            ('TEXTCOLOR', (0, 0), (-1, 0), primary_blue),
+            ('TEXTCOLOR', (0, 5), (-1, 5), primary_blue),
+            # Regular content
+            ('FONTNAME', (0, 1), (-1, 4), 'Helvetica'),
+            ('FONTNAME', (0, 6), (-1, 8), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, 4), 9),
+            ('FONTSIZE', (0, 6), (-1, 8), 9),
+            ('TEXTCOLOR', (0, 1), (-1, 4), dark_gray),
+            ('TEXTCOLOR', (0, 6), (-1, 8), dark_gray),
+            # Powered by line
+            ('FONTNAME', (0, 9), (-1, 9), 'Helvetica-BoldOblique'),
+            ('FONTSIZE', (0, 9), (-1, 9), 10),
+            ('TEXTCOLOR', (0, 9), (-1, 9), accent_green),
+            # Alignment
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        
+        story.append(footer_table)
         
         # Build PDF
         doc.build(story)

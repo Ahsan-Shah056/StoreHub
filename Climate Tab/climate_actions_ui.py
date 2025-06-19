@@ -114,26 +114,41 @@ class ClimateActionsUI(ClimateBaseUI):
         actions_grid.grid_columnconfigure(0, weight=1)
         actions_grid.grid_columnconfigure(1, weight=1)
         
-        # Recent actions log
-        log_frame = ttk.LabelFrame(container, text="📋 Recent Actions", padding="10")
+        # Recent actions summary - show actual actions in a mini treeview
+        log_frame = ttk.LabelFrame(container, text="📋 Recent Actions Summary", padding="10")
         log_frame.pack(fill='both', expand=True)
         
-        # Action log with improved styling
-        self.action_log = tk.Text(log_frame, 
-                                 height=12, 
-                                 font=('Segoe UI', 10),
-                                 bg='#f8f9fa',
-                                 fg='#2c3e50',
-                                 relief='flat',
-                                 borderwidth=1,
-                                 selectbackground='#3498db',
-                                 selectforeground='white')
+        # Create a mini treeview for recent actions
+        recent_columns = ('Time', 'Priority', 'Action', 'Material')
+        self.recent_tree = ttk.Treeview(log_frame, columns=recent_columns, show='headings', height=8)
         
-        log_scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.action_log.yview)
-        self.action_log.configure(yscrollcommand=log_scrollbar.set)
+        # Configure columns for the recent actions treeview
+        self.recent_tree.heading('Time', text='⏰ Time')
+        self.recent_tree.heading('Priority', text='🎯 Priority')
+        self.recent_tree.heading('Action', text='📋 Action')
+        self.recent_tree.heading('Material', text='🌾 Material')
         
-        self.action_log.pack(side='left', fill='both', expand=True, padx=(0, 5))
-        log_scrollbar.pack(side='right', fill='y')
+        # Set column widths for recent actions
+        self.recent_tree.column('Time', width=80, minwidth=60)
+        self.recent_tree.column('Priority', width=80, minwidth=60)
+        self.recent_tree.column('Action', width=200, minwidth=150)
+        self.recent_tree.column('Material', width=120, minwidth=80)
+        
+        # Style the recent actions treeview
+        style = ttk.Style()
+        style.configure("Recent.Treeview", font=('Segoe UI', 11, 'bold'))
+        style.configure("Recent.Treeview.Heading", font=('Segoe UI', 14, 'bold'))
+        self.recent_tree.configure(style="Recent.Treeview")
+        
+        # Add scrollbar for recent actions
+        recent_scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.recent_tree.yview)
+        self.recent_tree.configure(yscrollcommand=recent_scrollbar.set)
+        
+        self.recent_tree.pack(side='left', fill='both', expand=True, padx=(0, 5))
+        recent_scrollbar.pack(side='right', fill='y')
+        
+        # Add some initial placeholder data
+        self.add_recent_action_summary("System initialized", "Info", "📊 Ready to manage climate actions", "All Materials")
         
     def create_action_list_tab(self):
         """Create simplified action list with improved treeview"""
@@ -269,26 +284,629 @@ class ClimateActionsUI(ClimateBaseUI):
             # Insert with appropriate styling tag
             item_id = self.actions_tree.insert('', 'end', values=item_values, tags=(tag,))
     
-    # Essential action methods
+    # Essential action methods with real functionality
     def create_weather_alert(self):
-        """Create weather alert action"""
-        self.log_action("🌧️ Weather alert created for all materials")
-        messagebox.showinfo("Weather Alert", "Weather monitoring alert has been activated!")
+        """Create real weather alert action with data"""
+        try:
+            # Get current climate data to create meaningful alert
+            status_data = self.climate_manager.get_current_climate_status()
+            
+            # Create a real weather alert entry in the action list
+            if status_data:
+                # Find materials with weather risks
+                risk_materials = []
+                
+                # Handle both list and dict formats
+                if isinstance(status_data, list):
+                    risk_materials = [item for item in status_data 
+                                    if isinstance(item, dict) and 
+                                    item.get('risk_level', '').upper() in ['HIGH', 'CRITICAL']]
+                elif isinstance(status_data, dict):
+                    # If it's a dict, it might contain a list under a key
+                    materials_list = status_data.get('materials', []) or status_data.get('data', [])
+                    if materials_list:
+                        risk_materials = [item for item in materials_list 
+                                        if isinstance(item, dict) and 
+                                        item.get('risk_level', '').upper() in ['HIGH', 'CRITICAL']]
+                
+                if risk_materials:
+                    for material in risk_materials[:2]:  # Limit to 2 most critical
+                        material_name = material.get('material_name', material.get('name', 'Unknown Material'))
+                        alert_values = (
+                            '🔴 High', 
+                            f'Weather Alert - {material_name}',
+                            material_name,
+                            datetime.now().strftime('%Y-%m-%d'),
+                            '⏳ Pending'
+                        )
+                        self.actions_tree.insert('', 0, values=alert_values, tags=('high_priority',))
+                        # Also add to recent actions summary
+                        self.add_recent_action_summary("Weather Alert", "High", f"Weather alert for {material_name}", material_name)
+                        
+                    self.log_action(f"🌧️ Created weather alerts for {len(risk_materials)} high-risk materials")
+                    messagebox.showinfo("Weather Alert Created", 
+                                      f"Weather alerts created for {len(risk_materials)} materials with high climate risk!")
+                else:
+                    # Create general monitoring alert
+                    alert_values = (
+                        '🟡 Medium', 
+                        'Weather Monitoring - All Materials',
+                        'All Materials',
+                        datetime.now().strftime('%Y-%m-%d'),
+                        '⏳ Pending'
+                    )
+                    self.actions_tree.insert('', 0, values=alert_values, tags=('medium_priority',))
+                    self.log_action("🌧️ General weather monitoring alert activated")
+                    messagebox.showinfo("Weather Alert", "General weather monitoring alert has been activated!")
+            else:
+                # Fallback alert
+                alert_values = (
+                    '🟡 Medium', 
+                    'Weather Alert - Monitor Conditions',
+                    'All Materials',
+                    datetime.now().strftime('%Y-%m-%d'),
+                    '⏳ Pending'
+                )
+                self.actions_tree.insert('', 0, values=alert_values, tags=('medium_priority',))
+                self.log_action("🌧️ Weather alert created - monitor all conditions")
+                
+        except Exception as e:
+            self.log_action(f"❌ Error creating weather alert: {str(e)}")
+            messagebox.showerror("Error", f"Failed to create weather alert: {str(e)}")
         
     def secure_inventory_action(self):
-        """Secure inventory action"""
-        self.log_action("📦 Inventory security measures activated")
-        messagebox.showinfo("Inventory Secured", "Inventory protection protocols enabled!")
+        """Create real inventory security action"""
+        try:
+            # Get climate alerts to identify materials needing security
+            alerts = self.climate_manager.get_climate_alerts()
+            
+            # Handle both dictionary and list formats
+            current_alerts = []
+            stock_alerts = []
+            
+            if isinstance(alerts, dict):
+                current_alerts = alerts.get('current', [])
+                stock_alerts = alerts.get('stock', [])
+            elif isinstance(alerts, list):
+                # If alerts is a list, treat it as current alerts
+                current_alerts = alerts
+            
+            if current_alerts or stock_alerts:
+                affected_materials = set()
+                
+                # Process current alerts
+                for alert in current_alerts:
+                    if isinstance(alert, dict):
+                        material = alert.get('material_name', 'Unknown')
+                        affected_materials.add(material)
+                    elif isinstance(alert, str):
+                        affected_materials.add(alert)
+                
+                # Process stock alerts  
+                for alert in stock_alerts:
+                    if isinstance(alert, dict):
+                        material = alert.get('material_name', 'Unknown')
+                        affected_materials.add(material)
+                    elif isinstance(alert, str):
+                        affected_materials.add(alert)
+                
+                # Create security actions for affected materials
+                for material in list(affected_materials)[:3]:  # Limit to 3 most critical
+                    security_values = (
+                        '🔴 High',
+                        f'Secure {material} Inventory',
+                        material,
+                        datetime.now().strftime('%Y-%m-%d'),
+                        '⏳ Pending'
+                    )
+                    self.actions_tree.insert('', 0, values=security_values, tags=('high_priority',))
+                    # Also add to recent actions summary
+                    self.add_recent_action_summary("Security", "High", f"Secure {material} inventory", material)
+                
+                self.log_action(f"📦 Created inventory security actions for {len(affected_materials)} materials")
+                messagebox.showinfo("Inventory Security", 
+                                  f"Security protocols activated for {len(affected_materials)} materials at risk!")
+            else:
+                # General security check
+                security_values = (
+                    '🟡 Medium',
+                    'General Inventory Security Check',
+                    'All Materials',
+                    datetime.now().strftime('%Y-%m-%d'),
+                    '⏳ Pending'
+                )
+                self.actions_tree.insert('', 0, values=security_values, tags=('medium_priority',))
+                self.log_action("📦 General inventory security check initiated")
+                messagebox.showinfo("Inventory Security", "General inventory security protocols activated!")
+                
+        except Exception as e:
+            self.log_action(f"❌ Error creating security action: {str(e)}")
+            messagebox.showerror("Error", f"Failed to create security action: {str(e)}")
         
     def notify_suppliers_action(self):
-        """Notify suppliers action"""
-        self.log_action("📞 Supplier notifications sent")
-        messagebox.showinfo("Suppliers Notified", "All suppliers have been contacted about current conditions!")
+        """Create real supplier notification actions"""
+        try:
+            # Get current climate status to identify suppliers to contact
+            status_data = self.climate_manager.get_current_climate_status()
+            
+            if status_data:
+                high_risk_materials = []
+                
+                # Handle both list and dict formats
+                if isinstance(status_data, list):
+                    high_risk_materials = [item for item in status_data 
+                                         if isinstance(item, dict) and 
+                                         item.get('risk_level', '').upper() in ['HIGH', 'CRITICAL']]
+                elif isinstance(status_data, dict):
+                    # If it's a dict, it might contain a list under a key
+                    materials_list = status_data.get('materials', []) or status_data.get('data', [])
+                    if materials_list:
+                        high_risk_materials = [item for item in materials_list 
+                                             if isinstance(item, dict) and 
+                                             item.get('risk_level', '').upper() in ['HIGH', 'CRITICAL']]
+                
+                if high_risk_materials:
+                    for material in high_risk_materials[:3]:  # Limit to 3 most critical
+                        material_name = material.get('material_name', material.get('name', 'Unknown Material'))
+                        supplier_values = (
+                            '🔴 High',
+                            f'Contact {material_name} Suppliers',
+                            material_name,
+                            datetime.now().strftime('%Y-%m-%d'),
+                            '⏳ Pending'
+                        )
+                        self.actions_tree.insert('', 0, values=supplier_values, tags=('high_priority',))
+                        # Also add to recent actions summary
+                        self.add_recent_action_summary("Supplier", "High", f"Contact {material_name} suppliers", material_name)
+                    
+                    self.log_action(f"📞 Created supplier contact actions for {len(high_risk_materials)} high-risk materials")
+                    messagebox.showinfo("Supplier Notifications", 
+                                      f"Contact actions created for suppliers of {len(high_risk_materials)} high-risk materials!")
+                else:
+                    # General supplier check
+                    supplier_values = (
+                        '🟡 Medium',
+                        'Routine Supplier Check-in',
+                        'All Materials',
+                        datetime.now().strftime('%Y-%m-%d'),
+                        '⏳ Pending'
+                    )
+                    self.actions_tree.insert('', 0, values=supplier_values, tags=('medium_priority',))
+                    self.log_action("📞 Routine supplier check-in scheduled")
+                    messagebox.showinfo("Supplier Contact", "Routine supplier check-in has been scheduled!")
+            else:
+                # Fallback supplier contact
+                supplier_values = (
+                    '🟡 Medium',
+                    'General Supplier Communications',
+                    'All Materials',
+                    datetime.now().strftime('%Y-%m-%d'),
+                    '⏳ Pending'
+                )
+                self.actions_tree.insert('', 0, values=supplier_values, tags=('medium_priority',))
+                self.log_action("📞 General supplier communication initiated")
+                
+        except Exception as e:
+            self.log_action(f"❌ Error creating supplier notification: {str(e)}")
+            messagebox.showerror("Error", f"Failed to create supplier notification: {str(e)}")
         
     def generate_risk_report(self):
-        """Generate risk assessment report"""
-        self.log_action("📊 Risk assessment report generated")
-        messagebox.showinfo("Report Generated", "Climate risk assessment report has been created!")
+        """Generate a comprehensive risk assessment PDF report and email it to the manager"""
+        try:
+            # Show progress indication
+            progress_dialog = tk.Toplevel(self.parent)
+            progress_dialog.title("Generating Report")
+            progress_dialog.geometry("300x100")
+            progress_dialog.transient(self.parent)
+            progress_dialog.grab_set()
+            
+            # Center the progress dialog
+            progress_dialog.update_idletasks()
+            x = (progress_dialog.winfo_screenwidth() // 2) - (150)
+            y = (progress_dialog.winfo_screenheight() // 2) - (50)
+            progress_dialog.geometry(f"300x100+{x}+{y}")
+            
+            progress_label = ttk.Label(progress_dialog, text="Generating PDF report...", font=('Segoe UI', 10))
+            progress_label.pack(pady=20)
+            
+            progress_bar = ttk.Progressbar(progress_dialog, mode='indeterminate')
+            progress_bar.pack(pady=10, padx=20, fill='x')
+            progress_bar.start()
+            
+            # Force update to show the dialog
+            progress_dialog.update()
+            
+            # Get current climate data and alerts
+            current_alerts = self.climate_manager.get_climate_alerts()
+            status_data = self.climate_manager.get_current_climate_status()
+            
+            # Update progress
+            progress_label.config(text="Collecting climate data...")
+            progress_dialog.update()
+            
+            # Generate PDF report
+            progress_label.config(text="Creating PDF document...")
+            progress_dialog.update()
+            
+            pdf_path = self._generate_pdf_report(current_alerts, status_data)
+            
+            # Update progress
+            progress_label.config(text="Sending email...")
+            progress_dialog.update()
+            
+            # Send email with PDF attachment
+            self._send_report_email(pdf_path)
+            
+            # Clean up the PDF file after sending
+            import os
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+            
+            # Close progress dialog
+            progress_dialog.destroy()
+            
+            # Show success message
+            messagebox.showinfo("Report Generated", 
+                              "Climate risk assessment report has been generated and emailed to the manager successfully!")
+            
+            # Add success action to the actions tree
+            summary_action = (
+                '� Low',
+                'Report Generated',
+                'All Materials',
+                datetime.now().strftime('%Y-%m-%d'),
+                '✅ Complete'
+            )
+            
+            self.actions_tree.insert('', 0, values=summary_action, tags=('completed',))
+            
+            # Add to recent actions summary
+            risk_summary = self._get_risk_summary(current_alerts, status_data)
+            self.add_recent_action_summary("Report", "Medium", f"📊 Report emailed: {risk_summary}", "All Materials")
+            
+            self.log_action(f"📊 Climate risk report PDF generated and emailed successfully")
+                
+        except Exception as e:
+            # Close progress dialog if it exists
+            try:
+                progress_dialog.destroy()
+            except:
+                pass
+                
+            error_msg = f"Failed to generate or send risk report: {str(e)}"
+            self.log_action(f"❌ Error generating/sending risk report: {str(e)}")
+            messagebox.showerror("Error", error_msg)
+    
+    def _generate_detailed_report_content(self, current_alerts, status_data):
+        """Generate detailed report content with comprehensive analysis"""
+        report_lines = []
+        timestamp = datetime.now().strftime('%B %d, %Y at %I:%M %p')
+        
+        # Professional Header
+        report_lines.extend([
+            "╔══════════════════════════════════════════════════════════════════════════════╗",
+            "║                       🌍 CLIMATE RISK ASSESSMENT REPORT                      ║",
+            "╚══════════════════════════════════════════════════════════════════════════════╝",
+            "",
+            f"📅 Generated: {timestamp}",
+            f"🏢 System: DigiClimate Store Hub",
+            f"📊 Report Type: Comprehensive Climate Analysis",
+            "",
+            "═" * 80,
+            "",
+        ])
+        
+        # Executive Summary with better formatting
+        report_lines.extend([
+            "📋 EXECUTIVE SUMMARY",
+            "─" * 80,
+        ])
+        
+        # Process alerts data
+        high_risk_count = 0
+        medium_risk_count = 0
+        low_risk_count = 0
+        affected_materials = set()
+        alert_details = []
+        
+        if isinstance(current_alerts, list):
+            for alert in current_alerts:
+                if isinstance(alert, dict):
+                    severity = alert.get('severity', 'UNKNOWN').upper()
+                    material = alert.get('material_name', alert.get('material', 'Unknown'))
+                    alert_type = alert.get('alert_type', alert.get('type', 'General'))
+                    
+                    affected_materials.add(material)
+                    alert_details.append({
+                        'material': material,
+                        'severity': severity,
+                        'type': alert_type,
+                        'description': alert.get('description', alert.get('message', 'No description'))
+                    })
+                    
+                    if severity in ['HIGH', 'CRITICAL']:
+                        high_risk_count += 1
+                    elif severity == 'MEDIUM':
+                        medium_risk_count += 1
+                    else:
+                        low_risk_count += 1
+         # Overall risk assessment with visual indicators
+        total_alerts = high_risk_count + medium_risk_count + low_risk_count
+        risk_level = "CRITICAL" if high_risk_count > 3 else "HIGH" if high_risk_count > 0 else "MEDIUM" if medium_risk_count > 0 else "LOW"
+        
+        # Summary section
+        report_lines.extend([
+            f"🚨 Overall Risk Level: {risk_level}",
+            f"📊 Total Alerts: {total_alerts} ({high_risk_count} High, {medium_risk_count} Medium, {low_risk_count} Low)",
+            f"🏭 Affected Materials: {len(affected_materials)} types",
+            "",
+            "═" * 80,
+            ""
+        ])
+        
+        # Alert details
+        if alert_details:
+            report_lines.extend([
+                "🔍 DETAILED ALERT ANALYSIS",
+                "─" * 80,
+            ])
+            
+            for detail in alert_details:
+                material = detail['material']
+                severity = detail['severity']
+                alert_type = detail['type']
+                description = detail['description']
+            
+            report_lines.append(f"• Material: {material}")
+            report_lines.append(f"  Severity: {severity}")
+            report_lines.append(f"  Type: {alert_type}")
+            report_lines.append(f"  Description: {description}")
+            report_lines.append("")  # Spacer
+    
+        # Recommendations section
+        report_lines.extend([
+            "💡 RECOMMENDATIONS",
+            "─" * 80,
+            "1. Review high-risk materials and take immediate action.",
+            "2. Monitor medium-risk materials closely.",
+            "3. Ensure all inventory is secured against potential climate impacts.",
+            "4. Maintain regular communication with suppliers, especially for high-risk materials.",
+            "5. Consider diversifying suppliers and materials to mitigate risks.",
+            "",
+            "For detailed recommendations, refer to the full climate risk management plan.",
+            ""
+        ])
+        
+        # Professional closing
+        report_lines.append("═" * 80)
+        report_lines.append("Thank you for using the DigiClimate Store Hub.")
+        report_lines.append("Together, we can make a difference!")
+        report_lines.append("═" * 80)
+        
+        return "\n".join(report_lines)
+    
+    def _generate_pdf_report(self, current_alerts, status_data):
+        """Generate PDF report with detailed climate risk information using ReportLab"""
+        import os
+        
+        try:
+            # Try using ReportLab for professional PDF generation
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.lib import colors
+            
+            # Output file path
+            file_path = f"climate_risk_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
+            # Create PDF document
+            doc = SimpleDocTemplate(file_path, pagesize=letter)
+            story = []
+            
+            # Get styles
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Title'],
+                fontSize=18,
+                spaceAfter=30,
+                textColor=colors.darkblue,
+                alignment=1  # Center alignment
+            )
+            
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceAfter=12,
+                textColor=colors.darkgreen
+            )
+            
+            # Title
+            story.append(Paragraph("Climate Risk Assessment Report", title_style))
+            story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+            story.append(Paragraph("DigiClimate Store Hub", styles['Normal']))
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Get detailed content and format for PDF
+            detailed_content = self._generate_detailed_report_content(current_alerts, status_data)
+            
+            # Split content into sections and format appropriately
+            lines = detailed_content.split('\n')
+            current_section = []
+            
+            for line in lines:
+                if line.startswith('📋') or line.startswith('🔍') or line.startswith('💡'):
+                    # This is a section header
+                    if current_section:
+                        # Add previous section content
+                        story.append(Paragraph('<br/>'.join(current_section), styles['Normal']))
+                        story.append(Spacer(1, 0.2*inch))
+                        current_section = []
+                    
+                    # Add section header
+                    story.append(Paragraph(line, heading_style))
+                elif line.startswith('─') or line.startswith('═'):
+                    # Skip decorative lines
+                    continue
+                elif line.strip():
+                    # Regular content line
+                    current_section.append(line)
+                else:
+                    # Empty line - add spacing
+                    if current_section:
+                        story.append(Paragraph('<br/>'.join(current_section), styles['Normal']))
+                        story.append(Spacer(1, 0.1*inch))
+                        current_section = []
+            
+            # Add any remaining content
+            if current_section:
+                story.append(Paragraph('<br/>'.join(current_section), styles['Normal']))
+            
+            # Build PDF
+            doc.build(story)
+            
+            return file_path
+            
+        except ImportError:
+            # Fallback to FPDF if ReportLab is not available
+            from fpdf import FPDF
+            
+            # Create PDF document
+            pdf = FPDF()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            
+            # Set title
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(0, 10, "Climate Risk Assessment Report", ln=True, align='C')
+            
+            # Add generated date
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(0, 10, f"Generated on: {datetime.now().strftime('%B %d, %Y')}", ln=True, align='C')
+            pdf.cell(0, 10, "DigiClimate Store Hub", ln=True, align='C')
+            
+            # Add a line break
+            pdf.ln(10)
+            
+            # Set font for body
+            pdf.set_font("Arial", '', 10)
+            
+            # Add detailed report content
+            detailed_content = self._generate_detailed_report_content(current_alerts, status_data)
+            for line in detailed_content.split('\n'):
+                if line.strip():  # Skip empty lines
+                    # Clean line of special characters that might cause issues
+                    clean_line = line.encode('latin-1', 'replace').decode('latin-1')
+                    pdf.cell(0, 6, clean_line, ln=True)
+            
+            # Output file path
+            file_path = f"climate_risk_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            pdf.output(file_path)
+            
+            return file_path
+    
+    def _send_report_email(self, pdf_path):
+        """Send the generated report via email using credentials from credentials.json"""
+        import smtplib
+        import json
+        import os
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.application import MIMEApplication
+        
+        try:
+            # Load email credentials from credentials.json
+            credentials_path = os.path.join(os.path.dirname(__file__), '..', 'credentials.json')
+            with open(credentials_path, 'r') as f:
+                credentials = json.load(f)
+            
+            # Extract email configuration
+            smtp_user = credentials.get('email')
+            smtp_password = credentials.get('password')
+            
+            if not smtp_user or not smtp_password:
+                raise ValueError("Email credentials not found in credentials.json")
+            
+            # Find manager email from users
+            manager_emails = []
+            for user in credentials.get('users', []):
+                if user.get('role') == 'manager':
+                    manager_emails.append(user.get('email'))
+            
+            if not manager_emails:
+                # Fallback to sending to the primary email
+                manager_emails = [smtp_user]
+            
+            # Gmail SMTP configuration (assuming Gmail based on the app password format)
+            smtp_server = "smtp.gmail.com"
+            smtp_port = 587
+            
+            # Email content
+            subject = "Climate Risk Assessment Report - DigiClimate Store Hub"
+            body = f"""\
+Dear Manager,
+
+Please find attached the latest Climate Risk Assessment Report generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}.
+
+This comprehensive report includes:
+- Current climate alerts and risk assessments
+- Detailed analysis of affected materials
+- Recommended actions for risk mitigation
+
+Please review the attached PDF for complete details.
+
+Best regards,
+DigiClimate Store Hub System
+            """
+            
+            # Create email message
+            msg = MIMEMultipart()
+            msg['From'] = smtp_user
+            msg['To'] = ", ".join(manager_emails)
+            msg['Subject'] = subject
+            
+            # Attach body
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Attach PDF report
+            with open(pdf_path, "rb") as attachment:
+                part = MIMEApplication(attachment.read(), Name=os.path.basename(pdf_path))
+            part['Content-Disposition'] = f'attachment; filename="{os.path.basename(pdf_path)}"'
+            msg.attach(part)
+            
+            # Send email
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+                
+            return True
+            
+        except Exception as e:
+            print(f"Error sending email: {str(e)}")
+            raise e
+    
+    def _get_risk_summary(self, current_alerts, status_data):
+        """Generate a concise risk summary for the report"""
+        high_count = 0
+        medium_count = 0
+        low_count = 0
+        
+        if isinstance(current_alerts, list):
+            for alert in current_alerts:
+                if isinstance(alert, dict):
+                    severity = alert.get('severity', '').upper()
+                    
+                    if severity == 'HIGH':
+                        high_count += 1
+                    elif severity == 'MEDIUM':
+                        medium_count += 1
+                    elif severity == 'LOW':
+                        low_count += 1
+        
+        return f"{high_count}H/{medium_count}M risks"
         
     def complete_selected_action(self):
         """Mark selected action as complete"""
@@ -299,6 +917,12 @@ class ClimateActionsUI(ClimateBaseUI):
             if len(values) >= 5:
                 values[4] = '✅ Complete'
                 self.actions_tree.item(item, values=values)
+                
+                # Add to recent actions summary with more details
+                action_name = values[1] if len(values) > 1 else "Unknown action"
+                material_name = values[2] if len(values) > 2 else "Unknown material"
+                self.add_recent_action_summary("Completed", "Low", f"✅ {action_name[:20]}", material_name)
+                
                 self.log_action(f"✅ Completed: {values[1]}")
         else:
             messagebox.showwarning("No Selection", "Please select an action to complete.")
@@ -318,6 +942,12 @@ class ClimateActionsUI(ClimateBaseUI):
             if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this action?"):
                 item = selection[0]
                 values = self.actions_tree.item(item, 'values')
+                
+                # Add to recent actions summary with more details
+                action_name = values[1] if len(values) > 1 else "Unknown action"
+                material_name = values[2] if len(values) > 2 else "Unknown material"
+                self.add_recent_action_summary("Deleted", "Info", f"🗑️ {action_name[:20]}", material_name)
+                
                 self.actions_tree.delete(item)
                 self.log_action(f"🗑️ Deleted: {values[1] if values else 'Unknown action'}")
         else:
@@ -456,15 +1086,61 @@ class ClimateActionsUI(ClimateBaseUI):
             original_tags = [tag for tag in current_tags if tag != 'hover']
             self.actions_tree.item(item, tags=original_tags)
     
-    def log_action(self, message):
-        """Log action to the action log"""
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        log_entry = f"[{timestamp}] {message}\n"
+    def add_recent_action_summary(self, action_type, priority, description, material):
+        """Add an entry to the recent actions summary treeview"""
+        timestamp = datetime.now().strftime('%H:%M')
         
-        self.action_log.config(state='normal')
-        self.action_log.insert('end', log_entry)
-        self.action_log.see('end')
-        self.action_log.config(state='disabled')
+        # Priority display mapping
+        priority_display = {
+            'High': '🔴 High',
+            'Medium': '🟡 Medium', 
+            'Low': '🟢 Low',
+            'Info': 'ℹ️ Info'
+        }
+        
+        priority_text = priority_display.get(priority, priority)
+        
+        # Truncate long descriptions
+        if len(description) > 30:
+            description = description[:27] + "..."
+        
+        # Add to recent actions treeview
+        item_id = self.recent_tree.insert('', 0, values=(timestamp, priority_text, description, material))
+        
+        # Keep only the last 20 entries
+        children = self.recent_tree.get_children()
+        if len(children) > 20:
+            # Remove the oldest entries
+            for old_item in children[20:]:
+                self.recent_tree.delete(old_item)
+                
+        # Scroll to show the newest entry
+        self.recent_tree.see(item_id)
+    
+    def log_action(self, message):
+        """Log action - now updates the recent actions summary instead of text log"""
+        # Extract useful information from the message for the summary
+        if "Created weather alerts" in message:
+            self.add_recent_action_summary("Weather Alert", "High", "Weather alerts created", "Multiple Materials")
+        elif "security actions" in message:
+            self.add_recent_action_summary("Security", "High", "Inventory security activated", "At Risk Materials")
+        elif "supplier contact" in message:
+            self.add_recent_action_summary("Supplier", "Medium", "Supplier notifications sent", "High Risk Materials")
+        elif "Risk assessment" in message or "PDF generated" in message:
+            self.add_recent_action_summary("Report", "Medium", "PDF report generated & emailed", "All Materials")
+        elif "Completed:" in message:
+            action_name = message.split("Completed: ")[1] if "Completed: " in message else "Unknown"
+            self.add_recent_action_summary("Completed", "Low", f"Completed: {action_name[:20]}", "Various")
+        elif "Deleted:" in message:
+            action_name = message.split("Deleted: ")[1] if "Deleted: " in message else "Unknown"
+            self.add_recent_action_summary("Deleted", "Info", f"Deleted: {action_name[:20]}", "Various")
+        elif "Added:" in message:
+            self.add_recent_action_summary("Added", "Info", "New action added", "Specified Material")
+        elif "Error" in message:
+            self.add_recent_action_summary("Error", "High", "Action failed - check logs", "System")
+        else:
+            # Generic system messages
+            self.add_recent_action_summary("System", "Info", message[:30], "System")
     
     def refresh_data(self):
         """Refresh action data"""
@@ -473,4 +1149,3 @@ class ClimateActionsUI(ClimateBaseUI):
     def load_initial_data(self):
         """Load initial action data"""
         self.log_action("🚀 Climate Action Center initialized")
-        self.log_action("📊 Ready to manage climate-related actions")

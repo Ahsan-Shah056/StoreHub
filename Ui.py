@@ -1469,25 +1469,25 @@ class POSApp:
         if user_role in ["manager", "accountant"]:
             self.notebook.add(self.dashboard_tab, text="📊 Dashboard")
         
-        self.notebook.add(self.sales_tab, text="Sales")
+        self.notebook.add(self.sales_tab, text="🧾Sales")
         
         # All roles have access to the customer tab except accountants have read-only access
-        self.notebook.add(self.customer_tab, text="Customers")
+        self.notebook.add(self.customer_tab, text="🙎🏻‍♂️Customers")
         
         # Inventory tab access for manager, inventory_manager, and store_admin
         if user_role in ["manager", "inventory_manager", "store_admin"]:
-            self.notebook.add(self.inventory_tab, text="Inventory")
+            self.notebook.add(self.inventory_tab, text="🗃️Inventory")
         
         # Suppliers tab access for manager, inventory_manager, and store_admin
         if user_role in ["manager", "inventory_manager", "store_admin"]:
-            self.notebook.add(self.suppliers_tab, text="Suppliers")
+            self.notebook.add(self.suppliers_tab, text="🚚Suppliers")
         
         # Reports tab access for manager and accountant
         if user_role in ["manager", "accountant"]:
-            self.notebook.add(self.reports_tab, text="Reports")
+            self.notebook.add(self.reports_tab, text="📂Reports")
         
         # Climate tab as the last tab for manager and accountant
-        if user_role in ["manager", "accountant"]:
+        if user_role in ["manager", "accountant","store_admin"]:
             self.notebook.add(self.climate_tab, text="🌍 Climate")
 
         # Always instantiate these UI classes as all roles have some form of access

@@ -369,130 +369,285 @@ def generate_receipt_text(cursor, sale_id, customer_id, totals):
 def show_receipt(receipt_text):
     # Display receipt in a message box and save to file
     messagebox.showinfo("Transaction Complete", receipt_text)
-    print_receipt_to_file(receipt_text)
-    print_receipt_to_pdf(receipt_text)
+    generate_premium_pdf_receipt(receipt_text, for_email=False)
 
-def print_receipt_to_file(receipt_text):
-    # Save receipt to a text file
+
+
+def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
+    """Generate a premium, professional PDF receipt with advanced styling and layout
+    
+    Args:
+        receipt_text: The receipt content to format
+        sale_id: Optional sale ID for email filename
+        for_email: If True, generates for email attachment; if False, for local storage
+    
+    Returns:
+        str: The filename of the generated PDF
+    """
     try:
-        
         # Create receipts directory if it doesn't exist
         receipts_dir = "receipts"
         if not os.path.exists(receipts_dir):
             os.makedirs(receipts_dir)
         
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{receipts_dir}/receipt_{timestamp}.txt"
+        # Generate appropriate filename
+        if for_email and sale_id:
+            filename = f"{receipts_dir}/email_receipt_{sale_id}.pdf"
+            pdf_title = f"Receipt #{sale_id} - DigiClimate Store"
+            pdf_subject = "Purchase Receipt - Email Copy"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{receipts_dir}/receipt_{timestamp}.pdf"
+            pdf_title = "DigiClimate Store Receipt"
+            pdf_subject = "Purchase Receipt"
         
-        with open(filename, 'w') as f:
-            f.write(receipt_text)
-            
-        print(f"Receipt saved to: {filename}")
+        # Create PDF document with premium settings
+        doc = SimpleDocTemplate(
+            filename, 
+            pagesize=letter,
+            leftMargin=0.5*inch, 
+            rightMargin=0.5*inch,
+            topMargin=0.4*inch, 
+            bottomMargin=0.5*inch,
+            title=pdf_title,
+            author="DigiClimate Store Hub",
+            subject=pdf_subject
+        )
         
-    except Exception as e:
-        print(f"Could not save receipt to file: {e}")
-
-def print_receipt_to_pdf(receipt_text):
-    # Save receipt to a PDF file with company logo
-    try:
-        
-        # Create receipts directory if it doesn't exist
-        receipts_dir = "receipts"
-        if not os.path.exists(receipts_dir):
-            os.makedirs(receipts_dir)
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{receipts_dir}/receipt_{timestamp}.pdf"
-        
-        # Create PDF document
-        doc = SimpleDocTemplate(filename, pagesize=letter, 
-                              leftMargin=0.75*inch, rightMargin=0.75*inch,
-                              topMargin=0.75*inch, bottomMargin=0.75*inch)
-        
-        # Get styles
+        # Get base styles
         styles = getSampleStyleSheet()
         
-        # Create custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
+        # Define premium color palette
+        primary_blue = colors.Color(0.1, 0.2, 0.4)  # Dark professional blue
+        accent_green = colors.Color(0.0, 0.5, 0.3)  # Professional green
+        light_gray = colors.Color(0.95, 0.95, 0.95)  # Light background
+        dark_gray = colors.Color(0.3, 0.3, 0.3)     # Dark text
+        gold_accent = colors.Color(0.8, 0.6, 0.1)   # Gold highlight
+        
+        # Create sophisticated custom styles
+        company_title_style = ParagraphStyle(
+            'CompanyTitle',
             parent=styles['Heading1'],
-            fontSize=24,
-            textColor=colors.navy,
+            fontSize=28,
+            fontName='Helvetica-Bold',
+            textColor=primary_blue,
             alignment=TA_CENTER,
-            spaceAfter=20
+            spaceAfter=8,
+            spaceBefore=0,
+            leading=30,
+            letterSpacing=1
         )
         
-        center_style = ParagraphStyle(
-            'Center',
+        subtitle_style = ParagraphStyle(
+            'Subtitle',
             parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Oblique',
+            textColor=accent_green,
             alignment=TA_CENTER,
-            fontSize=12
+            spaceAfter=25,
+            leading=14
         )
         
-        right_style = ParagraphStyle(
-            'Right',
+        header_box_style = ParagraphStyle(
+            'HeaderBox',
             parent=styles['Normal'],
+            fontSize=11,
+            fontName='Helvetica',
+            textColor=dark_gray,
+            alignment=TA_CENTER,
+            spaceAfter=6,
+            leading=13
+        )
+        
+        section_header_style = ParagraphStyle(
+            'SectionHeader',
+            parent=styles['Heading2'],
+            fontSize=14,
+            fontName='Helvetica-Bold',
+            textColor=primary_blue,
+            alignment=TA_LEFT,
+            spaceAfter=12,
+            spaceBefore=20,
+            borderPadding=5,
+            backColor=light_gray,
+            borderColor=primary_blue,
+            borderWidth=0.5,
+            leading=16
+        )
+        
+        total_style = ParagraphStyle(
+            'GrandTotal',
+            parent=styles['Normal'],
+            fontSize=16,
+            fontName='Helvetica-Bold',
+            textColor=accent_green,
             alignment=TA_RIGHT,
-            fontSize=10
+            spaceAfter=8,
+            leading=20,
+            borderPadding=8,
+            backColor=light_gray,
+            borderColor=accent_green,
+            borderWidth=1
         )
         
-        # Build PDF content
+        footer_style = ParagraphStyle(
+            'FooterText',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=dark_gray,
+            alignment=TA_CENTER,
+            spaceAfter=5,
+            leading=12
+        )
+        
+        # Build PDF content with premium layout
         story = []
         
-        # Add company logo (if exists)
+        # === PREMIUM HEADER SECTION ===
+        
+        # Add company logo with professional styling
         logo_path = "logo.png"
         if os.path.exists(logo_path):
             try:
-                logo = ReportLabImage(logo_path, width=2*inch, height=1.5*inch)
-                logo.hAlign = 'CENTER'
-                story.append(logo)
-                story.append(Spacer(1, 12))
+                # Create a frame around the logo
+                logo_table_data = [
+                    [ReportLabImage(logo_path, width=2.5*inch, height=1.8*inch)]
+                ]
+                logo_table = Table(logo_table_data, colWidths=[7.5*inch])
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+                    ('BOX', (0, 0), (-1, -1), 1, light_gray),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 15),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+                ]))
+                story.append(logo_table)
+                story.append(Spacer(1, 15))
             except Exception as e:
                 print(f"Could not add logo: {e}")
         
-        # Add company name and title
-        story.append(Paragraph("DIGICLIMATE STORE HUB ENTERPRISE SYSTEM", title_style))
+        # Add "EMAIL COPY" indicator for email receipts
+        if for_email:
+            email_indicator_data = [['📧 EMAIL COPY']]
+            email_indicator_table = Table(email_indicator_data, colWidths=[7.5*inch])
+            email_indicator_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), gold_accent),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 12),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            story.append(email_indicator_table)
+            story.append(Spacer(1, 15))
+        
+        # Company name with elegant typography
+        story.append(Paragraph("DIGICLIMATE STORE HUB", company_title_style))
+        story.append(Paragraph("Enterprise Point of Sale System", subtitle_style))
+        
+        # Decorative separator line
+        line_table = Table([['']], colWidths=[7.5*inch], rowHeights=[3])
+        line_table.setStyle(TableStyle([
+            ('LINEBELOW', (0, 0), (-1, -1), 2, gold_accent),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        story.append(line_table)
         story.append(Spacer(1, 20))
         
-        # Parse receipt text to extract information
+        # === RECEIPT INFORMATION EXTRACTION ===
         lines = receipt_text.strip().split('\n')
         
-        # Extract key information from receipt text
-        date_line = next((line for line in lines if 'Date:' in line), '')
-        customer_line = next((line for line in lines if 'Customer:' in line), '')
-        sale_id_line = next((line for line in lines if 'Sale ID:' in line), '')
+        # Extract information with better parsing
+        date_info = ""
+        customer_info = ""
+        sale_id_info = ""
         
-        # Add receipt header information
-        if date_line:
-            story.append(Paragraph(date_line.strip(), center_style))
-        if customer_line:
-            story.append(Paragraph(customer_line.strip(), center_style))
-        if sale_id_line:
-            story.append(Paragraph(sale_id_line.strip(), center_style))
+        for line in lines:
+            if 'Date:' in line:
+                date_info = line.replace('Date:', '').strip()
+            elif 'Customer:' in line:
+                customer_info = line.replace('Customer:', '').strip()
+            elif 'Sale ID:' in line:
+                sale_id_info = line.replace('Sale ID:', '').strip()
         
-        story.append(Spacer(1, 20))
+        # === PROFESSIONAL RECEIPT HEADER ===
         
-        # Create table for items
-        # Find the start and end of items section
+        # Create information box with elegant styling
+        if for_email:
+            header_data = [
+                ['Receipt Information', ''],
+                ['Date & Time:', date_info],
+                ['Customer:', customer_info],
+                ['Transaction ID:', sale_id_info],
+                ['Email Generated:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+            ]
+        else:
+            header_data = [
+                ['Receipt Information', ''],
+                ['Date & Time:', date_info],
+                ['Customer:', customer_info],
+                ['Transaction ID:', sale_id_info],
+                ['Processed by:', 'DigiClimate POS System v2.0']
+            ]
+        
+        header_table = Table(header_data, colWidths=[2*inch, 5.5*inch])
+        header_table.setStyle(TableStyle([
+            # Header row styling
+            ('BACKGROUND', (0, 0), (-1, 0), primary_blue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('SPAN', (0, 0), (-1, 0)),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            # Data rows styling
+            ('BACKGROUND', (0, 1), (0, -1), light_gray),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ALIGN', (0, 1), (0, -1), 'RIGHT'),
+            ('ALIGN', (1, 1), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, dark_gray),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        story.append(header_table)
+        story.append(Spacer(1, 25))
+        
+        # === PREMIUM ITEMS TABLE ===
+        
+        story.append(Paragraph("Purchase Details", section_header_style))
+        
+        # Parse items from receipt text with improved algorithm
         item_start = -1
         item_end = -1
         for i, line in enumerate(lines):
             if 'ITEM' in line and 'QTY' in line and 'PRICE' in line:
-                item_start = i + 2  # Skip the header and separator line
-            elif line.strip().startswith('SUBTOTAL:') or line.strip().startswith('TOTAL:'):
+                item_start = i + 2  # Skip header and separator
+            elif line.strip().startswith('SUBTOTAL:'):
                 item_end = i
                 break
         
         if item_start > -1 and item_end > -1:
-            # Create table data
-            table_data = [['Item', 'Qty', 'Price', 'Total']]
+            # Create sophisticated table data
+            table_data = [
+                ['Item Description', 'Qty', 'Unit Price', 'Line Total']
+            ]
             
             for i in range(item_start, item_end):
                 line = lines[i].strip()
-                if line and not line.startswith('-'):
-                    # Parse item line - adjust based on your receipt format
+                if line and not line.startswith('-') and line:
                     parts = line.split()
                     if len(parts) >= 4:
                         item_name = ' '.join(parts[:-3])
@@ -501,66 +656,141 @@ def print_receipt_to_pdf(receipt_text):
                         total = parts[-1]
                         table_data.append([item_name, qty, price, total])
             
-            # Create and style the table
-            table = Table(table_data, colWidths=[3*inch, 0.7*inch, 0.8*inch, 0.8*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            # Create premium items table
+            items_table = Table(table_data, colWidths=[3.5*inch, 0.8*inch, 1.2*inch, 1.2*inch])
+            items_table.setStyle(TableStyle([
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), primary_blue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                # Data rows - alternating colors
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('ALIGN', (0, 1), (0, -1), 'LEFT'),      # Item names left-aligned
+                ('ALIGN', (1, 1), (-1, -1), 'CENTER'),   # Numbers centered
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                # Professional grid
+                ('GRID', (0, 0), (-1, -1), 0.5, dark_gray),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, primary_blue),
+                # Padding for readability
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
             
-            story.append(table)
-            story.append(Spacer(1, 20))
+            # Add alternating row colors for better readability
+            for i in range(1, len(table_data)):
+                if i % 2 == 0:
+                    items_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), light_gray)
+                    ]))
+            
+            story.append(items_table)
+            story.append(Spacer(1, 25))
         
-        # Add totals section
+        # === ELEGANT TOTALS SECTION ===
+        
+        # Extract and format totals
+        subtotal_amount = ""
+        tax_amount = ""
+        total_amount = ""
+        
         for line in lines:
-            if any(keyword in line for keyword in ['SUBTOTAL:', 'TAXES:', 'TOTAL:']):
-                if 'TOTAL:' in line and 'SUBTOTAL' not in line:
-                    # Make final total bold and larger
-                    style = ParagraphStyle(
-                        'BoldTotal',
-                        parent=styles['Normal'],
-                        alignment=TA_RIGHT,
-                        fontSize=14,
-                        textColor=colors.darkgreen,
-                        fontName='Helvetica-Bold'
-                    )
-                    story.append(Paragraph(line.strip(), style))
-                else:
-                    story.append(Paragraph(line.strip(), right_style))
-                story.append(Spacer(1, 6))
+            if 'SUBTOTAL:' in line:
+                subtotal_amount = line.split('$')[-1].strip()
+            elif 'TAXES:' in line:
+                tax_amount = line.split('$')[-1].strip()
+            elif 'TOTAL:' in line and 'SUBTOTAL' not in line:
+                total_amount = line.split('$')[-1].strip()
         
+        # Create elegant totals table
+        totals_data = [
+            ['', 'Subtotal:', f"${subtotal_amount}"],
+            ['', 'Taxes:', f"${tax_amount}"],
+            ['', '', ''],  # Spacer row
+            ['', 'GRAND TOTAL:', f"${total_amount}"]
+        ]
+        
+        totals_table = Table(totals_data, colWidths=[4*inch, 1.5*inch, 1.5*inch])
+        totals_table.setStyle(TableStyle([
+            # Subtotal and tax rows
+            ('FONTNAME', (1, 0), (-1, 1), 'Helvetica'),
+            ('FONTSIZE', (1, 0), (-1, 1), 11),
+            ('ALIGN', (1, 0), (-1, 1), 'RIGHT'),
+            ('TEXTCOLOR', (1, 0), (-1, 1), dark_gray),
+            # Grand total row - make it stand out
+            ('FONTNAME', (1, 3), (-1, 3), 'Helvetica-Bold'),
+            ('FONTSIZE', (1, 3), (-1, 3), 13),
+            ('ALIGN', (1, 3), (-1, 3), 'RIGHT'),
+            ('TEXTCOLOR', (1, 3), (-1, 3), accent_green),
+            ('BACKGROUND', (1, 3), (-1, 3), light_gray),
+            ('BOX', (1, 3), (-1, 3), 1.5, accent_green),
+            # Padding
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        
+        story.append(totals_table)
         story.append(Spacer(1, 30))
         
-        # Add footer
-        footer_style = ParagraphStyle(
-            'Footer',
-            parent=styles['Normal'],
-            alignment=TA_CENTER,
-            fontSize=12,
-            textColor=colors.navy
-        )
+        # === PROFESSIONAL FOOTER ===
         
-        story.append(Paragraph("Thank you for your purchase!", footer_style))
+        # Thank you message with style
+        thank_you_data = [
+            ['Thank you for choosing DigiClimate Store Hub!']
+        ]
+        thank_you_table = Table(thank_you_data, colWidths=[7.5*inch])
+        thank_you_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), primary_blue),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 5),
+        ]))
+        
+        story.append(thank_you_table)
+        story.append(Spacer(1, 20))
+        
+        # Contact information and system details
+        if for_email:
+            story.append(Paragraph("This receipt was emailed from DigiClimate Store Hub v2.0", footer_style))
+            story.append(Paragraph("Enterprise Point of Sale & Inventory Management System", footer_style))
+            story.append(Paragraph(f"Email generated on {datetime.now().strftime('%A, %B %d, %Y at %I:%M %p')}", footer_style))
+        else:
+            story.append(Paragraph("This receipt was generated by DigiClimate Store Hub v2.0", footer_style))
+            story.append(Paragraph("Enterprise Point of Sale & Inventory Management System", footer_style))
+            story.append(Paragraph(f"Generated on {datetime.now().strftime('%A, %B %d, %Y at %I:%M %p')}", footer_style))
+        
+        # Add a subtle footer line
+        footer_line_table = Table([['']], colWidths=[7.5*inch], rowHeights=[2])
+        footer_line_table.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, -1), 1, gold_accent),
+        ]))
         story.append(Spacer(1, 10))
-        story.append(Paragraph("DigiClimate Store Hub v2.0 - Professional POS System", center_style))
+        story.append(footer_line_table)
         
-        # Build PDF
+        # Build the premium PDF
         doc.build(story)
         
-        print(f"PDF Receipt saved to: {filename}")
+        print(f"✨ Premium PDF Receipt saved to: {filename}")
+        return filename
         
     except Exception as e:
         if not REPORTLAB_AVAILABLE:
             print("ReportLab library not installed. Installing now...")
             try:
+                import subprocess
+                import sys
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
                 print("ReportLab installed successfully. Please restart the application.")
             except Exception as install_error:
@@ -568,170 +798,7 @@ def print_receipt_to_pdf(receipt_text):
                 print("Please install manually: pip install reportlab")
         else:
             print(f"Could not save PDF receipt: {e}")
-
-def generate_pdf_for_email(receipt_text, sale_id):
-    # Generate a PDF receipt specifically for email attachment
-    try:
-        
-        # Create receipts directory if it doesn't exist
-        receipts_dir = "receipts"
-        if not os.path.exists(receipts_dir):
-            os.makedirs(receipts_dir)
-        
-        # Generate filename for email attachment
-        filename = f"{receipts_dir}/email_receipt_{sale_id}.pdf"
-        
-        # Create PDF document
-        doc = SimpleDocTemplate(filename, pagesize=letter, 
-                              leftMargin=0.75*inch, rightMargin=0.75*inch,
-                              topMargin=0.75*inch, bottomMargin=0.75*inch)
-        
-        # Get styles
-        styles = getSampleStyleSheet()
-        
-        # Create custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            textColor=colors.navy,
-            alignment=TA_CENTER,
-            spaceAfter=20
-        )
-        
-        center_style = ParagraphStyle(
-            'Center',
-            parent=styles['Normal'],
-            alignment=TA_CENTER,
-            fontSize=12
-        )
-        
-        right_style = ParagraphStyle(
-            'Right',
-            parent=styles['Normal'],
-            alignment=TA_RIGHT,
-            fontSize=10
-        )
-        
-        # Build PDF content
-        story = []
-        
-        # Add company logo (if exists)
-        logo_path = "logo.png"
-        if os.path.exists(logo_path):
-            try:
-                logo = ReportLabImage(logo_path, width=2*inch, height=1.5*inch)
-                logo.hAlign = 'CENTER'
-                story.append(logo)
-                story.append(Spacer(1, 12))
-            except Exception as e:
-                print(f"Could not add logo to email PDF: {e}")
-        
-        # Add company name and title
-        story.append(Paragraph("DIGICLIMATE STORE HUB ENTERPRISE SYSTEM", title_style))
-        story.append(Spacer(1, 20))
-        
-        # Parse receipt text to extract information
-        lines = receipt_text.strip().split('\n')
-        
-        # Extract key information from receipt text
-        date_line = next((line for line in lines if 'Date:' in line), '')
-        customer_line = next((line for line in lines if 'Customer:' in line), '')
-        sale_id_line = next((line for line in lines if 'Sale ID:' in line), '')
-        
-        # Add receipt header information
-        if date_line:
-            story.append(Paragraph(date_line.strip(), center_style))
-        if customer_line:
-            story.append(Paragraph(customer_line.strip(), center_style))
-        if sale_id_line:
-            story.append(Paragraph(sale_id_line.strip(), center_style))
-        
-        story.append(Spacer(1, 20))
-        
-        # Create table for items
-        item_start = -1
-        item_end = -1
-        for i, line in enumerate(lines):
-            if 'ITEM' in line and 'QTY' in line and 'PRICE' in line:
-                item_start = i + 2
-            elif line.strip().startswith('SUBTOTAL:') or line.strip().startswith('TOTAL:'):
-                item_end = i
-                break
-        
-        if item_start > -1 and item_end > -1:
-            table_data = [['Item', 'Qty', 'Price', 'Total']]
-            
-            for i in range(item_start, item_end):
-                line = lines[i].strip()
-                if line and not line.startswith('-'):
-                    parts = line.split()
-                    if len(parts) >= 4:
-                        item_name = ' '.join(parts[:-3])
-                        qty = parts[-3]
-                        price = parts[-2]
-                        total = parts[-1]
-                        table_data.append([item_name, qty, price, total])
-            
-            table = Table(table_data, colWidths=[3*inch, 0.7*inch, 0.8*inch, 0.8*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ]))
-            
-            story.append(table)
-            story.append(Spacer(1, 20))
-        
-        # Add totals section
-        for line in lines:
-            if any(keyword in line for keyword in ['SUBTOTAL:', 'TAXES:', 'TOTAL:']):
-                if 'TOTAL:' in line and 'SUBTOTAL' not in line:
-                    # Make final total bold and larger
-                    style = ParagraphStyle(
-                        'BoldTotal',
-                        parent=styles['Normal'],
-                        alignment=TA_RIGHT,
-                        fontSize=14,
-                        textColor=colors.darkgreen,
-                        fontName='Helvetica-Bold'
-                    )
-                    story.append(Paragraph(line.strip(), style))
-                else:
-                    story.append(Paragraph(line.strip(), right_style))
-                story.append(Spacer(1, 6))
-        
-        story.append(Spacer(1, 30))
-        
-        # Add footer
-        footer_style = ParagraphStyle(
-            'Footer',
-            parent=styles['Normal'],
-            alignment=TA_CENTER,
-            fontSize=12,
-            textColor=colors.navy
-        )
-        
-        story.append(Paragraph("Thank you for your purchase!", footer_style))
-        story.append(Spacer(1, 10))
-        story.append(Paragraph("DigiClimate Store Hub v1.0 - Professional POS System", center_style))
-        
-        # Build PDF
-        doc.build(story)
-        
-        return filename
-        
-    except Exception as e:
-        print(f"Could not generate PDF for email: {e}")
         return None
-
 def send_email_receipt(customer_email, receipt_text, sale_id, show_success_popup=True):
     # Send receipt via email to customer with PDF attachment
     email_config = load_email_config()
@@ -775,7 +842,7 @@ This is an automated message. Please do not reply to this email.
         
         # Generate PDF for email attachment
         try:
-            pdf_filename = generate_pdf_for_email(receipt_text, sale_id)
+            pdf_filename = generate_premium_pdf_receipt(receipt_text, sale_id=sale_id, for_email=True)
             if pdf_filename and os.path.exists(pdf_filename):
                 # Attach PDF to email
                 with open(pdf_filename, "rb") as attachment:
