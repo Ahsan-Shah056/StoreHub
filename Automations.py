@@ -777,8 +777,8 @@ def create_pdf_report(report_data, filename):
             rightMargin=0.5*inch,
             topMargin=0.4*inch, 
             bottomMargin=0.5*inch,
-            title="DigiClimate Store Hub - Daily Business Report",
-            author="DigiClimate Store Hub",
+            title="DigiClimate Store Hub - Daily Business Report - Resilience meets innovation",
+            author="DigiClimate Store Hub - Resilience meets innovation",
             subject="Daily Business Analytics Report"
         )
         
@@ -903,6 +903,20 @@ def create_pdf_report(report_data, filename):
         
         # Company name and report title with elegant typography
         story.append(Paragraph("DIGICLIMATE STORE HUB", company_title_style))
+        
+        # Add company tagline with distinctive styling
+        tagline_style = ParagraphStyle(
+            'TaglineStyle',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Oblique',
+            textColor=gold_accent,
+            alignment=TA_CENTER,
+            spaceAfter=15,
+            leading=14
+        )
+        story.append(Paragraph("Resilience meets innovation", tagline_style))
+        
         story.append(Paragraph("Daily Business Analytics Report", report_title_style))
         
         # Date and generation info

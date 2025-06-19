@@ -393,12 +393,12 @@ def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
         # Generate appropriate filename
         if for_email and sale_id:
             filename = f"{receipts_dir}/email_receipt_{sale_id}.pdf"
-            pdf_title = f"Receipt #{sale_id} - DigiClimate Store"
+            pdf_title = f"Receipt #{sale_id} - DigiClimate Store - Resilience meets innovation"
             pdf_subject = "Purchase Receipt - Email Copy"
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{receipts_dir}/receipt_{timestamp}.pdf"
-            pdf_title = "DigiClimate Store Receipt"
+            pdf_title = "DigiClimate Store Receipt - Resilience meets innovation"
             pdf_subject = "Purchase Receipt"
         
         # Create PDF document with premium settings
@@ -410,7 +410,7 @@ def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
             topMargin=0.4*inch, 
             bottomMargin=0.5*inch,
             title=pdf_title,
-            author="DigiClimate Store Hub",
+            author="DigiClimate Store Hub - Resilience meets innovation",
             subject=pdf_subject
         )
         
@@ -551,6 +551,19 @@ def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
         # Company name with elegant typography
         story.append(Paragraph("DIGICLIMATE STORE HUB", company_title_style))
         story.append(Paragraph("Enterprise Point of Sale System", subtitle_style))
+        
+        # Add company tagline with distinctive styling
+        tagline_style = ParagraphStyle(
+            'TaglineStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Oblique',
+            textColor=gold_accent,
+            alignment=TA_CENTER,
+            spaceAfter=15,
+            leading=12
+        )
+        story.append(Paragraph("Resilience meets innovation", tagline_style))
         
         # Decorative separator line
         line_table = Table([['']], colWidths=[7.5*inch], rowHeights=[3])
@@ -1576,19 +1589,22 @@ def load_and_verify_credentials(username, password):
 
 def create_login_window(root):
     """
-    Create a login window to authenticate users
+    Create a beautiful, modern login window with enhanced visual appeal
     """
+  
     # Hide the main root window until login is successful
     root.withdraw()
     
-    # Create alternative red button using tk.Button (more reliable for color)
+    # Create login window with modern styling
     login_window = tk.Toplevel(root)
-    login_window.title("Login - DigiClimate Store Hub")
-    login_window.protocol("WM_DELETE_WINDOW", lambda: exit())  # Close app if login window is closed
+    login_window.title("DigiClimate Store Hub - Login")
+    login_window.protocol("WM_DELETE_WINDOW", lambda: exit())
     login_window.resizable(False, False)
     
-    # Set the size first, then position it
-    login_window.geometry("400x300")
+    # Set larger, more modern size
+    window_width = 520
+    window_height = 650
+    login_window.geometry(f"{window_width}x{window_height}")
     
     # Force update to ensure window has processed size
     login_window.update_idletasks()
@@ -1596,84 +1612,347 @@ def create_login_window(root):
     # Center the login window
     screen_width = login_window.winfo_screenwidth()
     screen_height = login_window.winfo_screenheight()
-    x = (screen_width - 400) // 2
-    y = (screen_height - 300) // 2
-    login_window.geometry(f"400x300+{x}+{y}")
+    x = (screen_width - window_width) // 2
+    y = (screen_height - window_height) // 2
+    login_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
     
-    # Make sure window stays on top
+    # Set window icon and properties
     login_window.lift()
+    login_window.focus_force()
     
-    # Create a frame for the login components
-    login_frame = ttk.Frame(login_window, padding="20")
-    login_frame.pack(fill=tk.BOTH, expand=True)
+    # Create gradient background effect using canvas
+    canvas = tk.Canvas(login_window, width=window_width, height=window_height, highlightthickness=0)
+    canvas.pack(fill=tk.BOTH, expand=True)
     
-    # Add logo if it exists
+    # Create beautiful gradient background
+    def create_gradient():
+        # Professional blue gradient
+        gradient_colors = [
+            "#1a365d",  # Dark blue
+            "#2d4a6b", 
+            "#405e79", 
+            "#537287", 
+            "#668695", 
+            "#799aa3"   # Light blue
+        ]
+        
+        strip_height = window_height // len(gradient_colors)
+        for i, color in enumerate(gradient_colors):
+            y1 = i * strip_height
+            y2 = (i + 1) * strip_height
+            canvas.create_rectangle(0, y1, window_width, y2, fill=color, outline=color)
+    
+    create_gradient()
+    
+    # Create main container frame with elegant styling
+    main_frame = tk.Frame(canvas, bg="white", relief="raised", bd=2)
+    main_frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=500)
+    
+    # Add subtle shadow effect
+    shadow_frame = tk.Frame(canvas, bg="#2d4a6b", relief="flat")
+    shadow_frame.place(relx=0.5, rely=0.5, anchor="center", width=406, height=506)
+    main_frame.lift()
+    
+    # === HEADER SECTION ===
+    
+    # Header with company branding
+    header_frame = tk.Frame(main_frame, bg="#1a365d", height=120)
+    header_frame.pack(fill=tk.X)
+    header_frame.pack_propagate(False)
+    
+    # Add logo with enhanced styling
+    logo_added = False
     try:
         logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
         if os.path.exists(logo_path):
             logo_image = Image.open(logo_path)
-            logo_image = logo_image.resize((100, 100), Image.LANCZOS)
+            # Create circular logo effect
+            logo_image = logo_image.resize((80, 80), Image.LANCZOS)
             logo_photo = ImageTk.PhotoImage(logo_image)
-            logo_label = ttk.Label(login_frame, image=logo_photo)
+            logo_label = tk.Label(header_frame, image=logo_photo, bg="#1a365d")
             logo_label.image = logo_photo  # Keep a reference
-            logo_label.pack(pady=(0, 20))
+            logo_label.place(relx=0.5, rely=0.3, anchor="center")
+            logo_added = True
     except Exception as e:
         print(f"Error loading logo: {e}")
     
-    # Title
-    title_label = ttk.Label(login_frame, text="DigiClimate Store Hub Login", font=("TkDefaultFont", 16, "bold"))
-    title_label.pack(pady=(0, 20))
+    # Company name with elegant typography
+    if not logo_added:
+        company_icon = tk.Label(header_frame, text="🏢", font=("Arial", 32), 
+                               bg="#1a365d", fg="white")
+        company_icon.place(relx=0.5, rely=0.25, anchor="center")
     
-    # Username
-    username_frame = ttk.Frame(login_frame)
-    username_frame.pack(fill=tk.X, pady=5)
-    username_label = ttk.Label(username_frame, text="Username:", width=10)
-    username_label.pack(side=tk.LEFT, padx=5)
-    username_entry = ttk.Entry(username_frame)
-    username_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    title_label = tk.Label(header_frame, text="DigiClimate Store Hub", 
+                          font=("Segoe UI", 16, "bold"), bg="#1a365d", fg="white")
+    title_label.place(relx=0.5, rely=0.55, anchor="center")
     
-    # Password
-    password_frame = ttk.Frame(login_frame)
-    password_frame.pack(fill=tk.X, pady=5)
-    password_label = ttk.Label(password_frame, text="Password:", width=10)
-    password_label.pack(side=tk.LEFT, padx=5)
-    password_entry = ttk.Entry(password_frame, show="*")
-    password_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    tagline_label = tk.Label(header_frame, text="Resilience meets innovation",  
+                             font=("Segoe UI", 9), bg="#1a365d", fg="#b3c6d9")
+    tagline_label.place(relx=0.5, rely=0.75, anchor="center")
     
-    # Error message label
-    error_label = ttk.Label(login_frame, text="", foreground="red")
-    error_label.pack(pady=5)
     
-    # Login button
-    login_button = ttk.Button(login_frame, text="Login", style="TButton")
-    login_button.pack(pady=10)
+    # === LOGIN FORM SECTION ===
+    
+    # Create form container with padding
+    form_frame = tk.Frame(main_frame, bg="white", padx=40, pady=30)
+    form_frame.pack(fill=tk.BOTH, expand=True)
+    
+    # Welcome message
+    welcome_label = tk.Label(form_frame, text="Welcome Back!", 
+                            font=("Segoe UI", 18, "bold"), 
+                            bg="white", fg="#1a365d")
+    welcome_label.pack(pady=(0, 5))
+    
+    login_instruction = tk.Label(form_frame, text="Please sign in to continue", 
+                                font=("Segoe UI", 10), 
+                                bg="white", fg="#666666")
+    login_instruction.pack(pady=(0, 30))
+    
+    # Custom entry style
+    def create_styled_entry(parent, placeholder, show=None):
+        entry_frame = tk.Frame(parent, bg="white")
+        entry_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Icon and label frame
+        icon_frame = tk.Frame(entry_frame, bg="white")
+        icon_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        # Add icons for username and password
+        if show is None:  # Username
+            icon_label = tk.Label(icon_frame, text="👤", font=("Arial", 12), bg="white")
+        else:  # Password
+            icon_label = tk.Label(icon_frame, text="🔒", font=("Arial", 12), bg="white")
+        
+        icon_label.pack(side=tk.LEFT)
+        
+        field_label = tk.Label(icon_frame, text=placeholder, 
+                              font=("Segoe UI", 10, "bold"), 
+                              bg="white", fg="#1a365d")
+        field_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Entry field with custom styling
+        entry = tk.Entry(entry_frame, font=("Segoe UI", 12), 
+                        relief="flat", bd=2, highlightthickness=2,
+                        highlightcolor="#4a90e2", highlightbackground="#e0e0e0",
+                        show=show)
+        entry.pack(fill=tk.X, ipady=8)
+        
+        # Add focus effects
+        def on_focus_in(event):
+            entry.config(highlightbackground="#4a90e2")
+            
+        def on_focus_out(event):
+            entry.config(highlightbackground="#e0e0e0")
+            
+        entry.bind("<FocusIn>", on_focus_in)
+        entry.bind("<FocusOut>", on_focus_out)
+        
+        return entry
+    
+    # Username field
+    username_entry = create_styled_entry(form_frame, "Username")
+    
+    # Password field  
+    password_entry = create_styled_entry(form_frame, "Password", show="*")
+    
+    # Error message with better styling
+    error_label = tk.Label(form_frame, text="", 
+                          font=("Segoe UI", 9), 
+                          bg="white", fg="#e74c3c")
+    error_label.pack(pady=(0, 15))
+    
+    # Modern login button with improved readability
+    def create_login_button():
+        button_frame = tk.Frame(form_frame, bg="white")
+        button_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        login_btn = tk.Button(button_frame, text="Sign In", 
+                             font=("Segoe UI", 13, "bold"),
+                             bg="#1a1a1a", fg="white",  # Dark charcoal to match screen vibe
+                             relief="flat", bd=0,
+                             cursor="hand2",
+                             padx=20, pady=14,
+                             activebackground="#0d0d0d",  # Even darker when clicked
+                             activeforeground="white")
+        login_btn.pack(fill=tk.X)
+        
+        # Enhanced hover effects with dark theme colors
+        def on_enter(event):
+            login_btn.config(bg="#333333", fg="white")  # Lighter dark gray on hover
+            
+        def on_leave(event):
+            login_btn.config(bg="#1a1a1a", fg="white")  # Back to dark charcoal
+            
+        login_btn.bind("<Enter>", on_enter)
+        login_btn.bind("<Leave>", on_leave)
+        
+        return login_btn
+    
+    login_button = create_login_button()
+    
+    # === FOOTER SECTION ===
+    
+    # Version and help info
+    footer_frame = tk.Frame(main_frame, bg="#f8f9fa", height=60)
+    footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+    footer_frame.pack_propagate(False)
+    
+    # Default credentials hint
+    hint_frame = tk.Frame(footer_frame, bg="#f8f9fa")
+    hint_frame.place(relx=0.5, rely=0.3, anchor="center")
+    
+    hint_label = tk.Label(hint_frame, text="💡 Default Login:", 
+                         font=("Segoe UI", 9, "bold"), 
+                         bg="#f8f9fa", fg="#666666")
+    hint_label.pack()
+    
+    hint_details = tk.Label(hint_frame, text="manager/manager123 or sales/sales123", 
+                           font=("Segoe UI", 8), 
+                           bg="#f8f9fa", fg="#999999")
+    hint_details.pack()
+    
+    # Version info
+    version_label = tk.Label(footer_frame, text="v2.0 Enterprise Edition", 
+                            font=("Segoe UI", 8), 
+                            bg="#f8f9fa", fg="#cccccc")
+    version_label.place(relx=0.5, rely=0.8, anchor="center")
+    
+    # === ANIMATION AND INTERACTION LOGIC ===
     
     # Return data structure
     result = {"role": None}
     
+    # Enhanced login function with visual feedback
     def on_login():
-        username = username_entry.get()
-        password = password_entry.get()
+        username = username_entry.get().strip()
+        password = password_entry.get().strip()
         
+        # Clear previous error
+        error_label.config(text="")
+        
+        # Validation with better messaging
         if not username or not password:
-            error_label.config(text="Please enter both username and password")
+            error_label.config(text="⚠️ Please enter both username and password", fg="#e74c3c")
+            # Add visual feedback to the empty field
+            shake_widget(username_entry if not username else password_entry)
             return
         
+        # Show loading state with dark theme
+        login_button.config(text="Signing In...", state="disabled", bg="#666666", fg="white")
+        login_window.update()
+        
+        # Simulate brief loading for better UX
+        login_window.after(300, lambda: complete_login(username, password))
+    
+    def complete_login(username, password):
         role = load_and_verify_credentials(username, password)
         if role:
+            # Success animation with better contrast
+            login_button.config(text="✓ Success!", bg="#27ae60", fg="white")
+            error_label.config(text="✅ Login successful! Loading application...", fg="#27ae60")
             result["role"] = role
             result["username"] = username
-            login_window.destroy()
+            # Delay to show success message
+            login_window.after(800, login_window.destroy)
         else:
-            error_label.config(text="Invalid username or password")
+            # Error state with dark theme - restore button to normal state
+            login_button.config(text="Sign In", state="normal", bg="#1a1a1a", fg="white")
+            error_label.config(text="❌ Invalid username or password. Please try again.", fg="#e74c3c")
+            
+            # Use safe visual feedback instead of position-based shake
+            shake_widget(password_entry)  # Flash the password field border
+            
+            # Clear password field and focus username for retry
+            password_entry.delete(0, tk.END)
+            username_entry.focus_set()
     
+    # Add shake animation for failed login that works with pack() layout
+    def shake_widget(widget):
+        """Safe shake animation using color/border effects instead of position changes"""
+        def flash_error():
+            try:
+                # Check if widget still exists before animating
+                if not widget.winfo_exists():
+                    return
+                
+                # Save original styling
+                original_bg = widget.cget("bg") if hasattr(widget, 'cget') else None
+                original_highlightbg = None
+                
+                # For Entry widgets, use highlight color changes
+                if isinstance(widget, tk.Entry):
+                    try:
+                        original_highlightbg = widget.cget("highlightbackground")
+                        # Flash red border for error indication
+                        for i in range(4):  # Flash 4 times
+                            if not widget.winfo_exists():
+                                break
+                            widget.config(highlightbackground="#e74c3c", highlightcolor="#e74c3c")
+                            widget.update_idletasks()
+                            login_window.after(100)
+                            
+                            if not widget.winfo_exists():
+                                break
+                            widget.config(highlightbackground="#ffffff", highlightcolor="#ffffff")
+                            widget.update_idletasks()
+                            login_window.after(100)
+                        
+                        # Restore original colors
+                        if widget.winfo_exists() and original_highlightbg:
+                            widget.config(highlightbackground=original_highlightbg, highlightcolor="#4a90e2")
+                    except tk.TclError:
+                        pass
+                        
+                # For Frame widgets (like main_frame), use a subtle visual feedback
+                elif isinstance(widget, tk.Frame):
+                    try:
+                        # Create a temporary visual indicator without disrupting layout
+                        # Just update the error label with a more prominent message
+                        if error_label.winfo_exists():
+                            error_label.config(fg="#e74c3c", font=("Segoe UI", 10, "bold"))
+                            login_window.after(1000, lambda: error_label.config(fg="#e74c3c", font=("Segoe UI", 9)) if error_label.winfo_exists() else None)
+                    except tk.TclError:
+                        pass
+                    
+            except (tk.TclError, AttributeError):
+                # Widget was destroyed during animation - ignore error silently
+                pass
+                
+        # Start animation with delay and safety check
+        if widget and hasattr(widget, 'winfo_exists') and widget.winfo_exists():
+            login_window.after(10, flash_error)
+    
+    # Configure login button command
     login_button.config(command=on_login)
     
-    # Bind Enter key to login button
-    login_window.bind("<Return>", lambda event: on_login())
+    # Enhanced keyboard bindings
+    def on_enter_key(event):
+        if login_button['state'] == 'normal':
+            on_login()
     
-    # Give focus to username entry
+    login_window.bind("<Return>", on_enter_key)
+    login_window.bind("<KP_Enter>", on_enter_key)  # Numpad Enter
+    
+    # Tab navigation
+    username_entry.bind("<Tab>", lambda e: password_entry.focus_set())
+    password_entry.bind("<Shift-Tab>", lambda e: username_entry.focus_set())
+    
+    # Escape to exit
+    login_window.bind("<Escape>", lambda e: exit())
+    
+    # Auto-focus username field
     username_entry.focus_set()
+    
+    # Add loading animation (optional visual enhancement)
+    def add_loading_dots():
+        current_text = login_button.cget("text")
+        if "Signing In" in current_text:
+            dots = current_text.count(".")
+            if dots >= 3:
+                login_button.config(text="Signing In")
+            else:
+                login_button.config(text=current_text + ".")
+            login_window.after(200, add_loading_dots)
     
     # Wait for the login window to be destroyed
     login_window.wait_window()
@@ -1682,7 +1961,7 @@ def create_login_window(root):
 
 if __name__ == "__main__":
     root = ThemedTk(theme="arc")
-    root.title("DigiClimate Store Hub")
+    root.title("DigiClimate Store Hub - Resilience meets innovation")
     
     # Function to handle logout and return to login screen
     def handle_logout():

@@ -1440,8 +1440,15 @@ class POSApp:
                 self.logo_photo = ImageTk.PhotoImage(logo_img)
                 self.logo_label = ttk.Label(self.main_frame, image=self.logo_photo)
                 self.logo_label.grid(row=0, column=2, sticky=(tk.N, tk.E), padx=5, pady=5)
+                
+                
         except Exception as e:
             print(f"Could not load logo image: {e}")
+            # Add tagline even if logo fails to load
+            tagline_label = ttk.Label(self.main_frame, text="DigiClimate Store Hub - Resilience meets innovation", 
+                                    font=("Helvetica", 12, "italic"),
+                                    foreground="#666666")
+            tagline_label.grid(row=0, column=2, sticky=(tk.N, tk.E), padx=5, pady=5)
 
         # Configure row and column weights for resizing
         self.root.rowconfigure(0, weight=1)
