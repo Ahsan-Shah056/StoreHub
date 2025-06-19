@@ -190,7 +190,6 @@ class DashboardUI:
         
         ttk.Button(action_frame, text="🔄 Refresh", command=self.refresh_dashboard, width=10).pack(side=tk.LEFT, padx=2)
         ttk.Button(action_frame, text="📤 Export", command=self.show_export_options, width=10).pack(side=tk.LEFT, padx=2)
-        ttk.Button(action_frame, text="🔧 Settings", command=self.show_settings, width=10).pack(side=tk.LEFT, padx=2)
         
         # Initialize filter data
         self.employees_data = []  # Store full employee data for ID mapping
@@ -702,42 +701,3 @@ class DashboardUI:
         
         except Exception as e:
             messagebox.showerror("Export Charts", f"Error exporting charts: {e}")
-    
-    def show_settings(self):
-        """Show dashboard settings dialog"""
-        settings_window = tk.Toplevel(self.parent)
-        settings_window.title("Dashboard Settings")
-        settings_window.geometry("350x250")
-        settings_window.transient(self.parent)
-        settings_window.grab_set()
-        
-        ttk.Label(settings_window, text="Dashboard Settings", font=DashboardConstants.HEADER_FONT).pack(pady=10)
-        
-        settings_frame = ttk.Frame(settings_window)
-        settings_frame.pack(expand=True, fill='both', padx=20, pady=10)
-        
-        # Auto-refresh setting
-        auto_refresh_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(settings_frame, text="Auto-refresh data", variable=auto_refresh_var).pack(anchor='w', pady=5)
-        
-        # Default date range
-        ttk.Label(settings_frame, text="Default date range:").pack(anchor='w', pady=(10, 2))
-        date_range_var = tk.StringVar(value="Last 30 days")
-        date_range_combo = ttk.Combobox(settings_frame, textvariable=date_range_var, 
-                                       values=["Today", "Last 7 days", "Last 30 days", "Last quarter"], 
-                                       state="readonly")
-        date_range_combo.pack(anchor='w', pady=2)
-        
-        # Currency format
-        ttk.Label(settings_frame, text="Currency format:").pack(anchor='w', pady=(10, 2))
-        currency_var = tk.StringVar(value="USD ($)")
-        currency_combo = ttk.Combobox(settings_frame, textvariable=currency_var, 
-                                     values=["USD ($)", "EUR (€)", "GBP (£)", "CAD (C$)"], 
-                                     state="readonly")
-        currency_combo.pack(anchor='w', pady=2)
-        
-        # Buttons
-        button_frame = ttk.Frame(settings_window)
-        button_frame.pack(side=tk.BOTTOM, pady=10)
-        ttk.Button(button_frame, text="Save", command=settings_window.destroy).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=settings_window.destroy).pack(side=tk.LEFT, padx=5)

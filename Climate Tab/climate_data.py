@@ -48,14 +48,8 @@ class ClimateDataManager:
             'price_volatility_threshold': 0.15  # 15% price change
         }
         
-        # Email configuration
-        self.email_config = {
-            'smtp_server': 'smtp.gmail.com',
-            'smtp_port': 587,
-            'sender_email': 'digiclimatehub@gmail.com',
-            'sender_password': 'your_app_password',  # Use app password for Gmail
-            'recipient_emails': ['manager@storecore.com', 'procurement@storecore.com']
-        }
+        # Load email configuration from credentials.json
+        self.email_config = self._load_email_config()
         
         # Rule-based recommendations database
         self.recommendation_rules = {
@@ -104,6 +98,85 @@ class ClimateDataManager:
                 'automation': False
             }
         }
+        
+    def _load_email_config(self):
+        """Load email configuration from credentials.json"""
+        try:
+            # Get the credentials file path (go up one directory from Climate Tab)
+            credentials_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'credentials.json')
+            
+            with open(credentials_path, 'r') as f:
+                credentials = json.load(f)
+            
+            # Extract email and password from credentials.json
+            sender_email = credentials.get('email', '')
+            sender_password = credentials.get('password', '')
+            
+            # Get manager emails from users list as recipients
+            recipient_emails = []
+            users = credentials.get('users', [])
+            for user in users:
+                if user.get('role') in ['manager', 'store_admin', 'inventory_manager']:
+                    email = user.get('email', '')
+                    if email and email != '':
+                        recipient_emails.append(email)
+            
+            # If no recipients found, use a default
+            if not recipient_emails:
+                recipient_emails = ['manager@storecore.com']
+            
+            # Check if credentials are properly configured
+            if sender_email == "Fill-this-field" or sender_password == "Fill-this-field" or not sender_email or not sender_password:
+                logger.warning("Email credentials not configured in credentials.json - email alerts will be logged only")
+                return {
+                    'smtp_server': 'smtp.gmail.com',
+                    'smtp_port': 587,
+                    'sender_email': sender_email,
+                    'sender_password': sender_password,
+                    'recipient_emails': recipient_emails,
+                    'configured': False
+                }
+            
+            logger.info("Email configuration loaded successfully from credentials.json")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': sender_email,
+                'sender_password': sender_password,
+                'recipient_emails': recipient_emails,
+                'configured': True
+            }
+            
+        except FileNotFoundError:
+            logger.error("credentials.json file not found - using default email configuration")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': 'digiclimatehub@gmail.com',
+                'sender_password': 'your_app_password',
+                'recipient_emails': ['manager@storecore.com'],
+                'configured': False
+            }
+        except json.JSONDecodeError:
+            logger.error("Error parsing credentials.json - using default email configuration")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': 'digiclimatehub@gmail.com',
+                'sender_password': 'your_app_password',
+                'recipient_emails': ['manager@storecore.com'],
+                'configured': False
+            }
+        except Exception as e:
+            logger.error(f"Error loading email configuration: {e}")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': 'digiclimatehub@gmail.com',
+                'sender_password': 'your_app_password',
+                'recipient_emails': ['manager@storecore.com'],
+                'configured': False
+            }
         
     def _is_cache_valid(self, key: str) -> bool:
         """Check if cached data is still valid"""
@@ -629,8 +702,17 @@ Immediate action recommended.
             return []
 
     def send_email_alert(self, subject: str, message: str):
-        """Send email alert to stakeholders"""
+        """Send email alert to stakeholders using credentials from credentials.json"""
         try:
+            # Check if email is properly configured
+            if not self.email_config.get('configured', False):
+                logger.info(f"EMAIL ALERT (credentials not configured): {subject}")
+                logger.info(f"MESSAGE: {message}")
+                logger.info(f"Would send to: {', '.join(self.email_config['recipient_emails'])}")
+                logger.info("To enable email alerts, please configure 'email' and 'password' fields in credentials.json")
+                return
+            
+            # Send actual email if credentials are configured
             msg = MIMEMultipart()
             msg['From'] = self.email_config['sender_email']
             msg['To'] = ", ".join(self.email_config['recipient_emails'])
@@ -643,9 +725,14 @@ Immediate action recommended.
                 server.login(msg['From'], self.email_config['sender_password'])
                 server.send_message(msg)
             
-            logger.info(f"Email alert sent: {subject}")
+            logger.info(f"Email alert sent successfully: {subject}")
+            logger.info(f"Sent to: {', '.join(self.email_config['recipient_emails'])}")
+            
         except Exception as e:
             logger.error(f"Error sending email alert: {e}")
+            # Log the alert content even if email fails
+            logger.info(f"EMAIL ALERT (failed to send): {subject}")
+            logger.info(f"MESSAGE: {message}")
 
     def apply_recommendations(self, material_id: int, risk_data: Dict[str, Any]):
         """Apply rule-based recommendations for a specific material"""
@@ -721,7 +808,82 @@ Immediate action recommended.
                 logger.info(f"Action: {action} for material_id: {material_id}")
         except Exception as e:
             logger.error(f"Error executing action '{action}': {e}")
-
+    
+    def _load_email_config(self) -> Dict[str, Any]:
+        """Load email configuration from credentials.json"""
+        try:
+            # Get the path to credentials.json (one directory up from Climate Tab)
+            credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'credentials.json')
+            
+            with open(credentials_path, 'r') as f:
+                credentials = json.load(f)
+            
+            # Extract email configuration
+            sender_email = credentials.get('email', '')
+            sender_password = credentials.get('password', '')
+            
+            # Get recipient emails from user emails
+            recipient_emails = []
+            for user in credentials.get('users', []):
+                if user.get('email') and user['email'] != 'Fill-this-field':
+                    recipient_emails.append(user['email'])
+            
+            # Default recipients if none found
+            if not recipient_emails:
+                recipient_emails = ['manager@storecore.com']
+            
+            # Validate email configuration
+            if sender_email in ['', 'Fill-this-field'] or sender_password in ['', 'Fill-this-field']:
+                logger.warning("Email credentials not configured in credentials.json - email alerts will be disabled")
+                return {
+                    'smtp_server': 'smtp.gmail.com',
+                    'smtp_port': 587,
+                    'sender_email': '',
+                    'sender_password': '',
+                    'recipient_emails': recipient_emails,
+                    'enabled': False
+                }
+            
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': sender_email,
+                'sender_password': sender_password,
+                'recipient_emails': recipient_emails,
+                'enabled': True
+            }
+            
+        except FileNotFoundError:
+            logger.error("credentials.json file not found - email alerts will be disabled")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': '',
+                'sender_password': '',
+                'recipient_emails': ['manager@storecore.com'],
+                'enabled': False
+            }
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing credentials.json: {e} - email alerts will be disabled")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': '',
+                'sender_password': '',
+                'recipient_emails': ['manager@storecore.com'],
+                'enabled': False
+            }
+        except Exception as e:
+            logger.error(f"Error loading email configuration: {e} - email alerts will be disabled")
+            return {
+                'smtp_server': 'smtp.gmail.com',
+                'smtp_port': 587,
+                'sender_email': '',
+                'sender_password': '',
+                'recipient_emails': ['manager@storecore.com'],
+                'enabled': False
+            }
+        
 # Global instance for easy access
 climate_manager = ClimateDataManager()
 
