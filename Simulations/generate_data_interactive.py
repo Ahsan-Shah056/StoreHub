@@ -4,9 +4,16 @@ Interactive Data Generator for DigiClimate Store Hub
 Generates user-defined numbers of purchases, purchase items, and inventory adjustments
 """
 
+import sys
+import os
 import random
 import datetime
 from decimal import Decimal
+
+# Add the parent directory to the path so we can import our modules
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
 from database import get_db, close_db
 import mysql.connector
 from mysql.connector.errors import Error

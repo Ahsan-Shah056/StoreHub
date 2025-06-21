@@ -4,7 +4,14 @@ Customer Generator for Storecore
 Generates 500 realistic customers with names, contact info, and addresses
 """
 
+import sys
+import os
 import random
+
+# Add the parent directory to the path so we can import our modules
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
 from database import get_db, close_db
 import mysql.connector
 from mysql.connector.errors import Error
