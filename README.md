@@ -1487,14 +1487,16 @@ DigiClimate-Store-Hub/
 │   └── reporting.py                 # 📊 Business intelligence and report generation
 │
 ├── 📁 Advanced Dashboard & Analytics
-│   ├── dashboard.py                 # 📈 Backend dashboard data processing
-│   ├── dashboard_base.py            # 🏗️ Base dashboard framework and utilities
-│   ├── dashboard_ui.py              # 🖥️ Main dashboard UI with tabbed interface
-│   ├── dashboard_overview_ui.py     # 📋 Overview dashboard with KPIs
-│   ├── dashboard_analytics_ui.py    # 📊 Advanced analytics and filtering
-│   ├── dashboard_performance_ui.py  # ⚡ Performance metrics and employee tracking
-│   ├── dashboard_simulation_ui.py   # 🎯 Business simulation and forecasting
-│   └── dashboard_ui_backup.py       # 💾 Dashboard UI backup version
+│   ├── Dashboard tab/
+│   │   ├── __init__.py              # 📊 Dashboard module initialization
+│   │   ├── dashboard.py             # 📈 Backend dashboard data processing
+│   │   ├── dashboard_base.py        # 🏗️ Base dashboard framework and utilities
+│   │   ├── dashboard_ui.py          # 🖥️ Main dashboard UI with tabbed interface
+│   │   ├── dashboard_overview_ui.py # 📋 Overview dashboard with KPIs
+│   │   ├── dashboard_analytics_ui.py # 📊 Advanced analytics and filtering
+│   │   ├── dashboard_performance_ui.py # ⚡ Performance metrics and employee tracking
+│   │   ├── dashboard_simulation_ui.py # 🎯 Business simulation and forecasting
+│   │   └── dashboard_ui_backup.py   # 💾 Dashboard UI backup version
 │
 ├── 📁 Climate Intelligence Module
 │   ├── Climate Tab/

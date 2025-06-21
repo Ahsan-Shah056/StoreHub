@@ -10,6 +10,11 @@ import sys
 import os
 from PIL import Image, ImageTk
 
+# Add Dashboard Tab path
+dashboard_tab_path = os.path.join(os.path.dirname(__file__), 'Dashboard tab')
+if dashboard_tab_path not in sys.path:
+    sys.path.append(dashboard_tab_path)
+
 # Add Climate Tab path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Climate Tab'))
 
