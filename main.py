@@ -1687,7 +1687,7 @@ def create_login_window(root):
     title_label.place(relx=0.5, rely=0.55, anchor="center")
     
     tagline_label = tk.Label(header_frame, text="Resilience meets innovation",  
-                             font=("Segoe UI", 9), bg="#1a365d", fg="#b3c6d9")
+                             font=("Segoe UI", 10), bg="#1a365d", fg="#b3c6d9")
     tagline_label.place(relx=0.5, rely=0.75, anchor="center")
     
     

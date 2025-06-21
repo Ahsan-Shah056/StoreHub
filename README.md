@@ -6,6 +6,8 @@
   <br>
   <strong>DIGICLIMATE STORE HUB</strong>
   <br>
+  <sub><em>Resilience meets innovation</em></sub>
+  <br>
   <sub><em>Next-Generation Point-of-Sale & Inventory Management</em></sub>
 </h1>
 
@@ -19,7 +21,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/badge/Version-1.1-blue.svg?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-2.0-blue.svg?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/Status-🚀_Production_Ready-success.svg?style=for-the-badge" alt="Status">
   <img src="https://img.shields.io/badge/Maintained-Yes-brightgreen.svg?style=for-the-badge" alt="Maintained">
 </p>
@@ -72,6 +74,7 @@
 - [🎯 Overview](#-overview)
 - [🎬 Application Preview](#-application-preview)
 - [🔥 Key Features](#-key-features)
+- [🌍 Climate Tab - Agricultural Intelligence](#-climate-tab---agricultural-intelligence)
 - [📊 Reporting & Analytics](#-reporting--analytics)
 - [🤖 Business Automation](#-business-automation-features)
 - [⚡ Quick Start](#-quick-start)
@@ -96,6 +99,8 @@
 </div>
 
 **DigiClimate Store Hub** is a comprehensive, enterprise-grade Point-of-Sale (POS) and inventory management solution designed specifically for **retail businesses**, **warehouses**, and **small-to-medium enterprises**. 
+
+Built on the foundation that **"Resilience meets innovation"**, our platform combines cutting-edge technology with robust business practices to deliver unmatched reliability and performance. From traditional retail operations to modern agricultural businesses, DigiClimate Store Hub adapts to your unique needs while maintaining enterprise-level security and scalability. 
 
 <br>
 
@@ -152,25 +157,27 @@
 
 </div>
 
-### 🏆 **What's New in v1.1**
+### 🏆 **What's New in v2.0**
 
 <div align="center">
 
 | Feature | Description | Impact |
 |:-------:|:------------|:------:|
-| � **Analytics Dashboard** | Comprehensive business intelligence with real-time metrics | ⭐⭐⭐⭐⭐ |
+| 🌍 **Climate Tab Integration** | Advanced climate data monitoring and agricultural insights | ⭐⭐⭐⭐⭐ |
+| 🏢 **Company Branding** | "Resilience meets innovation" tagline integrated throughout | ⭐⭐⭐⭐⭐ |
+| 🔐 **Enhanced Login Screen** | Modern, professional login with improved UX and animations | ⭐⭐⭐⭐⭐ |
+| 📄 **Premium PDF Generation** | Professional receipts and reports with company branding | ⭐⭐⭐⭐⭐ |
+| 🎨 **UI/UX Improvements** | Enhanced visual design and user experience across all modules | ⭐⭐⭐⭐⭐ |
+| 📊 **Analytics Dashboard** | Comprehensive business intelligence with real-time metrics | ⭐⭐⭐⭐⭐ |
 | 🔍 **Advanced Filtering** | Multi-parameter filtering by date, employee, supplier, category | ⭐⭐⭐⭐⭐ |
 | 📊 **Multi-format Export** | Dashboard data export to CSV, Excel, and PDF formats | ⭐⭐⭐⭐⭐ |
 | 🔄 **Data Generation** | Interactive scripts for realistic test data creation | ⭐⭐⭐⭐⭐ |
-| �📄 **PDF Receipts** | Professional PDF receipts with company logo | ⭐⭐⭐⭐⭐ |
 | 📧 **Enhanced Email** | PDF receipts automatically attached to emails | ⭐⭐⭐⭐⭐ |
 | 📥 **Data Import** | Bulk CSV import for customers, inventory & suppliers | ⭐⭐⭐⭐⭐ |
 | ✏️ **Update Records** | Full editing capabilities for customers & suppliers | ⭐⭐⭐⭐⭐ |
 | 💰 **Enhanced Reports** | Inventory value report with grand total display | ⭐⭐⭐⭐⭐ |
 | 🤖 **Smart Automation** | AI-powered alerts and end-of-day reports | ⭐⭐⭐⭐⭐ |
-| 🎨 **Professional UI** | Modern blue theme with company branding | ⭐⭐⭐⭐ |
 | 🔐 **Advanced RBAC** | Granular role-based permission controls | ⭐⭐⭐⭐⭐ |
-| 🧹 **Clean Code** | Consolidated imports and improved maintainability | ⭐⭐⭐⭐ |
 
 </div>
 
@@ -333,6 +340,118 @@
   - MySQL with InnoDB for ACID transaction support
   - Optimized indexing for fast query performance
   - Automated backup and recovery capabilities
+
+</details>
+
+<details>
+<summary><strong>🌍 Climate Tab - Agricultural Intelligence</strong></summary>
+
+- **🌾 Agricultural Data Monitoring**
+  - Real-time climate data tracking for key agricultural parameters
+  - Temperature, humidity, and precipitation monitoring
+  - Climate impact analysis for agricultural businesses
+- **📈 Agricultural Analytics**
+  - Crop performance correlation with climate data
+  - Seasonal trend analysis and forecasting
+  - Climate-based business decision support
+- **⚠️ Climate Alerts & Warnings**
+  - Automated weather alerts for agricultural planning
+  - Extreme weather condition notifications
+  - Climate risk assessment for inventory management
+- **🎯 Agricultural Business Integration**
+  - Climate data integration with POS operations
+  - Weather-based sales forecasting
+  - Agricultural supply chain optimization
+- **📊 Climate Data Visualization**
+  - Interactive charts and graphs for climate trends
+  - Historical climate data analysis
+  - Agricultural season planning tools
+
+</details>
+
+---
+
+## 🌍 **Climate Tab - Agricultural Intelligence**
+
+<div align="center">
+
+### 🌾 **Advanced Climate Monitoring for Agricultural Businesses**
+
+*Empowering agricultural and retail businesses with real-time climate intelligence*
+
+</div>
+
+DigiClimate Store Hub's **Climate Tab** represents our commitment to **"Resilience meets innovation"** by providing cutting-edge climate monitoring and agricultural intelligence capabilities. This powerful module transforms weather data into actionable business insights for agricultural retailers, farm supply stores, and climate-sensitive businesses.
+
+<details>
+<summary><strong>🌡️ Real-Time Climate Monitoring</strong></summary>
+
+- **📊 Comprehensive Weather Data**
+  - Real-time temperature, humidity, and precipitation tracking
+  - Historical climate data analysis and trend visualization
+  - Multi-location climate monitoring for distributed operations
+- **📈 Interactive Climate Charts**
+  - Dynamic temperature and humidity graphs
+  - Precipitation patterns and seasonal analysis
+  - Climate trend forecasting and predictive analytics
+- **🎯 Location-Based Intelligence**
+  - GPS-integrated weather monitoring
+  - Regional climate comparison tools
+  - Microclimate analysis for precision agriculture
+
+</details>
+
+<details>
+<summary><strong>⚠️ Intelligent Alert Systems</strong></summary>
+
+- **🚨 Weather Warning System**
+  - Automated alerts for extreme weather conditions
+  - Frost warnings for temperature-sensitive crops
+  - Storm tracking and precipitation alerts
+- **📱 Multi-Channel Notifications**
+  - Email alerts for critical weather events
+  - Dashboard notifications and visual indicators
+  - Customizable alert thresholds and preferences
+- **🎯 Business Impact Alerts**
+  - Inventory protection recommendations
+  - Sales opportunity notifications during weather events
+  - Supply chain disruption early warnings
+
+</details>
+
+<details>
+<summary><strong>🚜 Agricultural Business Integration</strong></summary>
+
+- **📦 Climate-Smart Inventory Management**
+  - Weather-based product demand forecasting
+  - Seasonal inventory optimization recommendations
+  - Climate-sensitive product tracking and alerts
+- **💰 Sales Intelligence**
+  - Weather-correlated sales pattern analysis
+  - Seasonal demand prediction and planning
+  - Climate-based pricing optimization suggestions
+- **🌱 Crop Calendar Integration**
+  - Planting and harvesting schedule optimization
+  - Weather-based agricultural activity planning
+  - Seasonal business cycle management
+
+</details>
+
+<details>
+<summary><strong>📊 Advanced Analytics & Reporting</strong></summary>
+
+- **📈 Climate Impact Analysis**
+  - Sales correlation with weather patterns
+  - Seasonal business performance metrics
+  - Climate trend impact on business operations
+- **📋 Agricultural Reports**
+  - Crop condition assessment reports
+  - Weather summary and analysis documents
+  - Climate-based business recommendation reports
+- **🎯 Predictive Insights**
+  - Long-term climate trend analysis
+  - Seasonal business planning recommendations
+  - Weather-based market opportunity identification
 
 </details>
 
@@ -1354,58 +1473,83 @@ python sample_data.py
 ```plaintext
 DigiClimate-Store-Hub/
 ├── 📁 Core Application Files
-│   ├── main.py                      # 🚀 Main application entry point (Tkinter GUI)
-│   ├── Ui.py                        # 🎨 Core UI classes and logic (modular, extensible)
-│   ├── database.py                  # 🗄️ Database connection logic (MySQL, parameterized)
+│   ├── main.py                      # 🚀 Main application entry point with login system
+│   ├── Ui.py                        # 🎨 Core UI classes and modular interface logic
+│   ├── database.py                  # 🗄️ Database connection and management (MySQL)
 │   └── credentials.json             # 🔐 User credentials, roles, and email configuration
 │
 ├── 📁 Business Logic Modules
-│   ├── inventory.py                 # 📦 Inventory management logic (CRUD, adjustments)
-│   ├── sales.py                     # 💰 Sales/cart logic (transactional, atomic)
-│   ├── customers.py                 # 👥 Customer management (CRUD)
-│   ├── suppliers.py                 # 🏭 Supplier management (CRUD, search)
-│   ├── employees.py                 # 👤 Employee management (CRUD)
-│   └── reporting.py                 # 📊 Business reports logic (optimized SQL)
+│   ├── inventory.py                 # 📦 Inventory management (CRUD, adjustments, import)
+│   ├── sales.py                     # 💰 Sales processing (cart, transactions, receipts)
+│   ├── customers.py                 # 👥 Customer management (CRUD, updates, import)
+│   ├── suppliers.py                 # 🏭 Supplier management (CRUD, updates, import)
+│   ├── employees.py                 # 👤 Employee management and authentication
+│   └── reporting.py                 # 📊 Business intelligence and report generation
 │
 ├── 📁 Advanced Dashboard & Analytics
-│   ├── dashboard.py                 # 📈 Backend dashboard functions and data processing
+│   ├── dashboard.py                 # 📈 Backend dashboard data processing
 │   ├── dashboard_base.py            # 🏗️ Base dashboard framework and utilities
-│   ├── dashboard_ui.py              # 🖥️ Main dashboard UI components
-│   ├── dashboard_overview_ui.py     # 📋 Overview dashboard with key metrics
-│   ├── dashboard_analytics_ui.py    # 📊 Advanced analytics and visualizations
-│   ├── dashboard_performance_ui.py  # ⚡ Performance metrics and reporting
+│   ├── dashboard_ui.py              # 🖥️ Main dashboard UI with tabbed interface
+│   ├── dashboard_overview_ui.py     # 📋 Overview dashboard with KPIs
+│   ├── dashboard_analytics_ui.py    # 📊 Advanced analytics and filtering
+│   ├── dashboard_performance_ui.py  # ⚡ Performance metrics and employee tracking
 │   ├── dashboard_simulation_ui.py   # 🎯 Business simulation and forecasting
-│   └── dashboard_ui_backup.py       # 💾 Dashboard UI backup/legacy version
+│   └── dashboard_ui_backup.py       # 💾 Dashboard UI backup version
+│
+├── 📁 Climate Intelligence Module
+│   ├── Climate Tab/
+│   │   ├── __init__.py              # 🌍 Climate module initialization
+│   │   ├── climate_base.py          # 🏗️ Base climate framework and utilities
+│   │   ├── climate_data.py          # 📊 Climate data processing and storage
+│   │   ├── climate_ui.py            # 🖥️ Main climate interface and navigation
+│   │   ├── climate_overview_ui.py   # 🌡️ Climate overview with weather metrics
+│   │   ├── climate_actions_ui.py    # 🎯 Climate-based actions and recommendations
+│   │   ├── climate_warnings_ui.py   # ⚠️ Weather alerts and warning systems
+│   │   └── climate_warnings_ui_backup.py # 💾 Backup climate warnings interface
 │
 ├── 📁 Automation & Intelligence
-│   ├── Automations.py               # 🤖 Business automation (alerts, reports, notifications)
-│   ├── Data_exporting.py            # 📤 CSV export functionality for all tables/reports
-│   └── data_importing.py            # 📥 Data import utilities and validation
+│   ├── Automations.py               # 🤖 Smart automation (alerts, reports, emails)
+│   ├── Data_exporting.py            # 📤 Multi-format export (CSV, Excel, PDF)
+│   └── data_importing.py            # 📥 Bulk data import with validation
 │
 ├── 📁 Data Generation & Testing
-│   ├── generate_customers.py        # 👥 Generate realistic customer test data
-│   ├── generate_sales.py            # 💳 Generate realistic sales transaction data
-│   └── generate_data_interactive.py # 🎮 Interactive data generation utility
+│   ├── Simulations/
+│   │   ├── generate_customers.py    # 👥 Realistic customer data generation
+│   │   ├── generate_sales.py        # 💳 Sales transaction data generation
+│   │   ├── generate_data_interactive.py # 🎮 Interactive data generation utility
+│   │   ├── products.csv             # � Sample product data for import
+│   │   └── supplier data.csv        # 🏭 Sample supplier data for import
 │
-├── 📁 Database Schema & Setup
-│   ├── schema.sql                   # 🗃️ Basic MySQL schema (legacy)
-│   ├── DigiClimate_Store_Hub.sql               # 🗄️ **Recommended**: Complete SQL schema with data for DigiClimate Store Hub
-│   └── DigiClimate_Store_Hub_ER.vpp            # 📐 Entity-Relationship diagram (Visual Paradigm) 
+├── � Database & Schema
+│   ├── Database source/
+│   │   ├── DigiClimate_Store_Hub.sql # 🗄️ Complete database schema with data
+│   │   ├── DigiClimate_Store_Hub_ER.vpp # 📐 Entity-Relationship diagram
+│   │   └── schema.sql               # 🗃️ Basic schema (legacy)
 │
-├── 📁 Configuration & Data Files
-│   ├── requirements.txt             # 📋 Python dependencies list
-│   ├── products.csv                 # 📦 Sample product data for import
-│   ├── supplier data.csv            # 🏭 Sample supplier data for import
-│   └── logo.jpeg                    # 🎨 Company logo for UI display
+├── 📁 Raw Materials & Agricultural Data
+│   ├── Raw Materials/
+│   │   ├── import_raw_materials_data.py # 🌾 Agricultural data import utility
+│   │   ├── RawMaterials.sql         # �️ Raw materials database schema
+│   │   ├── cotton-data.csv          # 🌱 Cotton agricultural data
+│   │   ├── rice-data.csv            # 🌾 Rice agricultural data
+│   │   ├── sugarcane-Data.csv       # 🎋 Sugarcane agricultural data
+│   │   └── wheat-data.csv           # � Wheat agricultural data
 │
-├── 📁 Generated Content
-│   ├── receipts/                    # 🧾 Generated sales receipts storage
-│   │   ├── receipt_*.pdf           # 📄 PDF receipt files
-│   │   └── receipt_*.txt           # 📝 Text receipt files
-│   └── __pycache__/                # 🐍 Python cache files
+├── 📁 Configuration & Assets
+│   ├── requirements.txt             # 📋 Python dependencies and packages
+│   ├── logo.jpeg                    # 🎨 Company logo (JPEG format)
+│   ├── logo.png                     # 🎨 Company logo (PNG format)
+│   └── README.md                    # 📖 Comprehensive project documentation
 │
-└── 📁 Documentation
-    └── README.md                    # 📖 Project documentation and setup guide
+└── 📁 Generated Content & Output
+    └── receipts/                    # 🧾 Sales receipts and transaction records
+        ├── receipt_20250616_133707.pdf # 📄 PDF receipt examples
+        ├── receipt_20250616_203917.pdf
+        ├── receipt_20250617_160326.pdf
+        ├── receipt_20250618_231140.pdf
+        ├── receipt_20250618_231857.pdf
+        ├── receipt_20250620_035650.pdf
+        └── receipt_20250620_040107.pdf
 ```
 
 ---
@@ -1669,14 +1813,15 @@ We welcome contributions from developers of all skill levels. Whether you're fix
 <img src="https://img.shields.io/badge/⭐_Star_this_repo-if_it_helped_you-yellow?style=for-the-badge" alt="Star this repo">
 </p>
 
-*© 2024 DigiClimate Store Hub. Licensed under the MIT License.*
+*© 2024-2025 DigiClimate Store Hub v2.0 - "Resilience meets innovation". Licensed under the MIT License.*
 
 ---
 
 <sub>
-🚀 **DigiClimate Store Hub** - Empowering businesses worldwide with intelligent POS solutions  
-📊 **Built for:** Small to Medium Enterprises | Retail Stores | Warehouses  
-💻 **Tech Stack:** Python | MySQL | Tkinter | Email Automation  
+🚀 **DigiClimate Store Hub v2.0** - "Resilience meets innovation" - Empowering businesses worldwide with intelligent POS solutions  
+📊 **Built for:** Small to Medium Enterprises | Retail Stores | Warehouses | Agricultural Businesses  
+💻 **Tech Stack:** Python | MySQL | Tkinter | Email Automation | Climate Intelligence  
+🌍 **New in v2.0:** Climate Tab with Agricultural Intelligence & Enhanced Business Insights  
 </sub>
 
 </div>
