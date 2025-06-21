@@ -7,7 +7,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 import logging
-from database import get_db
+from ..core.database import get_db
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

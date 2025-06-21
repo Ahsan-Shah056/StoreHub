@@ -14,7 +14,7 @@ from decimal import Decimal
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
-from database import get_db, close_db
+from core.database import get_db, close_db
 import mysql.connector
 from mysql.connector.errors import Error
 

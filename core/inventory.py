@@ -1,8 +1,8 @@
-from database import close_db
+from .database import close_db
 
 # Import for low stock alerts
 try:
-    from Automations import check_and_alert_low_stock
+    from ..automation.automations import check_and_alert_low_stock
 except ImportError:
     check_and_alert_low_stock = None
 
@@ -148,7 +148,7 @@ def adjust_stock(connection, cursor, sku, quantity_change, reason, employee_id):
 def get_all_products():
     """Get all products from the database for simulation purposes"""
     try:
-        from database import get_db
+        from .database import get_db
         connection, cursor = get_db()
         
         cursor.execute(

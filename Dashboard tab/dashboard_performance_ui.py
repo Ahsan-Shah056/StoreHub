@@ -11,7 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 from dashboard_base import DashboardBaseUI, DashboardConstants
 import dashboard
-import employees
+from ..core import employees
 
 class PerformanceUI(DashboardBaseUI):
     """Performance subtab - Employee and product performance"""

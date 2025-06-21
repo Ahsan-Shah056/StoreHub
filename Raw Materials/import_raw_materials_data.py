@@ -15,7 +15,7 @@ import os
 import csv
 import mysql.connector
 from datetime import datetime
-from database import get_db, close_db
+from ..core.database import get_db, close_db
 
 # CSV to table mapping
 CSV_TABLE_MAPPING = {

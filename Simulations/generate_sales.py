@@ -16,7 +16,7 @@ from decimal import Decimal
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
-from database import get_db
+from core.database import get_db
 
 def generate_unlimited_sales(num_sales=5000):
     """Generate sales data without reducing stock (for testing purposes)"""

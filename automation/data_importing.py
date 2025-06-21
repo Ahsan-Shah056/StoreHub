@@ -2,8 +2,8 @@ import csv
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from datetime import datetime
-from database import get_db, close_db
-import customers
+from ..core.database import get_db, close_db
+from ..core import customers
 
 class DataImportError(Exception):
     """Custom exception for data import errors"""
@@ -617,7 +617,7 @@ def import_inventory_from_csv(file_path, parent_window=None, skip_duplicates=Tru
                                 continue
                         
                         # Add item to database using inventory module
-                        import inventory
+                        from ..core import inventory
                         inventory.add_item(connection, cursor, sku, name, category_id_val, price_val, stock_val, supplier_id_val, cost_val)
                         success_count += 1
                         
@@ -795,7 +795,7 @@ def import_suppliers_from_csv(file_path, parent_window=None, skip_duplicates=Tru
                                 continue
                         
                         # Add supplier to database
-                        import suppliers
+                        from ..core import suppliers
                         suppliers.add_supplier(connection, cursor, name, contact_info, address)
                         success_count += 1
                         

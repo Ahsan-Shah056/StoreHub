@@ -1,4 +1,4 @@
-from database import close_db
+from .database import close_db
 
 
 def handle_error(connection, cursor, e, message=""):

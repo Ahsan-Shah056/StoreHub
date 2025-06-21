@@ -15,7 +15,7 @@ warnings.filterwarnings('ignore', message='Tight layout not applied*')
 
 from dashboard_base import DashboardBaseUI, DashboardConstants
 import dashboard
-import inventory
+from ..core import inventory
 
 class SimulationUI(DashboardBaseUI):
     """Simulation subtab - What-if analysis tools"""

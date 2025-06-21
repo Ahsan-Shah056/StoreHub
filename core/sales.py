@@ -1,9 +1,9 @@
-from database import get_db, close_db
+from .database import get_db, close_db
 from decimal import Decimal
 
 # Import for low stock alerts and large transaction alerts
 try:
-    from Automations import check_and_alert_low_stock, check_and_alert_large_transaction
+    from ..automation.automations import check_and_alert_low_stock, check_and_alert_large_transaction
 except ImportError:
     check_and_alert_low_stock = None
     check_and_alert_large_transaction = None

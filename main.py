@@ -32,12 +32,12 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
 
 # Local application imports
-from database import get_db, close_db
-import suppliers
-import inventory
-import sales
-import customers
-import employees
+from core.database import get_db, close_db
+from core import suppliers
+from core import inventory
+from core import sales
+from core import customers
+from core import employees
 
 # Helper function for consistent TreeView text formatting
 def format_treeview_text(value):
@@ -71,15 +71,15 @@ def format_treeview_values(values):
     Formats a tuple/list of values for TreeView insertion.
     """
     return tuple(format_treeview_text(value) for value in values)
-import reporting
-from reporting import (
+from core import reporting
+from core.reporting import (
     sales_by_employee,
     supplier_purchase_report,
     inventory_adjustment_history,
     customer_purchase_history
 )
 from Ui import POSApp, alternate_treeview_rows
-from Automations import (
+from automation.automations import (
     check_and_alert_low_stock,
     get_manager_email,
     send_low_stock_alert,

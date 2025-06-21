@@ -1478,15 +1478,23 @@ DigiClimate-Store-Hub/
 │   ├── database.py                  # 🗄️ Database connection and management (MySQL)
 │   └── credentials.json             # 🔐 User credentials, roles, and email configuration
 │
-├── 📁 Business Logic Modules
-│   ├── inventory.py                 # 📦 Inventory management (CRUD, adjustments, import)
-│   ├── sales.py                     # 💰 Sales processing (cart, transactions, receipts)
-│   ├── customers.py                 # 👥 Customer management (CRUD, updates, import)
-│   ├── suppliers.py                 # 🏭 Supplier management (CRUD, updates, import)
-│   ├── employees.py                 # 👤 Employee management and authentication
-│   └── reporting.py                 # 📊 Business intelligence and report generation
+├── 📁 Core Business Logic
+│   ├── core/
+│   │   ├── __init__.py              # 🏗️ Core module initialization
+│   │   ├── database.py              # 🗄️ Database connection and management (MySQL)
+│   │   ├── inventory.py             # 📦 Inventory management (CRUD, adjustments, import)
+│   │   ├── sales.py                 # 💰 Sales processing (cart, transactions, receipts)
+│   │   ├── customers.py             # 👥 Customer management (CRUD, updates, import)
+│   │   ├── suppliers.py             # 🏭 Supplier management (CRUD, updates, import)
+│   │   ├── employees.py             # 👤 Employee management and authentication
+│   │   └── reporting.py             # 📊 Business intelligence and report generation
 │
-├── 📁 Advanced Dashboard & Analytics
+├── 📁 Automation & Data Processing
+│   ├── automation/
+│   │   ├── __init__.py              # 🤖 Automation module initialization
+│   │   ├── automations.py           # 🤖 Smart automation (alerts, reports, emails)
+│   │   ├── data_exporting.py        # 📤 Multi-format export (CSV, Excel, PDF)
+│   │   └── data_importing.py        # 📥 Bulk data import with validation
 │   ├── Dashboard tab/
 │   │   ├── __init__.py              # 📊 Dashboard module initialization
 │   │   ├── dashboard.py             # 📈 Backend dashboard data processing
@@ -1566,15 +1574,15 @@ DigiClimate-Store-Hub/
 - **`dashboard_simulation_ui.py`**: Predictive modeling and business forecasting
 
 #### 🤖 **Smart Automation Features**
-- **`Automations.py`**: 
+- **`automation/automations.py`**: 
   - 📧 Professional PDF daily reports via email
   - ⚠️ Low stock alerts with individual product thresholds
   - 💰 Large transaction monitoring and alerts
   - 📊 Automated business intelligence reports
 
 #### 🔄 **Data Management**
-- **`data_importing.py`**: Robust data import with validation
-- **`Data_exporting.py`**: Comprehensive export functionality
+- **`automation/data_importing.py`**: Robust data import with validation
+- **`automation/data_exporting.py`**: Comprehensive export functionality
 - **`generate_*` files**: Realistic test data generation for development
 
 #### 🎨 **Enhanced User Experience**

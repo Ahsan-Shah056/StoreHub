@@ -1,4 +1,4 @@
-import database
+from . import database
 import datetime
 
 def sales_by_employee(cursor, employee_id):

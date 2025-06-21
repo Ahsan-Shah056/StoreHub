@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from ttkthemes import ThemedTk
 import tkinter.font as tkFont  
-import inventory
-import customers 
-import sales  
+from core import inventory
+from core import customers 
+from core import sales  
 import threading
 import sys
 import os
@@ -19,9 +19,9 @@ if dashboard_tab_path not in sys.path:
 sys.path.append(os.path.join(os.path.dirname(__file__), 'Climate Tab'))
 
 # Standard imports
-from Data_exporting import export_treeview_to_csv
+from automation.data_exporting import export_treeview_to_csv
 from dashboard_ui import DashboardUI
-from data_importing import show_customer_import_dialog, show_inventory_import_dialog, show_supplier_import_dialog
+from automation.data_importing import show_customer_import_dialog, show_inventory_import_dialog, show_supplier_import_dialog
 from typing import Any, Optional
 
 # Climate Tab imports with proper path handling
