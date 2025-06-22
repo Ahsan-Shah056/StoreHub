@@ -1,3 +1,0 @@
-([('main',
-   '/Users/hp/Library/CloudStorage/OneDrive-FASTNationalUniversity/Codes/Storecore/dist/main',
-   'EXECUTABLE')],)
