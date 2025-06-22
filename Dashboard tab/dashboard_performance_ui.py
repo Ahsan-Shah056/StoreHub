@@ -11,7 +11,10 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
 from dashboard_base import DashboardBaseUI, DashboardConstants
 import dashboard
-from ..core import employees
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core import employees
 
 class PerformanceUI(DashboardBaseUI):
     """Performance subtab - Employee and product performance"""

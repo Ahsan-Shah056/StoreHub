@@ -367,7 +367,10 @@ class OverviewUI(DashboardBaseUI):
     def export_activities_to_csv(self):
         """Export recent activities tree data to CSV"""
         try:
-            from ..automation.data_exporting import export_treeview_to_csv
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            from automation.data_exporting import export_treeview_to_csv
             export_treeview_to_csv(self.activity_tree, self.parent)
         except Exception as e:
             messagebox.showerror("Export Error", f"Error exporting activities: {e}")

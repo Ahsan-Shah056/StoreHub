@@ -13,7 +13,7 @@ import logging
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from ..core.database import get_db, close_db
+from core.database import get_db, close_db
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

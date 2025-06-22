@@ -15,7 +15,13 @@ import os
 import csv
 import mysql.connector
 from datetime import datetime
-from ..core.database import get_db, close_db
+import sys
+import os
+# Add the parent directory to the path so we can import our modules
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+from core.database import get_db, close_db
 
 # CSV to table mapping
 CSV_TABLE_MAPPING = {

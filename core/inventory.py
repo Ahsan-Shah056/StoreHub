@@ -2,7 +2,12 @@ from .database import close_db
 
 # Import for low stock alerts
 try:
-    from ..automation.automations import check_and_alert_low_stock
+    import sys
+    import os
+    # Add the parent directory to the path
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent_dir)
+    from automation.automations import check_and_alert_low_stock
 except ImportError:
     check_and_alert_low_stock = None
 

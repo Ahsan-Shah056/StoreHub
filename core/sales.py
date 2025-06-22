@@ -3,7 +3,12 @@ from decimal import Decimal
 
 # Import for low stock alerts and large transaction alerts
 try:
-    from ..automation.automations import check_and_alert_low_stock, check_and_alert_large_transaction
+    import sys
+    import os
+    # Add the parent directory to the path
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent_dir)
+    from automation.automations import check_and_alert_low_stock, check_and_alert_large_transaction
 except ImportError:
     check_and_alert_low_stock = None
     check_and_alert_large_transaction = None
