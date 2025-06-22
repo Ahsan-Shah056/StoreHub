@@ -118,7 +118,7 @@ class ClimateDataManager:
             for user in users:
                 if user.get('role') in ['manager', 'store_admin', 'inventory_manager']:
                     email = user.get('email', '')
-                    if email and email != '':
+                    if email and email != '' and email != 'Fill-this-field':
                         recipient_emails.append(email)
             
             # If no recipients found, use a default
@@ -126,8 +126,8 @@ class ClimateDataManager:
                 recipient_emails = ['manager@storecore.com']
             
             # Check if credentials are properly configured
-            if sender_email == "Fill-this-field" or sender_password == "Fill-this-field" or not sender_email or not sender_password:
-                logger.warning("Email credentials not configured in credentials.json - email alerts will be logged only")
+            if sender_email in ['', 'Fill-this-field'] or sender_password in ['', 'Fill-this-field'] or not sender_email or not sender_password:
+                logger.warning("Email credentials not configured in credentials.json - email alerts will be disabled")
                 return {
                     'smtp_server': 'smtp.gmail.com',
                     'smtp_port': 587,
@@ -1313,81 +1313,6 @@ Immediate action recommended.
                 logger.info(f"Action: {action} for material_id: {material_id}")
         except Exception as e:
             logger.error(f"Error executing action '{action}': {e}")
-    
-    def _load_email_config(self) -> Dict[str, Any]:
-        """Load email configuration from credentials.json"""
-        try:
-            # Get the path to credentials.json (one directory up from Climate Tab)
-            credentials_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'credentials.json')
-            
-            with open(credentials_path, 'r') as f:
-                credentials = json.load(f)
-            
-            # Extract email configuration
-            sender_email = credentials.get('email', '')
-            sender_password = credentials.get('password', '')
-            
-            # Get recipient emails from user emails
-            recipient_emails = []
-            for user in credentials.get('users', []):
-                if user.get('email') and user['email'] != 'Fill-this-field':
-                    recipient_emails.append(user['email'])
-            
-            # Default recipients if none found
-            if not recipient_emails:
-                recipient_emails = ['manager@storecore.com']
-            
-            # Validate email configuration
-            if sender_email in ['', 'Fill-this-field'] or sender_password in ['', 'Fill-this-field']:
-                logger.warning("Email credentials not configured in credentials.json - email alerts will be disabled")
-                return {
-                    'smtp_server': 'smtp.gmail.com',
-                    'smtp_port': 587,
-                    'sender_email': '',
-                    'sender_password': '',
-                    'recipient_emails': recipient_emails,
-                    'enabled': False
-                }
-            
-            return {
-                'smtp_server': 'smtp.gmail.com',
-                'smtp_port': 587,
-                'sender_email': sender_email,
-                'sender_password': sender_password,
-                'recipient_emails': recipient_emails,
-                'enabled': True
-            }
-            
-        except FileNotFoundError:
-            logger.error("credentials.json file not found - email alerts will be disabled")
-            return {
-                'smtp_server': 'smtp.gmail.com',
-                'smtp_port': 587,
-                'sender_email': '',
-                'sender_password': '',
-                'recipient_emails': ['manager@storecore.com'],
-                'enabled': False
-            }
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing credentials.json: {e} - email alerts will be disabled")
-            return {
-                'smtp_server': 'smtp.gmail.com',
-                'smtp_port': 587,
-                'sender_email': '',
-                'sender_password': '',
-                'recipient_emails': ['manager@storecore.com'],
-                'enabled': False
-            }
-        except Exception as e:
-            logger.error(f"Error loading email configuration: {e} - email alerts will be disabled")
-            return {
-                'smtp_server': 'smtp.gmail.com',
-                'smtp_port': 587,
-                'sender_email': '',
-                'sender_password': '',
-                'recipient_emails': ['manager@storecore.com'],
-                'enabled': False
-            }
         
     def get_stock_depletion_alerts(self) -> List[Dict[str, Any]]:
         """Generate alerts for materials that will run out based on current consumption rates"""
