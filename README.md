@@ -1704,10 +1704,49 @@ The application now includes a secure login system with role-based access contro
 
 ## 🛠️ Requirements
 
-- Python 3.x
-- Tkinter (usually included with Python)
-- MySQL Server (with InnoDB for transactions)
-- (Optional) MySQL Workbench for DB management
+### **System Requirements**
+- **Python 3.8+** (Recommended: Python 3.9 or higher)
+- **Operating System:** Windows 10/11, macOS 10.14+, or Linux (Ubuntu 18.04+)
+- **RAM:** Minimum 4GB (Recommended: 8GB for large datasets)
+- **Storage:** 500MB free space (plus space for database and receipts)
+
+### **Database Requirements**
+- **MySQL Server 8.0+** (with InnoDB storage engine for ACID transactions)
+- **MySQL Connector:** Included in Python dependencies
+- **(Optional) MySQL Workbench** for visual database management
+
+### **Python Dependencies**
+Install all required packages using:
+```bash
+pip install -r requirements.txt
+```
+
+**Core Dependencies:**
+- `mysql-connector-python==8.3.0` - Database connectivity
+- `Pillow==11.2.1` - Image processing and UI graphics
+- `ttkthemes==3.2.2` - Enhanced UI themes
+- `reportlab==4.4.1` - PDF receipt generation
+- `fpdf2==2.7.8` - Alternative PDF generation
+
+**Analytics & Visualization:**
+- `matplotlib==3.10.3` - Charts and graphs for dashboard
+- `seaborn==0.13.2` - Statistical data visualization
+- `numpy==2.1.3` - Numerical computations
+
+**UI Enhancements:**
+- `tkcalendar==1.6.1` - Date picker widgets
+- `tkinter` - GUI framework (included with Python)
+
+### **Email Configuration (Optional)**
+- **Gmail Account** with 2-Factor Authentication enabled
+- **App Password** generated for email alerts
+- Configure in `credentials.json` for climate alert notifications
+
+### **Network Requirements**
+- **Internet connection** for:
+  - Climate data updates
+  - Email alert delivery
+  - Database synchronization (if using remote MySQL)
 
 ---
 
@@ -1815,24 +1854,13 @@ We welcome contributions from developers of all skill levels. Whether you're fix
 
 ### 🏆 **Thank You for Using DigiClimate Store Hub!**
 
-<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Trophy.png" width="60" alt="Trophy">
-
-**Made with ❤️ by [Ahsan Shah](https://github.com/Ahsan-Shah056)**
+**Made by [Ahsan Shah](https://github.com/Ahsan-Shah056)**
 
 <p>
 <img src="https://img.shields.io/badge/⭐_Star_this_repo-if_it_helped_you-yellow?style=for-the-badge" alt="Star this repo">
 </p>
 
 *© 2024-2025 DigiClimate Store Hub v2.0 - "Resilience meets innovation". Licensed under the MIT License.*
-
----
-
-<sub>
-🚀 **DigiClimate Store Hub v2.0** - "Resilience meets innovation" - Empowering businesses worldwide with intelligent POS solutions  
-📊 **Built for:** Small to Medium Enterprises | Retail Stores | Warehouses | Agricultural Businesses  
-💻 **Tech Stack:** Python | MySQL | Tkinter | Email Automation | Climate Intelligence  
-🌍 **New in v2.0:** Climate Tab with Agricultural Intelligence & Enhanced Business Insights  
-</sub>
 
 </div>
 
