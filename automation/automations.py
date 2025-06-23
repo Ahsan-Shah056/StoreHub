@@ -769,6 +769,7 @@ def create_pdf_report(report_data, filename):
         return None
     
     try:
+        from datetime import timedelta  # Import needed for time processing
         # Create PDF document with premium settings
         doc = SimpleDocTemplate(
             filename, 
@@ -1422,8 +1423,22 @@ def create_pdf_report(report_data, filename):
                 else:
                     impact = "🔻 Major-"
                 
+                # Format adjustment time properly - handle timedelta objects
+                adj_time = adj.get('adjustment_time', 'N/A')
+                if isinstance(adj_time, timedelta):
+                    # Convert timedelta to HH:MM:SS format
+                    total_seconds = int(adj_time.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                elif isinstance(adj_time, str):
+                    time_str = adj_time[:8]
+                else:
+                    time_str = str(adj_time)[:8] if adj_time else 'N/A'
+                
                 adj_data.append([
-                    adj.get('adjustment_time', 'N/A')[:8],  # Time only
+                    time_str,  # Properly formatted time
                     adj.get('name', 'N/A')[:15],
                     adj.get('SKU', 'N/A'),
                     change_text,
