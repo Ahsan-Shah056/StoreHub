@@ -10,13 +10,16 @@ import tempfile
 import sys
 
 # Import climate data functionality
-climate_tab_path = os.path.join(os.path.dirname(__file__), 'Climate Tab')
-sys.path.append(climate_tab_path)
 try:
+    # Add the parent directory to sys.path to access Climate Tab
+    parent_dir = os.path.dirname(os.path.dirname(__file__))
+    climate_tab_path = os.path.join(parent_dir, 'Climate Tab')
+    if climate_tab_path not in sys.path:
+        sys.path.insert(0, climate_tab_path)
     from climate_data import ClimateDataManager
     CLIMATE_AVAILABLE = True
-except ImportError:
-    print("Climate data module not available")
+except ImportError as e:
+    print(f"Climate data module not available: {e}")
     CLIMATE_AVAILABLE = False
 
 # Try to import PDF generation libraries
