@@ -1,5 +1,9 @@
 import mysql.connector
 from mysql.connector.errors import Error
+import logging
+
+# Configure logging for database module
+logger = logging.getLogger(__name__)
 
 def get_db(host="localhost", user="root", password="Ahsan7424", database="store"):
     # Establishes a connection to the MySQL database and returns the connection and cursor
@@ -28,6 +32,6 @@ def close_db(connection, cursor):
             cursor.close()
         if connection and connection.is_connected():
             connection.close()
-            print("Connection closed successfully.")
+            logger.info("Database connection closed successfully.")
     except Error as e:
-        print(f"Error closing connection: {e}")
+        logger.error(f"Error closing connection: {e}")

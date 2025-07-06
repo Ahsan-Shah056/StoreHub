@@ -4,11 +4,15 @@ Shared utilities, constants, and base classes for dashboard components
 """
 
 import tkinter as tk
+import logging
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 import os
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
+
+# Get logger instance
+logger = logging.getLogger(__name__)
 
 class DashboardBaseUI:
     """Base class for dashboard UI components with common functionality"""
@@ -65,6 +69,8 @@ class DashboardConstants:
     WARNING_COLOR = "#ffc107"
     DANGER_COLOR = "#dc3545"
     INFO_COLOR = "#17a2b8"
+    TEXT_COLOR = "#333333"
+    BACKGROUND_COLOR = "#ffffff"
     
     # Fonts
     HEADER_FONT = ("Helvetica", 16, "bold")

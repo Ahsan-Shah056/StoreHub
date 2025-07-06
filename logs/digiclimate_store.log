@@ -1,0 +1,67 @@
+2025-07-06 04:19:56,256 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 04:20:06,302 - core.database - INFO - Database connection closed successfully.
+2025-07-06 20:09:04,915 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:09:12,795 - core.database - INFO - Database connection closed successfully.
+2025-07-06 20:20:49,559 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:22:24,436 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:32:04,649 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:37:47,585 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:38:02,903 - core.database - INFO - Database connection closed successfully.
+2025-07-06 20:44:45,155 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:45:07,577 - core.database - INFO - Database connection closed successfully.
+2025-07-06 20:52:15,546 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 20:52:28,605 - core.database - INFO - Database connection closed successfully.
+2025-07-06 21:06:17,620 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 21:06:18,204 - dashboard_overview_ui - ERROR - Error updating metrics cards fast: type object 'DashboardConstants' has no attribute 'TEXT_COLOR'
+2025-07-06 21:06:19,413 - dashboard_ui - INFO - Initialized overview tab
+2025-07-06 21:06:19,444 - dashboard_overview_ui - ERROR - Error updating metrics cards fast: type object 'DashboardConstants' has no attribute 'TEXT_COLOR'
+2025-07-06 21:06:20,401 - dashboard_overview_ui - ERROR - Error updating metrics cards fast: type object 'DashboardConstants' has no attribute 'TEXT_COLOR'
+2025-07-06 21:06:21,461 - dashboard_ui - INFO - Initialized overview tab
+2025-07-06 21:06:21,491 - dashboard_overview_ui - ERROR - Error updating metrics cards fast: type object 'DashboardConstants' has no attribute 'TEXT_COLOR'
+2025-07-06 21:06:22,684 - dashboard_ui - INFO - Pre-warming dashboard tabs for faster switching...
+2025-07-06 21:06:26,190 - dashboard_ui - INFO - Initialized analytics tab
+2025-07-06 21:06:29,796 - dashboard_ui - INFO - Initialized performance tab
+2025-07-06 21:06:30,936 - core.database - INFO - Database connection closed successfully.
+2025-07-06 21:06:30,936 - dashboard_ui - INFO - Initialized simulation tab
+2025-07-06 21:06:37,173 - dashboard_ui - INFO - Refreshing analytics tab...
+2025-07-06 21:06:37,202 - dashboard_ui - INFO - Refreshed analytics tab
+2025-07-06 21:06:55,053 - dashboard_ui - INFO - Refreshing performance tab...
+2025-07-06 21:06:56,472 - dashboard_ui - INFO - Refreshed performance tab
+2025-07-06 21:07:00,842 - dashboard_ui - INFO - Refreshing simulation tab...
+2025-07-06 21:07:00,842 - dashboard_ui - INFO - Refreshed simulation tab
+2025-07-06 21:14:03,977 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 21:14:05,195 - dashboard_ui - INFO - Initialized overview tab
+2025-07-06 21:14:07,327 - dashboard_ui - INFO - Initialized overview tab
+2025-07-06 21:14:08,502 - dashboard_ui - INFO - Pre-warming dashboard tabs for faster switching...
+2025-07-06 21:14:12,218 - dashboard_ui - INFO - Initialized analytics tab
+2025-07-06 21:14:12,218 - dashboard_analytics_ui - INFO - Analytics: ⚡ Fast loading analytics...
+2025-07-06 21:14:12,246 - dashboard_analytics_ui - INFO - ✓ Updated analytics metrics with fast functions
+2025-07-06 21:14:14,280 - dashboard_ui - INFO - Refreshing analytics tab...
+2025-07-06 21:14:14,280 - dashboard_analytics_ui - INFO - Analytics: ⚡ Fast loading analytics...
+2025-07-06 21:14:14,307 - dashboard_analytics_ui - INFO - ✓ Updated analytics metrics with fast functions
+2025-07-06 21:14:14,320 - dashboard_ui - INFO - Refreshed analytics tab
+2025-07-06 21:14:15,983 - dashboard_ui - INFO - Initialized performance tab
+2025-07-06 21:14:16,993 - core.database - INFO - Database connection closed successfully.
+2025-07-06 21:14:16,993 - dashboard_ui - INFO - Initialized simulation tab
+2025-07-06 21:14:19,380 - dashboard_ui - INFO - Refreshing overview tab...
+2025-07-06 21:14:20,135 - dashboard_ui - INFO - Refreshed overview tab
+2025-07-06 21:14:28,149 - dashboard_ui - INFO - Refreshing overview tab...
+2025-07-06 21:14:28,722 - dashboard_ui - INFO - Refreshed overview tab
+2025-07-06 21:14:30,496 - dashboard_analytics_ui - INFO - Analytics: ⚡ Fast loading analytics...
+2025-07-06 21:14:30,520 - dashboard_analytics_ui - INFO - ✓ Updated analytics metrics with fast functions
+2025-07-06 21:14:32,564 - dashboard_ui - INFO - Refreshing overview tab...
+2025-07-06 21:14:33,777 - dashboard_ui - INFO - Refreshed overview tab
+2025-07-06 21:14:35,616 - dashboard_analytics_ui - INFO - Analytics: ⚡ Fast loading analytics...
+2025-07-06 21:14:35,642 - dashboard_analytics_ui - INFO - ✓ Updated analytics metrics with fast functions
+2025-07-06 21:14:35,651 - dashboard_ui - INFO - Refreshing overview tab...
+2025-07-06 21:14:36,721 - dashboard_ui - INFO - Refreshed overview tab
+2025-07-06 21:14:39,956 - dashboard_analytics_ui - INFO - Analytics: ⚡ Fast loading analytics...
+2025-07-06 21:14:39,999 - dashboard_analytics_ui - INFO - ✓ Updated analytics metrics with fast functions
+2025-07-06 21:18:32,098 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 21:18:44,730 - core.database - INFO - Database connection closed successfully.
+2025-07-06 21:26:10,073 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 21:26:14,372 - dashboard_overview_ui - ERROR - Error refreshing overview data: invalid command name ".!frame.!notebook.!frame.!frame.!notebook.!frame.!frame3.!canvas.!frame.!frame.!label2"
+2025-07-06 21:26:14,373 - dashboard_overview_ui - ERROR - Error refreshing overview data: invalid command name ".!frame.!notebook.!frame.!frame.!notebook.!frame.!frame3.!canvas.!frame.!frame.!label2"
+2025-07-06 21:26:30,310 - core.database - INFO - Database connection closed successfully.
+2025-07-06 21:27:47,323 - root - INFO - Logged in as: ahsan (Role: manager)
+2025-07-06 21:28:05,690 - core.database - INFO - Database connection closed successfully.

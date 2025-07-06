@@ -13,7 +13,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.database import get_db
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class DashboardAnalytics:
@@ -286,6 +285,132 @@ class DashboardAnalytics:
         finally:
             if cursor:
                 cursor.close()
+
+    # Performance optimized dashboard data functions
+    @staticmethod
+    def get_dashboard_summary_fast(start_date: str, end_date: str) -> Dict[str, Any]:
+        """
+        Get essential dashboard summary with minimal data load for fast initial display
+        Returns only the most critical metrics with optimized queries
+        """
+        try:
+            conn, cursor = get_db()
+            
+            # Single optimized query for key metrics
+            summary_query = """
+                SELECT 
+                    COUNT(DISTINCT s.sale_id) as total_orders,
+                    COALESCE(SUM(s.total), 0) as total_sales,
+                    COALESCE(AVG(s.total), 0) as avg_order_value,
+                    COUNT(DISTINCT s.employee_id) as active_employees,
+                    COUNT(DISTINCT s.customer_id) as active_customers
+                FROM Sales s
+                WHERE DATE(s.sale_datetime) BETWEEN %s AND %s
+            """
+            
+            cursor.execute(summary_query, (start_date, end_date))
+            summary = cursor.fetchone()
+            
+            # Quick low stock count
+            low_stock_query = """
+                SELECT COUNT(*) as low_stock_count
+                FROM Products 
+                WHERE stock <= low_stock_threshold
+                LIMIT 1
+            """
+            cursor.execute(low_stock_query)
+            low_stock = cursor.fetchone()
+            
+            # Combine results
+            result = dict(summary) if summary else {}
+            result['low_stock_count'] = low_stock['low_stock_count'] if low_stock else 0
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting dashboard summary: {e}")
+            return {}
+        finally:
+            try:
+                if cursor:
+                    cursor.close()
+                if conn and conn.is_connected():
+                    conn.close()
+            except:
+                pass
+
+    @staticmethod
+    def get_top_products_fast(start_date: str, end_date: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Get top products with minimal data for fast display
+        """
+        try:
+            conn, cursor = get_db()
+            
+            query = """
+                SELECT 
+                    p.SKU,
+                    p.name,
+                    SUM(si.quantity) as units_sold,
+                    COALESCE(SUM(si.quantity * si.price), 0) as revenue
+                FROM SaleItems si
+                JOIN Sales s ON si.sale_id = s.sale_id
+                JOIN Products p ON si.SKU = p.SKU
+                WHERE DATE(s.sale_datetime) BETWEEN %s AND %s
+                GROUP BY p.SKU, p.name
+                ORDER BY units_sold DESC
+                LIMIT %s
+            """
+            
+            cursor.execute(query, (start_date, end_date, limit))
+            return cursor.fetchall()
+            
+        except Exception as e:
+            logger.error(f"Error getting top products: {e}")
+            return []
+        finally:
+            try:
+                if cursor:
+                    cursor.close()
+                if conn and conn.is_connected():
+                    conn.close()
+            except:
+                pass
+
+    @staticmethod
+    def get_recent_sales_fast(limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get recent sales with minimal data for fast display
+        """
+        try:
+            conn, cursor = get_db()
+            
+            query = """
+                SELECT 
+                    s.sale_id,
+                    s.sale_datetime,
+                    s.total,
+                    e.name as employee_name
+                FROM Sales s
+                JOIN Employees e ON s.employee_id = e.employee_id
+                ORDER BY s.sale_datetime DESC
+                LIMIT %s
+            """
+            
+            cursor.execute(query, (limit,))
+            return cursor.fetchall()
+            
+        except Exception as e:
+            logger.error(f"Error getting recent sales: {e}")
+            return []
+        finally:
+            try:
+                if cursor:
+                    cursor.close()
+                if conn and conn.is_connected():
+                    conn.close()
+            except:
+                pass
 
     # Advanced Analytics Functions
     
@@ -673,7 +798,6 @@ class DashboardAnalytics:
             conn.commit()
             
             rows_affected = cursor.rowcount
-            logger.info(f"Updated costs for {rows_affected} products based on purchase history")
             
             return rows_affected
             
@@ -1431,6 +1555,20 @@ class DashboardAnalytics:
 
 # === GLOBAL ANALYTICS INSTANCE ===
 dashboard_analytics = DashboardAnalytics()
+
+# === OPTIMIZED FAST FUNCTION STUBS ===
+
+def get_dashboard_summary_fast(start_date: str, end_date: str):
+    """Get essential dashboard summary with minimal data load for fast initial display"""
+    return DashboardAnalytics.get_dashboard_summary_fast(start_date, end_date)
+
+def get_top_products_fast(start_date: str, end_date: str, limit: int = 5):
+    """Get top products with minimal data for fast display"""
+    return DashboardAnalytics.get_top_products_fast(start_date, end_date, limit)
+
+def get_recent_sales_fast(limit: int = 10):
+    """Get recent sales with minimal data for fast display"""
+    return DashboardAnalytics.get_recent_sales_fast(limit)
 
 # === CORE ANALYTICS FUNCTION STUBS ===
 

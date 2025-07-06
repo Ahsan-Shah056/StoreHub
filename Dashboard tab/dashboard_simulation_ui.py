@@ -4,6 +4,7 @@ Simulation subtab with what-if analysis and scenario planning tools
 """
 
 import tkinter as tk
+import logging
 from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -19,6 +20,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import inventory
+
+# Get logger instance
+logger = logging.getLogger(__name__)
 
 class SimulationUI(DashboardBaseUI):
     """Simulation subtab - What-if analysis tools"""

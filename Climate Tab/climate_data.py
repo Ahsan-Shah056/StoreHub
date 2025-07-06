@@ -20,7 +20,6 @@ from email.mime.multipart import MIMEMultipart
 import json
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ClimateDataManager:

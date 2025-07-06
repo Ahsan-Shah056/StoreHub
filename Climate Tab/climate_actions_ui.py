@@ -7,6 +7,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 import json
+import logging
+
+# Configure logging for climate actions module
+logger = logging.getLogger(__name__)
 
 from climate_base import ClimateBaseUI, ClimateConstants
 import climate_data
@@ -885,7 +889,7 @@ DigiClimate Store Hub System
             return True
             
         except Exception as e:
-            print(f"Error sending email: {str(e)}")
+            logger.error(f"Error sending email: {str(e)}")
             raise e
     
     def _get_risk_summary(self, current_alerts, status_data):

@@ -8,9 +8,14 @@ from tkinter import ttk, messagebox, filedialog
 from datetime import datetime, timedelta
 import os
 import csv
+import time  # Add time import for caching
 import json
+import logging
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
+
+# Get logger instance (configured in main.py)
+logger = logging.getLogger(__name__)
 
 # Import modular dashboard components
 from dashboard_base import DashboardBaseUI, DashboardConstants
@@ -33,11 +38,15 @@ class DashboardUI:
         self.supplier_filter_var = tk.StringVar()
         self.category_filter_var = tk.StringVar()
         
-        # Set default date range (last 30 days)
+        # Set default date range (last 7 days for faster initial load)
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=7)  # Reduced from 30 to 7 days
         self.start_date_var.set(start_date.strftime('%Y-%m-%d'))
         self.end_date_var.set(end_date.strftime('%Y-%m-%d'))
+        
+        # Lazy loading - track which tabs have been initialized
+        self.initialized_tabs = set()
+        self.subtab_uis = {}
         
         # Create main dashboard layout
         self.create_dashboard_layout()
@@ -230,14 +239,17 @@ class DashboardUI:
         self.subtabs_notebook.add(self.performance_tab, text="👤 Performance")
         self.subtabs_notebook.add(self.simulation_tab, text="🎲 Simulation")
         
-        # Initialize subtab UIs
-        self.overview_ui = OverviewUI(self.overview_tab, self.callbacks)
-        self.analytics_ui = AnalyticsUI(self.analytics_tab, self.callbacks)
-        self.performance_ui = PerformanceUI(self.performance_tab, self.callbacks)
-        self.simulation_ui = SimulationUI(self.simulation_tab, self.callbacks)
+        # Don't initialize subtab UIs immediately - use lazy loading
+        # They will be initialized when first accessed
         
-        # Bind tab change event
+        # Bind tab change event for lazy loading
         self.subtabs_notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
+        
+        # Initialize the first tab (Overview) immediately for better UX
+        self.initialize_tab("overview")
+        
+        # Schedule pre-warming of other tabs after initial load (for even faster switching)
+        self.parent.after(2000, self.prewarm_tabs)  # 2 second delay
         
     def load_filter_data(self):
         """Load data for filter dropdowns"""
@@ -270,7 +282,7 @@ class DashboardUI:
                 self.category_combobox.set("All Categories")
             
         except Exception as e:
-            print(f"Error loading filter data: {e}")
+            logger.error(f"Error loading filter data: {e}")
     
     def get_employee_id_from_name(self, employee_name):
         """Get employee ID from employee name"""
@@ -440,7 +452,7 @@ class DashboardUI:
             return data
             
         except Exception as e:
-            print(f"Error fetching dashboard data: {e}")
+            logger.error(f"Error fetching dashboard data: {e}")
             # Return empty data structure
             return {
                 'columns': ['Metric', 'Value', 'Period', 'Employee', 'Supplier', 'Category'],
@@ -448,30 +460,130 @@ class DashboardUI:
             }
     
     def refresh_dashboard(self):
-        """Refresh all dashboard data based on current filters"""
+        """Refresh dashboard data based on current filters - optimized for current tab only"""
         try:
-            filters = self.get_current_filters()
+            # Get current tab
+            current_tab_index = self.subtabs_notebook.index(self.subtabs_notebook.select())
+            current_tab_name = self.get_tab_name_from_index(current_tab_index)
             
-            # Refresh all subtabs
-            if hasattr(self, 'overview_ui'):
-                self.overview_ui.refresh_data(filters)
-            if hasattr(self, 'analytics_ui'):
-                self.analytics_ui.refresh_data(filters)
-            if hasattr(self, 'performance_ui'):
-                self.performance_ui.refresh_data(filters)
-            if hasattr(self, 'simulation_ui'):
-                self.simulation_ui.refresh_data(filters)
+            # Clear cache when filters change (force refresh)
+            if hasattr(self, '_tab_cache'):
+                self._tab_cache.clear()
+            
+            # Only refresh the current tab for immediate feedback
+            if current_tab_name:
+                self.refresh_current_tab_only(current_tab_name)
+                
+            # Schedule background refresh for other initialized tabs (optional)
+            self.schedule_background_refresh(current_tab_name)
                 
         except Exception as e:
-            print(f"Error refreshing dashboard: {e}")
+            logger.error(f"Error refreshing dashboard: {e}")
+    
+    def schedule_background_refresh(self, exclude_tab):
+        """Schedule background refresh for other initialized tabs"""
+        try:
+            # Refresh other tabs in background with a slight delay
+            filters = self.get_current_filters()
+            
+            for tab_name in self.initialized_tabs:
+                if tab_name != exclude_tab and tab_name in self.subtab_uis:
+                    # Schedule refresh after a short delay to avoid blocking UI
+                    delay = 500  # 500ms delay
+                    self.parent.after(delay, lambda tn=tab_name: self._background_refresh_tab(tn, filters))
+                    
+        except Exception as e:
+            logger.error(f"Error scheduling background refresh: {e}")
+    
+    def _background_refresh_tab(self, tab_name, filters):
+        """Background refresh for a specific tab"""
+        try:
+            if tab_name in self.subtab_uis:
+                # Use fast refresh if available
+                if hasattr(self.subtab_uis[tab_name], 'refresh_data_fast'):
+                    self.subtab_uis[tab_name].refresh_data_fast(filters)
+                elif hasattr(self.subtab_uis[tab_name], 'refresh_data'):
+                    self.subtab_uis[tab_name].refresh_data(filters)
+                    
+        except Exception as e:
+            logger.error(f"Error in background refresh for {tab_name}: {e}")
     
     def on_tab_changed(self, event):
-        """Handle tab change events"""
-        selected_tab = self.subtabs_notebook.select()
-        tab_text = self.subtabs_notebook.tab(selected_tab, "text")
-        
-        # Refresh data for the selected tab
-        self.refresh_dashboard()
+        """Handle tab change events with lazy loading and optimized refresh"""
+        try:
+            # Get the currently selected tab index
+            current_tab_index = self.subtabs_notebook.index(self.subtabs_notebook.select())
+            tab_name = self.get_tab_name_from_index(current_tab_index)
+            
+            if tab_name:
+                # Initialize the tab if it hasn't been initialized yet
+                self.initialize_tab(tab_name)
+                
+                # Only refresh the current tab, not all tabs
+                self.refresh_current_tab_only(tab_name)
+        except Exception as e:
+            logger.error(f"Error in tab change: {e}")
+    
+    def refresh_current_tab_only(self, tab_name):
+        """Refresh only the currently active tab for faster switching"""
+        try:
+            # Enhanced caching with filter-based cache keys
+            current_time = time.time()
+            filters = self.get_current_filters()
+            cache_key = f"{tab_name}_{hash(str(filters))}"
+            
+            # Initialize cache if not exists
+            if not hasattr(self, '_tab_cache'):
+                self._tab_cache = {}
+            
+            # Check if we have fresh cached data (30 seconds)
+            if cache_key in self._tab_cache:
+                cached_time, cached_data = self._tab_cache[cache_key]
+                if current_time - cached_time < 30:  # 30-second cache
+                    logger.debug(f"Using cached data for {tab_name} tab")
+                    return
+            
+            # If no cache or cache expired, refresh the current tab
+            if tab_name in self.subtab_uis:
+                # Use fast refresh if available, otherwise use regular refresh
+                if hasattr(self.subtab_uis[tab_name], 'refresh_data_fast'):
+                    self.subtab_uis[tab_name].refresh_data_fast(filters)
+                elif hasattr(self.subtab_uis[tab_name], 'refresh_data'):
+                    self.subtab_uis[tab_name].refresh_data(filters)
+                
+                # Cache the refresh
+                self._tab_cache[cache_key] = (current_time, filters)
+                
+                # Clean old cache entries (keep only recent ones)
+                self._cleanup_cache()
+            
+        except Exception as e:
+            logger.error(f"Error refreshing current tab {tab_name}: {e}")
+    
+    def _cleanup_cache(self):
+        """Clean up old cache entries to prevent memory bloat"""
+        try:
+            if not hasattr(self, '_tab_cache'):
+                return
+                
+            current_time = time.time()
+            # Remove entries older than 5 minutes
+            max_age = 300  # 5 minutes
+            
+            keys_to_remove = []
+            for key, (cached_time, _) in self._tab_cache.items():
+                if current_time - cached_time > max_age:
+                    keys_to_remove.append(key)
+            
+            for key in keys_to_remove:
+                del self._tab_cache[key]
+                
+            if keys_to_remove:
+                logger.debug(f"Cleaned up {len(keys_to_remove)} old cache entries")
+                
+        except Exception as e:
+            logger.error(f"Error cleaning cache: {e}")
+    
     
     def show_export_options(self):
         """Show export options dialog"""
@@ -687,17 +799,147 @@ class DashboardUI:
             # Get current filters
             filters = self.get_current_filters()
             
-            # Export each subtab's chart
-            if hasattr(self.overview_ui, 'chart'):
-                self.overview_ui.chart.export_as_image(dir_path, "overview_chart", filters)
-            if hasattr(self.analytics_ui, 'chart'):
-                self.analytics_ui.chart.export_as_image(dir_path, "analytics_chart", filters)
-            if hasattr(self.performance_ui, 'chart'):
-                self.performance_ui.chart.export_as_image(dir_path, "performance_chart", filters)
-            if hasattr(self.simulation_ui, 'chart'):
-                self.simulation_ui.chart.export_as_image(dir_path, "simulation_chart", filters)
+            # Export each subtab's chart (only if initialized)
+            if 'overview' in self.subtab_uis and hasattr(self.subtab_uis['overview'], 'chart'):
+                self.subtab_uis['overview'].chart.export_as_image(dir_path, "overview_chart", filters)
+            if 'analytics' in self.subtab_uis and hasattr(self.subtab_uis['analytics'], 'chart'):
+                self.subtab_uis['analytics'].chart.export_as_image(dir_path, "analytics_chart", filters)
+            if 'performance' in self.subtab_uis and hasattr(self.subtab_uis['performance'], 'chart'):
+                self.subtab_uis['performance'].chart.export_as_image(dir_path, "performance_chart", filters)
+            if 'simulation' in self.subtab_uis and hasattr(self.subtab_uis['simulation'], 'chart'):
+                self.subtab_uis['simulation'].chart.export_as_image(dir_path, "simulation_chart", filters)
             
             messagebox.showinfo("Export Charts", "Charts exported successfully as images.")
         
         except Exception as e:
             messagebox.showerror("Export Charts", f"Error exporting charts: {e}")
+    
+    def initialize_tab(self, tab_name):
+        """Initialize a specific tab only when needed (lazy loading) with ultra-fast loading"""
+        if tab_name in self.initialized_tabs:
+            return  # Already initialized
+        
+        try:
+            # Show loading indicator immediately
+            self.show_tab_loading(tab_name)
+            
+            # Schedule the actual initialization to happen after the UI update
+            self.parent.after(10, lambda: self._do_tab_initialization(tab_name))
+            
+        except Exception as e:
+            logger.error(f"Error initializing {tab_name} tab: {e}")
+    
+    def show_tab_loading(self, tab_name):
+        """Show a loading indicator in the tab for immediate feedback"""
+        try:
+            # Get the tab frame
+            tab_frame = getattr(self, f"{tab_name}_tab")
+            
+            # Clear any existing content
+            for widget in tab_frame.winfo_children():
+                widget.destroy()
+            
+            # Add loading content
+            loading_frame = ttk.Frame(tab_frame)
+            loading_frame.pack(fill='both', expand=True)
+            
+            # Center the loading content
+            center_frame = ttk.Frame(loading_frame)
+            center_frame.place(relx=0.5, rely=0.5, anchor='center')
+            
+            ttk.Label(center_frame, text="🔄 Loading...", font=('Helvetica', 16)).pack(pady=10)
+            ttk.Label(center_frame, text=f"Initializing {tab_name.title()} Tab", font=('Helvetica', 12)).pack()
+            
+            # Add a progress bar for visual feedback
+            progress = ttk.Progressbar(center_frame, mode='indeterminate', length=200)
+            progress.pack(pady=10)
+            progress.start()
+            
+            # Store reference to stop progress later
+            setattr(self, f"_{tab_name}_progress", progress)
+            
+        except Exception as e:
+            logger.error(f"Error showing loading for {tab_name}: {e}")
+    
+    def _do_tab_initialization(self, tab_name):
+        """Actually initialize the tab content"""
+        try:
+            # Stop and remove loading indicator
+            if hasattr(self, f"_{tab_name}_progress"):
+                progress = getattr(self, f"_{tab_name}_progress")
+                progress.stop()
+                delattr(self, f"_{tab_name}_progress")
+            
+            # Clear loading content
+            tab_frame = getattr(self, f"{tab_name}_tab")
+            for widget in tab_frame.winfo_children():
+                widget.destroy()
+            
+            # Initialize the actual tab UI
+            if tab_name == "overview":
+                self.subtab_uis['overview'] = OverviewUI(self.overview_tab, self.callbacks)
+            elif tab_name == "analytics":
+                self.subtab_uis['analytics'] = AnalyticsUI(self.analytics_tab, self.callbacks)
+            elif tab_name == "performance":
+                self.subtab_uis['performance'] = PerformanceUI(self.performance_tab, self.callbacks)
+            elif tab_name == "simulation":
+                self.subtab_uis['simulation'] = SimulationUI(self.simulation_tab, self.callbacks)
+            
+            self.initialized_tabs.add(tab_name)
+            
+            # Refresh the tab with current filters
+            filters = self.get_current_filters()
+            if tab_name in self.subtab_uis:
+                if hasattr(self.subtab_uis[tab_name], 'refresh_data_fast'):
+                    self.subtab_uis[tab_name].refresh_data_fast(filters)
+                elif hasattr(self.subtab_uis[tab_name], 'refresh_data'):
+                    self.subtab_uis[tab_name].refresh_data(filters)
+            
+        except Exception as e:
+            logger.error(f"Error in actual tab initialization for {tab_name}: {e}")
+            # Show error message in the tab
+            self.show_tab_error(tab_name, str(e))
+    
+    def show_tab_error(self, tab_name, error_msg):
+        """Show error message in tab"""
+        try:
+            tab_frame = getattr(self, f"{tab_name}_tab")
+            for widget in tab_frame.winfo_children():
+                widget.destroy()
+                
+            error_frame = ttk.Frame(tab_frame)
+            error_frame.place(relx=0.5, rely=0.5, anchor='center')
+            
+            ttk.Label(error_frame, text="❌ Error Loading Tab", font=('Helvetica', 16), foreground='red').pack(pady=10)
+            ttk.Label(error_frame, text=error_msg, font=('Helvetica', 10)).pack()
+            ttk.Button(error_frame, text="Retry", command=lambda: self.retry_tab_initialization(tab_name)).pack(pady=10)
+        except Exception as e:
+            logger.error(f"Error showing error for {tab_name}: {e}")
+    
+    def retry_tab_initialization(self, tab_name):
+        """Retry initializing a tab"""
+        if tab_name in self.initialized_tabs:
+            self.initialized_tabs.remove(tab_name)
+        self.initialize_tab(tab_name)
+    
+    def get_tab_name_from_index(self, tab_index):
+        """Get tab name from notebook tab index"""
+        tab_names = ["overview", "analytics", "performance", "simulation"]
+        if 0 <= tab_index < len(tab_names):
+            return tab_names[tab_index]
+        return None
+    
+    def prewarm_tabs(self):
+        """Pre-warm other tabs in background for faster switching"""
+        try:
+            # Get tabs that aren't initialized yet
+            tabs_to_prewarm = ["analytics", "performance", "simulation"]
+            
+            for tab_name in tabs_to_prewarm:
+                if tab_name not in self.initialized_tabs:
+                    # Schedule initialization with staggered delays
+                    delay = 1000 * (tabs_to_prewarm.index(tab_name) + 1)  # 1s, 2s, 3s delays
+                    self.parent.after(delay, lambda tn=tab_name: self.initialize_tab(tn))
+                    
+        except Exception as e:
+            logger.error(f"Error pre-warming tabs: {e}")

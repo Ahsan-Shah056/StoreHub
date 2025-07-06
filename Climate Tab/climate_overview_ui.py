@@ -6,6 +6,10 @@ Enhanced overview subtab with detailed material status and metrics (no charts)
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
+import logging
+
+# Configure logging for climate overview module
+logger = logging.getLogger(__name__)
 
 # Import climate components
 import sys
@@ -326,7 +330,7 @@ class ClimateOverviewUI(ClimateBaseUI):
             self.update_details_table(status_data)
             
         except Exception as e:
-            print(f"Error refreshing overview data: {e}")
+            logger.error(f"Error refreshing overview data: {e}")
             messagebox.showerror("Error", f"Failed to refresh overview data: {str(e)}")
     
     def update_header_metrics(self, status_data, risk_data):
@@ -362,7 +366,7 @@ class ClimateOverviewUI(ClimateBaseUI):
                 self.production_impact_value_label.config(text="0")
                 
         except Exception as e:
-            print(f"Error updating header metrics: {e}")
+            logger.error(f"Error updating header metrics: {e}")
 
     def update_quick_stats(self, status_data):
         """Update quick stats indicators with enhanced visuals"""
@@ -421,7 +425,7 @@ class ClimateOverviewUI(ClimateBaseUI):
                 self.supply_chain_health_label.config(text="Healthy", foreground='#27ae60')
                 
         except Exception as e:
-            print(f"Error updating quick stats: {e}")
+            logger.error(f"Error updating quick stats: {e}")
             # Set default "error" state for all indicators
             for indicator_type in ['production_status', 'weather_conditions', 'supply_chain_health']:
                 canvas = getattr(self, f"{indicator_type}_canvas", None)
@@ -517,7 +521,7 @@ class ClimateOverviewUI(ClimateBaseUI):
                          foreground='#7f8c8d', wraplength=200).pack(anchor='w', pady=(2, 0))
                 
         except Exception as e:
-            print(f"Error updating material cards: {e}")
+            logger.error(f"Error updating material cards: {e}")
             # Show error message
             error_frame = ttk.Frame(self.cards_container)
             error_frame.grid(row=0, column=0, columnspan=2, pady=20)
@@ -599,7 +603,7 @@ class ClimateOverviewUI(ClimateBaseUI):
             self.update_summary_statistics(status_data)
                                        
         except Exception as e:
-            print(f"Error updating details table: {e}")
+            logger.error(f"Error updating details table: {e}")
             # Insert error row
             self.details_tree.insert('', 'end', values=(
                 "Error", "❌", f"Failed to load data: {str(e)}", 

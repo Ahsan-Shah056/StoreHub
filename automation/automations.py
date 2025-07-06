@@ -8,6 +8,10 @@ from datetime import datetime
 import os
 import tempfile
 import sys
+import logging
+
+# Configure logging for automation module
+logger = logging.getLogger(__name__)
 
 # Import climate data functionality
 try:
@@ -19,7 +23,7 @@ try:
     from climate_data import ClimateDataManager
     CLIMATE_AVAILABLE = True
 except ImportError as e:
-    print(f"Climate data module not available: {e}")
+    logger.debug(f"Climate data module not available: {e}")
     CLIMATE_AVAILABLE = False
 
 # Try to import PDF generation libraries
@@ -37,7 +41,7 @@ try:
     from reportlab.lib.colors import HexColor
     PDF_AVAILABLE = True
 except ImportError:
-    print("PDF libraries not available. Install with: pip install reportlab")
+    logger.warning("PDF libraries not available. Install with: pip install reportlab")
     PDF_AVAILABLE = False
 
 # Note: Low stock threshold is now read from the Products table (low_stock_threshold column)
@@ -53,7 +57,7 @@ def get_manager_email():
                     return user.get('email', '')
         return ''
     except Exception as e:
-        print(f"Error getting manager email: {e}")
+        logger.error(f"Error getting manager email: {e}")
         return ''
 
 def load_email_config():
@@ -66,7 +70,7 @@ def load_email_config():
                 'password': data.get('password', '')
             }
     except Exception as e:
-        print(f"Error loading email config: {e}")
+        logger.error(f"Error loading email config: {e}")
         return {'email': '', 'password': ''}
 
 def send_low_stock_alert(cursor, product):
@@ -74,12 +78,12 @@ def send_low_stock_alert(cursor, product):
     try:
         manager_email = get_manager_email()
         if not manager_email:
-            print("Manager email not found in credentials.json")
+            logger.warning("Manager email not found in credentials.json")
             return
             
         email_config = load_email_config()
         if not email_config['email'] or not email_config['password']:
-            print("Email configuration not available for low stock alerts")
+            logger.warning("Email configuration not available for low stock alerts")
             return
             
         # Create email
@@ -108,10 +112,10 @@ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             server.login(email_config['email'], email_config['password'])
             server.sendmail(email_config['email'], [manager_email], msg.as_string())
             
-        print(f"Low stock alert sent for {product['name']} (SKU: {product['SKU']}) to {manager_email}")
+        logger.info(f"Low stock alert sent for {product['name']} (SKU: {product['SKU']}) to {manager_email}")
         
     except Exception as e:
-        print(f"Error sending low stock alert: {e}")
+        logger.error(f"Error sending low stock alert: {e}")
 
 def check_and_alert_low_stock(cursor, updated_sku):
     """Check if a specific product is below threshold and send alert if needed"""
@@ -124,7 +128,7 @@ def check_and_alert_low_stock(cursor, updated_sku):
             send_low_stock_alert(cursor, result)
             
     except Exception as e:
-        print(f"Error checking low stock for SKU {updated_sku}: {e}")
+        logger.error(f"Error checking low stock for SKU {updated_sku}: {e}")
 
 # Large Transaction Alert Automation
 LARGE_TRANSACTION_THRESHOLD = 4000
@@ -185,10 +189,10 @@ DigiClimate Store Hub Security System
             server.login(email_config['email'], email_config['password'])
             server.sendmail(email_config['email'], [manager_email], msg.as_string())
             
-        print(f"Large transaction alert sent for Sale ID {sale_data['sale_id']} (${sale_data['total']:.2f})")
+        logger.info(f"Large transaction alert sent for Sale ID {sale_data['sale_id']} (${sale_data['total']:.2f})")
         
     except Exception as e:
-        print(f"Error sending large transaction alert: {e}")
+        logger.error(f"Error sending large transaction alert: {e}")
 
 def check_and_alert_large_transaction(cursor, sale_id, total_amount, employee_id, customer_id):
     """Check if transaction is above threshold and send alert if needed"""
@@ -212,7 +216,7 @@ def check_and_alert_large_transaction(cursor, sale_id, total_amount, employee_id
             }
             send_large_transaction_alert(cursor, sale_data)
     except Exception as e:
-        print(f"Error checking large transaction: {e}")
+        logger.error(f"Error checking large transaction: {e}")
 
 # End-of-Day Report Automation
 def generate_end_of_day_report(cursor):
@@ -370,13 +374,13 @@ def generate_end_of_day_report(cursor):
                         status = climate_manager.get_material_status(material_id)
                         materials_status[material_name] = status
                     except Exception as e:
-                        print(f"Error getting status for {material_name}: {e}")
+                        logger.debug(f"Error getting status for {material_name}: {e}")
                         materials_status[material_name] = None
                 
                 report_data['materials_status'] = materials_status
                 
             except Exception as e:
-                print(f"Error getting climate data for report: {e}")
+                logger.debug(f"Error getting climate data for report: {e}")
                 report_data['climate_alerts'] = {'current': [], 'predictive': [], 'stock': [], 'total_count': 0}
                 report_data['materials_status'] = {}
         else:
@@ -386,7 +390,7 @@ def generate_end_of_day_report(cursor):
         return report_data
         
     except Exception as e:
-        print(f"Error generating end-of-day report: {e}")
+        logger.error(f"Error generating end-of-day report: {e}")
         return None
 
 def send_end_of_day_report(cursor):
@@ -394,18 +398,18 @@ def send_end_of_day_report(cursor):
     try:
         manager_email = get_manager_email()
         if not manager_email:
-            print("Manager email not found - skipping end-of-day report")
+            logger.warning("Manager email not found - skipping end-of-day report")
             return
             
         email_config = load_email_config()
         if not email_config['email'] or not email_config['password']:
-            print("Email configuration not available - skipping end-of-day report")
+            logger.warning("Email configuration not available - skipping end-of-day report")
             return
         
         # Generate report data
         report_data = generate_end_of_day_report(cursor)
         if not report_data:
-            print("Failed to generate report data")
+            logger.error("Failed to generate report data")
             return
         
         # Create PDF report
@@ -417,11 +421,11 @@ def send_end_of_day_report(cursor):
                 pdf_filename = os.path.join(temp_dir, f"DigiClimate_Store_Hub_Daily_Report_{datetime.now().strftime('%Y%m%d')}.pdf")
                 created_pdf = create_pdf_report(report_data, pdf_filename)
                 if created_pdf:
-                    print(f"PDF report created: {pdf_filename}")
+                    logger.info(f"PDF report created: {pdf_filename}")
                 else:
                     pdf_filename = None
             except Exception as e:
-                print(f"Failed to create PDF report: {e}")
+                logger.error(f"Failed to create PDF report: {e}")
                 pdf_filename = None
         
         # Calculate performance changes for email summary
@@ -739,9 +743,9 @@ DigiClimate Store Hub Management System
                     f'attachment; filename= {os.path.basename(pdf_filename)}'
                 )
                 msg.attach(part)
-                print("PDF attachment added to email")
+                logger.debug("PDF attachment added to email")
             except Exception as e:
-                print(f"Failed to attach PDF: {e}")
+                logger.warning(f"Failed to attach PDF: {e}")
         
         # Send email
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -752,23 +756,23 @@ DigiClimate Store Hub Management System
         if pdf_filename and os.path.exists(pdf_filename):
             try:
                 os.remove(pdf_filename)
-                print("Temporary PDF file cleaned up")
+                logger.debug("Temporary PDF file cleaned up")
             except:
                 pass  # Don't fail if cleanup doesn't work
             
-        print(f"Enhanced end-of-day report sent to {manager_email}")
+        logger.info(f"Enhanced end-of-day report sent to {manager_email}")
         if pdf_filename:
-            print("✅ Report included professional PDF attachment")
+            logger.info("Report included professional PDF attachment")
         return True
         
     except Exception as e:
-        print(f"Error sending end-of-day report: {e}")
+        logger.error(f"Error sending end-of-day report: {e}")
         return False
 
 def create_pdf_report(report_data, filename):
     """Create a premium, professional PDF report with advanced styling and layout"""
     if not PDF_AVAILABLE:
-        print("PDF libraries not available - using text report instead")
+        logger.warning("PDF libraries not available - using text report instead")
         return None
     
     try:
@@ -903,7 +907,7 @@ def create_pdf_report(report_data, filename):
                 story.append(logo_table)
                 story.append(Spacer(1, 20))
             except Exception as e:
-                print(f"Could not add logo: {e}")
+                logger.debug(f"Could not add logo: {e}")
         
         # Company name and report title with elegant typography
         story.append(Paragraph("DIGICLIMATE STORE HUB", company_title_style))
@@ -1873,5 +1877,5 @@ def create_pdf_report(report_data, filename):
         return filename
         
     except Exception as e:
-        print(f"Error creating PDF report: {e}")
+        logger.error(f"Error creating PDF report: {e}")
         return None

@@ -6,7 +6,11 @@ Analytics subtab with advanced charts, data visualization, and business intellig
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
+import logging
 from dashboard_base import DashboardBaseUI, DashboardConstants
+
+# Get logger instance
+logger = logging.getLogger(__name__)
 
 class AnalyticsUI(DashboardBaseUI):
     """Analytics subtab - Advanced charts and data visualization with business intelligence"""
@@ -54,7 +58,7 @@ class AnalyticsUI(DashboardBaseUI):
             
         except ImportError:
             self.matplotlib_available = False
-            print("Matplotlib not available - charts will show placeholders")
+            logger.warning("Matplotlib not available - charts will show placeholders")
         
         # Import dashboard functions
         try:
@@ -73,7 +77,7 @@ class AnalyticsUI(DashboardBaseUI):
                 'get_inventory_value': get_inventory_value
             }
         except ImportError as e:
-            print(f"Error importing dashboard functions: {e}")
+            logger.error(f"Error importing dashboard functions: {e}")
             self.dashboard_funcs = {}
         
         self.create_analytics_ui()
@@ -181,11 +185,11 @@ class AnalyticsUI(DashboardBaseUI):
     def create_charts_section(self):
         """Create the main charts section"""
         
-        charts_frame = ttk.LabelFrame(self.scrollable_frame, text="📈 Sales & Profitability Charts", padding="10")
-        charts_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        self.charts_frame = ttk.LabelFrame(self.scrollable_frame, text="📈 Sales & Profitability Charts", padding="10")
+        self.charts_frame.pack(fill='both', expand=True, padx=10, pady=5)
         
         # Charts container with 2x2 grid
-        charts_container = ttk.Frame(charts_frame)
+        charts_container = ttk.Frame(self.charts_frame)
         charts_container.pack(fill='both', expand=True)
         
         # Configure grid weights
@@ -461,7 +465,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.refresh_analytics_tables()
             
         except Exception as e:
-            print(f"Error refreshing analytics data: {e}")
+            logger.error(f"Error refreshing analytics data: {e}")
     
     def refresh_charts(self):
         """Refresh all charts with current data"""
@@ -482,7 +486,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.update_inventory_chart()
             
         except Exception as e:
-            print(f"Error refreshing charts: {e}")
+            logger.error(f"Error refreshing charts: {e}")
     
     def update_top_products_chart(self):
         """Update the top products performance chart - simple and effective"""
@@ -556,7 +560,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.products_canvas.draw()
             
         except Exception as e:
-            print(f"Error updating top products chart: {e}")
+            logger.error(f"Error updating top products chart: {e}")
     
     def get_color_palette(self, count):
         """Get color palette based on selected style"""
@@ -580,7 +584,7 @@ class AnalyticsUI(DashboardBaseUI):
             return colors[:count]
             
         except Exception as e:
-            print(f"Error getting color palette: {e}")
+            logger.error(f"Error getting color palette: {e}")
             return ['#3498DB'] * count
     
     def update_category_chart(self):
@@ -666,7 +670,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.category_canvas.draw()
             
         except Exception as e:
-            print(f"Error updating category chart: {e}")
+            logger.error(f"Error updating category chart: {e}")
     
     def update_profit_margin_chart(self):
         """Update the profit margin analysis chart with optimized display"""
@@ -737,7 +741,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.margin_canvas.draw()
             
         except Exception as e:
-            print(f"Error updating profit margin chart: {e}")
+            logger.error(f"Error updating profit margin chart: {e}")
     
     def update_inventory_chart(self):
         """Update the inventory value analysis chart with optimized display"""
@@ -832,7 +836,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.inventory_canvas.draw()
             
         except Exception as e:
-            print(f"Error updating inventory chart: {e}")
+            logger.error(f"Error updating inventory chart: {e}")
     
     def refresh_analytics_tables(self):
         """Refresh all analytics tables"""
@@ -847,7 +851,7 @@ class AnalyticsUI(DashboardBaseUI):
             self.update_supplier_table()
             
         except Exception as e:
-            print(f"Error refreshing analytics tables: {e}")
+            logger.error(f"Error refreshing analytics tables: {e}")
     
     def update_top_products_table(self):
         """Update top products table"""
@@ -884,7 +888,7 @@ class AnalyticsUI(DashboardBaseUI):
                 ))
             
         except Exception as e:
-            print(f"Error updating top products table: {e}")
+            logger.error(f"Error updating top products table: {e}")
     
     def update_category_table(self):
         """Update category performance table"""
@@ -911,7 +915,7 @@ class AnalyticsUI(DashboardBaseUI):
                 ))
             
         except Exception as e:
-            print(f"Error updating category table: {e}")
+            logger.error(f"Error updating category table: {e}")
     
     def update_supplier_table(self):
         """Update supplier performance table"""
@@ -941,8 +945,92 @@ class AnalyticsUI(DashboardBaseUI):
                 ))
             
         except Exception as e:
-            print(f"Error updating supplier table: {e}")
+            logger.error(f"Error updating supplier table: {e}")
     
+    def refresh_data_fast(self, filters):
+        """Fast refresh for analytics tab using optimized queries"""
+        try:
+            self.current_filters = filters
+            
+            # Show loading indicator
+            self.show_loading_message("⚡ Fast loading analytics...")
+            
+            # Use fast functions for initial display
+            self.update_key_metrics_fast(filters)
+            self.show_placeholder_charts()
+            
+            # Schedule full refresh in background
+            self.parent.after(100, lambda: self.refresh_data(filters))
+            
+        except Exception as e:
+            logger.error(f"Error in fast analytics refresh: {e}")
+            # Fallback to regular refresh
+            self.refresh_data(filters)
+    
+    def update_key_metrics_fast(self, filters):
+        """Update key metrics using fast dashboard functions"""
+        try:
+            # Import fast functions if available
+            try:
+                import sys
+                import os
+                dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+                if dashboard_path not in sys.path:
+                    sys.path.insert(0, dashboard_path)
+                
+                from dashboard import get_dashboard_summary_fast, get_top_products_fast
+                
+                # Get fast summary
+                summary = get_dashboard_summary_fast(filters['start_date'], filters['end_date'])
+                
+                # Update summary cards quickly
+                if hasattr(self, 'summary_labels'):
+                    for key, label in self.summary_labels.items():
+                        if key in summary:
+                            label.config(text=self.format_currency(summary[key]) if 'sales' in key else str(summary[key]))
+                
+            except ImportError:
+                logger.warning("Fast functions not available, using regular metrics")
+                
+        except Exception as e:
+            logger.error(f"Error updating fast metrics: {e}")
+    
+    def show_placeholder_charts(self):
+        """Show placeholder charts for immediate visual feedback"""
+        try:
+            if not self.matplotlib_available:
+                return
+                
+            # Clear existing charts
+            if hasattr(self, 'chart_canvas'):
+                self.chart_canvas.get_tk_widget().destroy()
+            
+            # Create placeholder chart
+            fig = self.Figure(figsize=(10, 6))
+            ax = fig.add_subplot(111)
+            
+            # Show loading animation
+            ax.text(0.5, 0.5, '📊 Loading Charts...', 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=16)
+            ax.axis('off')
+            
+            # Embed in tkinter
+            self.chart_canvas = self.FigureCanvasTkAgg(fig, self.charts_frame)
+            self.chart_canvas.get_tk_widget().pack(fill='both', expand=True)
+            self.chart_canvas.draw()
+            
+        except Exception as e:
+            logger.error(f"Error showing placeholder charts: {e}")
+    
+    def show_loading_message(self, message):
+        """Show a loading message in the analytics area"""
+        try:
+            if hasattr(self, 'status_label'):
+                self.status_label.config(text=message)
+        except:
+            pass
+
     # Export methods
     def export_analytics_data(self):
         """Export analytics data to CSV"""

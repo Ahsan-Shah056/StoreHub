@@ -4,6 +4,7 @@ Performance subtab with employee and product performance metrics
 """
 
 import tkinter as tk
+import logging
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
@@ -15,6 +16,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import employees
+
+# Get logger instance
+logger = logging.getLogger(__name__)
 
 class PerformanceUI(DashboardBaseUI):
     """Performance subtab - Employee and product performance"""
@@ -671,7 +675,7 @@ class PerformanceUI(DashboardBaseUI):
             self.emp_canvas.draw()
             
         except Exception as e:
-            print(f"Error updating employee chart: {e}")
+            logger.error(f"Error updating employee chart: {e}")
             # Show error message in chart
             self.emp_ax.clear()
             self.emp_ax.text(0.5, 0.5, f'Error loading chart:\n{str(e)}', 

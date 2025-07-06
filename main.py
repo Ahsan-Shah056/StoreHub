@@ -6,6 +6,9 @@ import json
 import smtplib
 import subprocess
 import sys
+import logging
+import logging.handlers
+import queue
 from datetime import datetime
 
 # Third-party imports
@@ -88,10 +91,246 @@ from automation.automations import (
     send_end_of_day_report
 )
 
+# Configure logging system with async support for better performance
+def setup_logging():
+    """Setup professional logging configuration with async support"""
+    # Create log directory if it doesn't exist
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)  # Production level - no debug logs
+    
+    # Clear existing handlers to avoid duplication
+    if logger.handlers:
+        logger.handlers.clear()
+    
+    # Create async logging queue for better performance
+    log_queue = queue.Queue()
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+    
+    # File handler for all logs
+    file_handler = logging.FileHandler(f"{log_dir}/digiclimate_store.log")
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    file_handler.setFormatter(file_formatter)
+    
+    # Console handler for warnings and errors only
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING)
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+    
+    # Set up queue listener for async logging
+    queue_listener = logging.handlers.QueueListener(
+        log_queue, file_handler, console_handler
+    )
+    queue_listener.start()
+    
+    # Add queue handler to root logger
+    logger.addHandler(queue_handler)
+    
+    return logger, queue_listener
+
+# Initialize logging system
+logger, queue_listener = setup_logging()
+
 
 def handle_error(error_message):
     # Displays an error message in a message box
     messagebox.showerror("Error", error_message)
+
+def validate_required_fields(fields, field_names=None):
+    """Validate that all required fields are filled."""
+    if not all(fields):
+        if field_names:
+            empty_fields = [field_names[i] for i, field in enumerate(fields) if not field]
+            raise ValueError(f"The following fields are required: {', '.join(empty_fields)}")
+        else:
+            raise ValueError("All fields must be filled.")
+    return True
+
+def clear_form_fields(*entries):
+    """Clear multiple form entry fields."""
+    for entry in entries:
+        if entry:
+            entry.delete(0, tk.END)
+
+def show_success_message(message):
+    """Display a success message in a consistent format."""
+    messagebox.showinfo("Success", message)
+
+def show_warning_message(message):
+    """Display a warning message in a consistent format."""
+    messagebox.showwarning("Warning", message)
+
+def show_error_message(message):
+    """Display an error message in a consistent format."""
+    messagebox.showerror("Error", message)
+
+def create_pos_app_callbacks(cart, cursor, db_connection):
+    """
+    Create all callback functions for POSApp instantiation.
+    This centralizes the callback creation to avoid duplication.
+    """
+    return {
+        # --- SALES TAB CALLBACKS ---
+        'add_to_cart_callback': lambda product_id_entry, quantity_entry, cart_tree, *_: add_to_cart(
+            product_id_entry.get(),
+            quantity_entry.get(),
+            cart_tree,
+            cart,
+            cursor
+        ),
+        'checkout_callback': lambda cart_tree, receipt_tree, employee_id, *_: checkout(
+            receipt_tree,
+            cart_tree,
+            cart,
+            db_connection,
+            cursor,
+            employee_id
+        ),
+        'empty_cart_callback': lambda cart_tree, *_: empty_cart(
+            cart_tree,
+            cart,
+            cursor
+        ),
+        'remove_from_cart_callback': lambda remove_from_cart_entry, cart_tree, *_: remove_from_cart(
+            remove_from_cart_entry,
+            cart_tree,
+            cart,
+            cursor
+        ),
+        'update_cart_quantity_callback': lambda update_cart_sku_entry, update_cart_quantity_entry, cart_tree, *_: update_cart_quantity(
+            update_cart_sku_entry,
+            update_cart_quantity_entry,
+            cart_tree,
+            cart,
+            cursor
+        ),
+        'calculate_and_display_totals_callback': lambda subtotal_label, taxes_label, total_label, *_: calculate_and_display_totals(
+            subtotal_label,
+            taxes_label,
+            total_label,
+            cart,
+            cursor
+        ),
+        'select_customer_callback': lambda customer_id, *_: set_selected_customer_id(customer_id),
+        'resend_receipt_callback': lambda *_: resend_last_receipt(cursor),
+        
+        # --- SUPPLIER CALLBACKS ---
+        'add_supplier_callback': lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
+            db_connection,
+            cursor,
+            supplier_name_entry,
+            supplier_contact_entry,
+            supplier_address_entry
+        ),
+        'update_supplier_callback': lambda supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: update_supplier(
+            db_connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry
+        ),
+        'load_supplier_callback': lambda supplier_id, *_: load_supplier(cursor, supplier_id),
+        'search_suppliers_callback': lambda search_supplier_entry, *_: search_suppliers(
+            search_supplier_entry,
+            cursor
+        ),
+        'delete_supplier_callback': lambda delete_supplier_id_entry, *_: delete_supplier(
+            db_connection,
+            cursor,
+            delete_supplier_id_entry
+        ),
+        
+        # --- CUSTOMER CALLBACKS ---
+        'add_customer_callback': lambda customer_name_entry, customer_contact_entry, customer_address_entry, *_: add_customer(
+            db_connection,
+            cursor,
+            customer_name_entry,
+            customer_contact_entry,
+            customer_address_entry
+        ),
+        'update_customer_callback': lambda customer_id, customer_name_entry, customer_contact_entry, customer_address_entry, *_: update_customer(
+            db_connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry
+        ),
+        'load_customer_callback': lambda customer_id, *_: load_customer(cursor, customer_id),
+        'delete_customer_callback': lambda delete_customer_id_entry, *_: delete_customer(
+            db_connection,
+            cursor,
+            delete_customer_id_entry
+        ),
+        
+        # --- INVENTORY CALLBACKS ---
+        'add_item_callback': lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry, *_: add_item(
+            db_connection,
+            cursor,
+            sku_entry,
+            item_name_entry,
+            category_entry,
+            price_entry,
+            stock_entry,
+            supplier_id_entry,
+            cost_entry
+        ),
+        'delete_item_callback': lambda delete_sku_entry, *_: delete_item(
+            db_connection,
+            cursor,
+            delete_sku_entry
+        ),
+        'view_inventory_callback': lambda inventory_tree, *_: view_inventory(
+            db_connection,
+            cursor,
+            inventory_tree
+        ),
+        'adjust_stock_callback': lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
+            db_connection,
+            cursor,
+            adjust_sku_entry,
+            adjust_quantity_entry,
+            employee_id,
+            reason
+        ),
+        
+        # --- VIEW CALLBACKS ---
+        'view_employees_callback': lambda employee_tree, *_: view_employees(cursor, employee_tree),
+        'view_suppliers_callback': lambda suppliers_tree, *_: _populate_suppliers_treeview(suppliers.view_suppliers(cursor), suppliers_tree),
+        'view_customers_callback': lambda customer_tree, *_: _populate_customers_treeview(customers.view_customers(cursor), customer_tree),
+        
+        # --- REPORT CALLBACKS ---
+        'low_stock_report_callback': lambda *_: low_stock_report(db_connection, cursor),
+        'inventory_value_report_callback': lambda *_: inventory_value_report(cursor),
+        'sales_by_employee_callback': sales_by_employee_callback,
+        'supplier_purchase_callback': supplier_purchase_callback,
+        'adjustment_history_callback': inventory_adjustment_history_callback,
+        'customer_purchase_history_callback': customer_purchase_history_callback,
+        
+        # --- UTILITY CALLBACKS ---
+        '_update_cart_display_callback': _update_cart_display,
+        '_display_receipt_callback': lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
+        'get_customers_callback': lambda: customers.view_customers(cursor),
+        'get_employees_callback': lambda: employees.view_employees(cursor),
+        'get_suppliers_callback': lambda: suppliers.view_suppliers(cursor),
+    }
+
+def create_pos_app_instance(root, cart, cursor, db_connection, user_role, username):
+    """
+    Create a POSApp instance with all callbacks.
+    This centralizes POSApp creation to avoid duplication.
+    """
+    callbacks = create_pos_app_callbacks(cart, cursor, db_connection)
+    
+    pos_app = POSApp(
+        root,
+        user_role=user_role,
+        username=username,
+        **callbacks
+    )
+    
+    # Set the logout callback for the POS app
+    pos_app.logout_callback = handle_logout
+    
+    return pos_app
 
 # Global variable to store last sale info for resend functionality
 last_sale_info = {'sale_id': None, 'customer_id': None, 'receipt_text': None}
@@ -106,7 +345,7 @@ def load_email_config():
                 'password': data.get('password', '')
             }
     except Exception as e:
-        print(f"Error loading email config: {e}")
+        logger.error(f"Error loading email config: {e}")
         return {'email': '', 'password': ''}
 
 def get_selected_customer_id():
@@ -163,7 +402,7 @@ def _display_product_details(product_listbox, cursor):
     try:
         selected_index = product_listbox.curselection()        
         if not selected_index:
-            messagebox.showwarning("Selection Required", "Please select a product to view details.")
+            show_warning_message("Please select a product to view details.")
             return
 
         selected_product = product_listbox.get(selected_index[0])
@@ -172,7 +411,8 @@ def _display_product_details(product_listbox, cursor):
         product = sales.get_product(cursor, sku)
         if product:
             details = f"Name: {product['name']}\nCategory: {product['category']}\nPrice: ${product['price']:.2f}\nStock: {product['stock']}"
-            messagebox.showinfo("Product Details", details)
+            show_success_message(f"Product Details: {details}")
+
     except Exception as e:
         handle_error(f"An error occurred while displaying product details: {e}")
 
@@ -230,9 +470,6 @@ def update_cart_quantity(update_cart_sku_entry, update_cart_quantity_entry, cart
         handle_error(f"An error occurred while updating cart quantity: {e}")
 
 
-
-# calculate the total
-# the cart and the cursor are being received as parameters
 def calculate_and_display_totals(subtotal_label, taxes_label, total_label, cart, cursor):
     # Calculates and displays totals for cart items
     try:
@@ -302,7 +539,7 @@ def checkout(receipt_tree, cart_tree, cart, connection, cursor, employee_id):
         if customer_email and '@' in customer_email:
             send_email_receipt(customer_email, receipt_text, sale_id)
         else:
-            messagebox.showinfo("Receipt Saved", "Receipt saved locally. Customer email not available for sending.")
+            show_success_message("Receipt saved locally. Customer email not available for sending.")
         
         _display_receipt(receipt_data, receipt_tree, cursor)
         
@@ -368,22 +605,13 @@ def generate_receipt_text(cursor, sale_id, customer_id, totals):
 
 def show_receipt(receipt_text):
     # Display receipt in a message box and save to file
-    messagebox.showinfo("Transaction Complete", receipt_text)
+    show_success_message(f"Transaction Complete:\n{receipt_text}")
     generate_premium_pdf_receipt(receipt_text, for_email=False)
 
 
 
 def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
-    """Generate a premium, professional PDF receipt with advanced styling and layout
-    
-    Args:
-        receipt_text: The receipt content to format
-        sale_id: Optional sale ID for email filename
-        for_email: If True, generates for email attachment; if False, for local storage
-    
-    Returns:
-        str: The filename of the generated PDF
-    """
+    """Generate a premium, professional PDF receipt with advanced styling and layout"""
     try:
         # Create receipts directory if it doesn't exist
         receipts_dir = "receipts"
@@ -529,7 +757,7 @@ def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
                 story.append(logo_table)
                 story.append(Spacer(1, 15))
             except Exception as e:
-                print(f"Could not add logo: {e}")
+                logger.debug(f"Could not add logo: {e}")
         
         # Add "EMAIL COPY" indicator for email receipts
         if for_email:
@@ -795,33 +1023,33 @@ def generate_premium_pdf_receipt(receipt_text, sale_id=None, for_email=False):
         # Build the premium PDF
         doc.build(story)
         
-        print(f"✨ Premium PDF Receipt saved to: {filename}")
+        logger.info(f"PDF Receipt saved: {filename}")
         return filename
         
     except Exception as e:
         if not REPORTLAB_AVAILABLE:
-            print("ReportLab library not installed. Installing now...")
+            logger.warning("ReportLab library not installed. Installing now...")
             try:
                 import subprocess
                 import sys
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
-                print("ReportLab installed successfully. Please restart the application.")
+                logger.info("ReportLab installed successfully. Please restart the application.")
             except Exception as install_error:
-                print(f"Could not install ReportLab: {install_error}")
-                print("Please install manually: pip install reportlab")
+                logger.error(f"Could not install ReportLab: {install_error}")
+                logger.warning("Please install manually: pip install reportlab")
         else:
-            print(f"Could not save PDF receipt: {e}")
+            logger.error(f"Could not save PDF receipt: {e}")
         return None
 def send_email_receipt(customer_email, receipt_text, sale_id, show_success_popup=True):
     # Send receipt via email to customer with PDF attachment
     email_config = load_email_config()
     
     if not email_config.get("email") or not email_config.get("password"):
-        messagebox.showwarning("Email Error", "Email configuration not set up properly in credentials.json")
+        show_warning_message("Email configuration not set up properly in credentials.json")
         return False
 
     if not customer_email:
-        messagebox.showwarning("Email Error", "Customer email address not available")
+        show_warning_message("Customer email address not available")
         return False
 
     try:
@@ -869,7 +1097,7 @@ This is an automated message. Please do not reply to this email.
                 )
                 msg.attach(part)
         except Exception as pdf_error:
-            print(f"Could not attach PDF to email: {pdf_error}")
+            logger.warning(f"Could not attach PDF to email: {pdf_error}")
         
         # Send email
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
@@ -877,11 +1105,11 @@ This is an automated message. Please do not reply to this email.
             server.sendmail(email_config['email'], [customer_email], msg.as_string())
             
         if show_success_popup:
-            messagebox.showinfo("Email Sent", f"Receipt has been sent to {customer_email} with PDF attachment")
+            show_success_message(f"Receipt has been sent to {customer_email} with PDF attachment")
         return True
         
     except Exception as e:
-        messagebox.showerror("Email Error", f"Failed to send email: {str(e)}")
+        show_error_message(f"Failed to send email: {str(e)}")
         return False
 
 def resend_last_receipt(cursor):
@@ -889,7 +1117,7 @@ def resend_last_receipt(cursor):
     global last_sale_info
     
     if not last_sale_info['sale_id']:
-        messagebox.showwarning("No Receipt", "No recent receipt available to resend")
+        show_warning_message("No recent receipt available to resend")
         return
     
     try:
@@ -899,13 +1127,13 @@ def resend_last_receipt(cursor):
         customer_result = cursor.fetchone()
         
         if not customer_result:
-            messagebox.showerror("Error", "Customer not found")
+            show_error_message("Customer not found")
             return
             
         customer_email = customer_result['contact_info']
         
         if not customer_email or '@' not in customer_email:
-            messagebox.showwarning("Email Error", "Customer email address not available")
+            show_warning_message("Customer email address not available")
             return
         
         # Send the stored receipt (suppress default success message)
@@ -913,10 +1141,9 @@ def resend_last_receipt(cursor):
         
         if success:
             # Show specific confirmation for resend action
-            messagebox.showinfo("Receipt Resent", 
-                              f"Receipt for Sale #{last_sale_info['sale_id']} has been successfully resent to {customer_email}")
+            show_success_message(f"Receipt for Sale #{last_sale_info['sale_id']} has been successfully resent to {customer_email}")
         else:
-            messagebox.showerror("Email Error", "Failed to resend receipt")
+            show_error_message("Failed to resend receipt")
             
     except Exception as e:
         handle_error(f"Error resending receipt: {e}")
@@ -952,18 +1179,17 @@ def add_supplier(connection, cursor, supplier_name_entry, supplier_contact_entry
         contact_info = supplier_contact_entry.get()
         address = supplier_address_entry.get()
 
-        if not all([name, contact_info, address]):
-            raise ValueError("All fields must be filled to add a supplier.")        
+        validate_required_fields([name, contact_info, address], ["Name", "Contact Info", "Address"])
+        
         if suppliers.add_supplier(connection, cursor, name, contact_info, address):
-            messagebox.showinfo("Success", f"Supplier '{name}' has been successfully added.")
+            show_success_message(f"Supplier '{name}' has been successfully added.")
         else:
             raise ValueError("Failed to add supplier. Please try again.")
-        supplier_name_entry.delete(0, tk.END)
-        supplier_contact_entry.delete(0, tk.END)
-        supplier_address_entry.delete(0, tk.END)
+        
+        clear_form_fields(supplier_name_entry, supplier_contact_entry, supplier_address_entry)
     except Exception as e: # exception handling
         handle_error(f"An error occurred while adding the supplier: {e}")        
-        supplier_address_entry.delete(0, tk.END)
+        clear_form_fields(supplier_address_entry)
 
 def update_supplier(connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry):
     # Updates a supplier in the database
@@ -972,17 +1198,13 @@ def update_supplier(connection, cursor, supplier_id, supplier_name_entry, suppli
         contact_info = supplier_contact_entry.get()
         address = supplier_address_entry.get()
         
-        if not all([name, contact_info, address]):
-            raise ValueError("All supplier details are required.")
+        validate_required_fields([name, contact_info, address], ["Name", "Contact Info", "Address"])
         
         supplier_id_int = int(supplier_id)
         suppliers.update_supplier(connection, cursor, supplier_id_int, name, contact_info, address)
-        messagebox.showinfo("Success", f"Supplier with ID '{supplier_id}' updated successfully.")
+        show_success_message(f"Supplier with ID '{supplier_id}' updated successfully.")
         
-        # Clear the form fields
-        supplier_name_entry.delete(0, tk.END)
-        supplier_contact_entry.delete(0, tk.END)
-        supplier_address_entry.delete(0, tk.END)
+        clear_form_fields(supplier_name_entry, supplier_contact_entry, supplier_address_entry)
         
     except ValueError as ve:
         handle_error(f"Invalid input: {ve}")
@@ -1014,46 +1236,26 @@ def search_suppliers(search_supplier_entry, cursor): # function for searching a 
             results_text = "Search Results:\n"
             for supplier in results:
                 results_text += f"ID: {supplier['supplier_id']}, Name: {supplier['name']}, Contact: {supplier['contact_info']}, Address: {supplier['address']}\n"
-            messagebox.showinfo("Search Results", results_text)
+            show_success_message(results_text)
         else:
-            messagebox.showinfo("No Results", "No suppliers found matching the search criteria.")        
+            show_success_message("No suppliers found matching the search criteria.")        
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:
         handle_error(f"An error occurred during the search: {e}")        
-          
-          
-def update_supplier(connection, cursor, update_supplier_id_entry, update_supplier_name_entry, update_supplier_contact_entry, update_supplier_address_entry): # function for updating a supplier  
-    """Updates an existing supplier's information.
-    """
-    
-    try:
-        supplier_id = int(update_supplier_id_entry.get())
-        name = update_supplier_name_entry.get()
-        contact_info = update_supplier_contact_entry.get()
-        address = update_supplier_address_entry.get()
-
-        if not all([supplier_id, name, contact_info, address]):
-            raise ValueError("All fields must be filled to update a supplier.")        
-        suppliers.update_supplier(connection, cursor, supplier_id, name, contact_info, address)
-        messagebox.showinfo("Success", f"Supplier ID {supplier_id} has been successfully updated.") 
-    except ValueError as ve:
-        handle_error(str(ve))
-
 
 def delete_supplier(connection, cursor, delete_supplier_id_entry): # function for delete a supplier    
     # Deletes a supplier from the database
     try:
         supplier_id = int(delete_supplier_id_entry.get())
         suppliers.delete_supplier(connection, cursor, supplier_id) # now the function is receiving the cursor
-        messagebox.showinfo("Success", f"Supplier ID {supplier_id} has been successfully deleted.")        
+        show_success_message(f"Supplier ID {supplier_id} has been successfully deleted.")        
     except ValueError as ve:        
         handle_error(str(ve))    
     except Exception as e:        
         handle_error(f"An error occurred while deleting the supplier: {e}")
-    delete_supplier_id_entry.delete(0, tk.END)
+    clear_form_fields(delete_supplier_id_entry)
 
-    
 def search_supplier(delete_supplier_name_entry, delete_supplier_id_entry): # function for deleting a supplier by name
     # Deletes suppliers from the database by name or id
     try:        
@@ -1063,7 +1265,7 @@ def search_supplier(delete_supplier_name_entry, delete_supplier_id_entry): # fun
             if results: # if we find the supplier
                 for supplier in results:# for every supplier found
                     suppliers.delete_supplier(cursor, supplier["supplier_id"])# delete the supplier by id
-                messagebox.showinfo("Success", f"Suppliers named '{name}' deleted successfully.")
+                show_success_message(f"Suppliers named '{name}' deleted successfully.")
             else:# if we dont find any supplier
                 raise ValueError(f"No suppliers found with the name: {name}")
     except Exception as e:
@@ -1078,12 +1280,11 @@ def add_customer(connection, cursor, customer_name_entry, customer_contact_entry
         name = customer_name_entry.get()
         contact_info = customer_contact_entry.get()
         address = customer_address_entry.get()
-        if not all([name, contact_info, address]):
-            raise ValueError("All customer details are required.")
+        
+        validate_required_fields([name, contact_info, address], ["Name", "Contact Info", "Address"])
+        
         customers.add_customer(connection, cursor, name, contact_info, address)
-        customer_name_entry.delete(0, tk.END)
-        customer_contact_entry.delete(0, tk.END)
-        customer_address_entry.delete(0, tk.END)
+        clear_form_fields(customer_name_entry, customer_contact_entry, customer_address_entry)
     except Exception as e:
         handle_error(f"An error occurred while adding the customer: {e}")
 
@@ -1094,17 +1295,13 @@ def update_customer(connection, cursor, customer_id, customer_name_entry, custom
         contact_info = customer_contact_entry.get()
         address = customer_address_entry.get()
         
-        if not all([name, contact_info, address]):
-            raise ValueError("All customer details are required.")
+        validate_required_fields([name, contact_info, address], ["Name", "Contact Info", "Address"])
         
         customer_id_int = int(customer_id)
         customers.update_customer(connection, cursor, customer_id_int, name, contact_info, address)
-        messagebox.showinfo("Success", f"Customer with ID '{customer_id}' updated successfully.")
+        show_success_message(f"Customer with ID '{customer_id}' updated successfully.")
         
-        # Clear the form fields
-        customer_name_entry.delete(0, tk.END)
-        customer_contact_entry.delete(0, tk.END)
-        customer_address_entry.delete(0, tk.END)
+        clear_form_fields(customer_name_entry, customer_contact_entry, customer_address_entry)
         
     except ValueError as ve:
         handle_error(f"Invalid input: {ve}")
@@ -1121,7 +1318,6 @@ def load_customer(cursor, customer_id):
         raise ValueError("Customer ID must be a number.")
     except Exception as e:
         raise ValueError(f"Failed to load customer: {e}")
-           
 
 def delete_customer(connection, cursor, delete_customer_id_entry):
     try:
@@ -1129,10 +1325,10 @@ def delete_customer(connection, cursor, delete_customer_id_entry):
         if customer_id_str:
             customer_id = int(customer_id_str)
             customers.delete_customer(connection, cursor, customer_id)
-            messagebox.showinfo("Success", f"Customer with ID '{customer_id}' deleted successfully.")
+            show_success_message(f"Customer with ID '{customer_id}' deleted successfully.")
         else:
             raise ValueError("Please enter a customer ID to delete.")
-        delete_customer_id_entry.delete(0, tk.END)
+        clear_form_fields(delete_customer_id_entry)
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:
@@ -1202,7 +1398,7 @@ def add_item(connection, cursor, sku_entry, item_name_entry, category_entry, pri
         category_id = category_result['category_id']
         
         inventory.add_item(connection, cursor, sku, name, category_id, price, stock, supplier_id, cost)
-        messagebox.showinfo("Success", f"Item '{name}' added successfully.")
+        show_success_message(f"Item '{name}' added successfully.")
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:
@@ -1212,7 +1408,7 @@ def delete_item(connection, cursor, delete_sku_entry):   # delete an Item
     try:
         sku = delete_sku_entry.get()
         inventory.delete_item(connection, cursor, sku)
-        messagebox.showinfo("Success", f"Item with SKU '{sku}' deleted successfully.")
+        show_success_message(f"Item with SKU '{sku}' deleted successfully.")
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:        
@@ -1268,7 +1464,7 @@ def adjust_stock(connection, cursor, adjust_sku_entry, adjust_quantity_entry, em
         if not reason:
             raise ValueError("Please provide a reason for the stock adjustment.")
         inventory.adjust_stock(connection, cursor, sku, quantity_change, reason=reason, employee_id=employee_id)
-        messagebox.showinfo("Success", f"Stock for SKU '{sku}' adjusted successfully.")
+        show_success_message(f"Stock for SKU '{sku}' adjusted successfully.")
     except ValueError as ve:
         handle_error(str(ve))
     except Exception as e:
@@ -1467,6 +1663,51 @@ def inventory_adjustment_history_callback():
     except Exception as e:
         handle_error(f"An error occurred while generating the inventory adjustment history: {e}")
 
+def customer_purchase_history_callback(customer_id):
+    try:
+        purchases = customer_purchase_history(cursor, customer_id)
+        columns = ("Sale ID", "Date/Time", "SKU", "Product Name", "Quantity", "Price", "Total")
+        rows = []
+        grand_total = 0.0
+        total_quantity = 0
+        
+        # Process individual purchases and calculate grand total
+        for p in purchases:
+            purchase_total = float(p['total'])
+            quantity = int(p['quantity'])
+            grand_total += purchase_total
+            total_quantity += quantity
+            
+            rows.append((
+                p['sale_id'],
+                p['sale_datetime'],
+                p['SKU'],
+                p['product_name'],
+                quantity,
+                f"${p['price']:.2f}",
+                f"${purchase_total:.2f}"
+            ))
+        
+        if not rows:
+            rows = [("No purchases found for this customer.", "", "", "", "", "", "")]
+        else:
+            # Add separator row and grand total row
+            rows.append(("", "", "", "", "", "", ""))
+            rows.append(("─" * 8, "─" * 15, "─" * 8, "─" * 15, "─" * 8, "─" * 10, "─" * 12))
+            rows.append((
+                "TOTAL",
+                f"{len(purchases)} purchases",
+                "",
+                "",
+                str(total_quantity),
+                "",
+                f"${grand_total:.2f}"
+            ))
+        
+        pos_app.reports_ui.display_report(columns, rows)
+    except Exception as e:
+        handle_error(f"An error occurred while generating the customer purchase history: {e}")
+
 def inventory_value_report(cursor):
     try:
         # Fetch all inventory items
@@ -1512,51 +1753,6 @@ def inventory_value_report(cursor):
     except Exception as e:
         handle_error(f"An error occurred while generating the Inventory Value Report: {e}")
 
-def customer_purchase_history_callback(customer_id):
-    try:
-        purchases = customer_purchase_history(cursor, customer_id)
-        columns = ("Sale ID", "Date/Time", "SKU", "Product Name", "Quantity", "Price", "Total")
-        rows = []
-        grand_total = 0.0
-        total_quantity = 0
-        
-        # Process individual purchases and calculate grand total
-        for p in purchases:
-            purchase_total = float(p['total'])
-            quantity = int(p['quantity'])
-            grand_total += purchase_total
-            total_quantity += quantity
-            
-            rows.append((
-                p['sale_id'],
-                p['sale_datetime'],
-                p['SKU'],
-                p['product_name'],
-                quantity,
-                f"${p['price']:.2f}",
-                f"${purchase_total:.2f}"
-            ))
-        
-        if not rows:
-            rows = [("No purchases found for this customer.", "", "", "", "", "", "")]
-        else:
-            # Add separator row and grand total row
-            rows.append(("", "", "", "", "", "", ""))
-            rows.append(("─" * 10, "─" * 15, "─" * 8, "─" * 15, "─" * 8, "─" * 10, "─" * 12))
-            rows.append((
-                "GRAND TOTAL",
-                f"{len(purchases)} purchases",
-                "",
-                "",
-                str(total_quantity),
-                "",
-                f"${grand_total:.2f}"
-            ))
-        
-        pos_app.reports_ui.display_report(columns, rows)
-    except Exception as e:
-        handle_error(f"An error occurred while generating the customer purchase history report: {e}")
-
 def load_and_verify_credentials(username, password):
     """
     Load the credentials from the JSON file and verify if the entered credentials match.
@@ -1584,7 +1780,7 @@ def load_and_verify_credentials(username, password):
         
         return None
     except Exception as e:
-        print(f"Error loading credentials: {e}")
+        logger.error(f"Error loading credentials: {e}")
         return None
 
 def create_login_window(root):
@@ -1674,7 +1870,7 @@ def create_login_window(root):
             logo_label.place(relx=0.5, rely=0.3, anchor="center")
             logo_added = True
     except Exception as e:
-        print(f"Error loading logo: {e}")
+        logger.debug(f"Error loading logo: {e}")
     
     # Company name with elegant typography
     if not logo_added:
@@ -1969,10 +2165,10 @@ if __name__ == "__main__":
         
         # Send end-of-day report before logout
         try:
-            print("Generating end-of-day report...")
+            logger.info("Generating end-of-day report...")
             send_end_of_day_report(cursor)
         except Exception as e:
-            print(f"Error sending end-of-day report: {e}")
+            logger.error(f"Error sending end-of-day report: {e}")
         
         # Hide the main window
         root.withdraw()
@@ -1996,79 +2192,7 @@ if __name__ == "__main__":
         root.deiconify()
         
         global pos_app
-        pos_app = POSApp(
-            root,
-            add_to_cart_callback=lambda product_id_entry, quantity_entry, cart_tree, *_: add_to_cart(
-                product_id_entry.get(),
-                quantity_entry.get(),
-                cart_tree,
-                cart,
-                cursor
-            ),
-            checkout_callback=lambda cart_tree, receipt_tree, employee_id, *_: checkout(
-                receipt_tree, cart_tree, cart, db_connection, cursor, employee_id
-            ),
-            empty_cart_callback=lambda cart_tree, *_: empty_cart(cart_tree, cart, cursor),
-            remove_from_cart_callback=lambda remove_from_cart_entry, cart_tree, *_: remove_from_cart(
-                remove_from_cart_entry, cart_tree, cart, cursor
-            ),
-            update_cart_quantity_callback=lambda update_cart_sku_entry, update_cart_quantity_entry, cart_tree, *_: update_cart_quantity(
-                update_cart_sku_entry, update_cart_quantity_entry, cart_tree, cart, cursor
-            ),
-            calculate_and_display_totals_callback=lambda subtotal_label, taxes_label, total_label, *_: calculate_and_display_totals(
-                subtotal_label, taxes_label, total_label, cart, cursor
-            ),
-            select_customer_callback=lambda customer_id, *_: set_selected_customer_id(customer_id),
-            resend_receipt_callback=lambda *_: resend_last_receipt(cursor),
-            add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
-                db_connection, cursor, supplier_name_entry, supplier_contact_entry, supplier_address_entry
-            ),
-            update_supplier_callback=lambda supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: update_supplier(
-                db_connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry
-            ),
-            load_supplier_callback=lambda supplier_id, *_: load_supplier(cursor, supplier_id),
-            search_suppliers_callback=lambda search_supplier_entry, *_: search_suppliers(search_supplier_entry, cursor),
-            delete_supplier_callback=lambda delete_supplier_id_entry, *_: delete_supplier(
-                db_connection, cursor, delete_supplier_id_entry
-            ),
-            add_customer_callback=lambda customer_name_entry, customer_contact_entry, customer_address_entry, *_: add_customer(
-                db_connection, cursor, customer_name_entry, customer_contact_entry, customer_address_entry
-            ),
-            update_customer_callback=lambda customer_id, customer_name_entry, customer_contact_entry, customer_address_entry, *_: update_customer(
-                db_connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry
-            ),
-            load_customer_callback=lambda customer_id, *_: load_customer(cursor, customer_id),
-            delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
-                db_connection, cursor, delete_customer_id_entry
-            ),
-            add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry, *_: add_item(
-                db_connection, cursor, sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry
-            ),
-            delete_item_callback=lambda delete_sku_entry, *_: delete_item(db_connection, cursor, delete_sku_entry),
-            view_inventory_callback=lambda inventory_tree, *_: view_inventory(db_connection, cursor, inventory_tree),
-            view_employees_callback=lambda employee_tree, *_: view_employees(cursor, employee_tree),
-            view_suppliers_callback=lambda suppliers_tree, *_: view_suppliers(cursor, suppliers_tree),
-            adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
-                db_connection, cursor, adjust_sku_entry, adjust_quantity_entry, employee_id, reason
-            ),
-            low_stock_report_callback=lambda *_: low_stock_report(db_connection, cursor),
-            _update_cart_display_callback=_update_cart_display,
-            _display_receipt_callback=lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
-            get_customers_callback=lambda: customers.view_customers(cursor),
-            get_employees_callback=lambda: employees.view_employees(cursor),
-            view_customers_callback=lambda customer_tree, *_: _populate_customers_treeview(customers.view_customers(cursor), customer_tree),
-            sales_by_employee_callback=sales_by_employee_callback,
-            get_suppliers_callback=lambda: suppliers.view_suppliers(cursor),
-            supplier_purchase_callback=supplier_purchase_callback,
-            adjustment_history_callback=inventory_adjustment_history_callback,
-            inventory_value_report_callback=lambda *_: inventory_value_report(cursor),
-            customer_purchase_history_callback=customer_purchase_history_callback,
-            user_role=user_role,
-            username=username
-        )
-        
-        # Set the logout callback for the new instance
-        pos_app.logout_callback = handle_logout
+        pos_app = create_pos_app_instance(root, cart, cursor, db_connection, user_role, username)
     
     # Show login window before initializing the main app
     user_role, username = create_login_window(root)
@@ -2108,153 +2232,23 @@ if __name__ == "__main__":
             logo_label.image = logo_photo  # Keep a reference
             logo_label.place(relx=1.0, y=0, anchor="ne")
     except Exception as e:
-        print(f"Error loading logo for main window: {e}")
+        logger.debug(f"Error loading logo for main window: {e}")
     
-    print(f"Logged in as: {username} (Role: {user_role})")
+    logger.info(f"Logged in as: {username} (Role: {user_role})")
     
     db_connection, cursor = get_db()
     cart = []
 
     global pos_app
-    pos_app = POSApp(
-        root,
-        # --- SALES TAB CALLBACKS ---
-        add_to_cart_callback=lambda product_id_entry, quantity_entry, cart_tree, *_: add_to_cart(
-            product_id_entry.get(),
-            quantity_entry.get(),
-            cart_tree,
-            cart,
-            cursor
-        ),
-        checkout_callback=lambda cart_tree, receipt_tree, employee_id, *_: checkout(
-            receipt_tree,
-            cart_tree,
-            cart,
-            db_connection,
-            cursor,
-            employee_id
-        ),
-        empty_cart_callback=lambda cart_tree, *_: empty_cart(
-            cart_tree,
-            cart,
-            cursor
-        ),
-        remove_from_cart_callback=lambda remove_from_cart_entry, cart_tree, *_: remove_from_cart(
-            remove_from_cart_entry,
-            cart_tree,
-            cart,
-            cursor
-        ),
-        update_cart_quantity_callback=lambda update_cart_sku_entry, update_cart_quantity_entry, cart_tree, *_: update_cart_quantity(
-            update_cart_sku_entry,
-            update_cart_quantity_entry,
-            cart_tree,
-            cart,
-            cursor
-        ),
-        calculate_and_display_totals_callback=lambda subtotal_label, taxes_label, total_label, *_: calculate_and_display_totals(
-            subtotal_label,
-            taxes_label,
-            total_label,
-            cart,
-            cursor
-        ),
-        select_customer_callback=lambda customer_id, *_: set_selected_customer_id(customer_id),
-        resend_receipt_callback=lambda *_: resend_last_receipt(cursor),
-        add_supplier_callback=lambda supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: add_supplier(
-            db_connection,
-            cursor,
-            supplier_name_entry,
-            supplier_contact_entry,
-            supplier_address_entry
-        ),
-        update_supplier_callback=lambda supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry, *_: update_supplier(
-            db_connection, cursor, supplier_id, supplier_name_entry, supplier_contact_entry, supplier_address_entry
-        ),
-        load_supplier_callback=lambda supplier_id, *_: load_supplier(cursor, supplier_id),
-        search_suppliers_callback=lambda search_supplier_entry, *_: search_suppliers(
-            search_supplier_entry,
-            cursor
-        ),
-        delete_supplier_callback=lambda delete_supplier_id_entry, *_: delete_supplier(
-            db_connection,
-            cursor,
-            delete_supplier_id_entry
-        ),
-        add_customer_callback=lambda customer_name_entry, customer_contact_entry, customer_address_entry, *_: add_customer(
-            db_connection,
-            cursor,
-            customer_name_entry,
-            customer_contact_entry,
-            customer_address_entry
-        ),
-        update_customer_callback=lambda customer_id, customer_name_entry, customer_contact_entry, customer_address_entry, *_: update_customer(
-            db_connection, cursor, customer_id, customer_name_entry, customer_contact_entry, customer_address_entry
-        ),
-        load_customer_callback=lambda customer_id, *_: load_customer(cursor, customer_id),
-        delete_customer_callback=lambda delete_customer_id_entry, *_: delete_customer(
-            db_connection,
-            cursor,
-            delete_customer_id_entry
-        ),
-        add_item_callback=lambda sku_entry, item_name_entry, category_entry, price_entry, stock_entry, supplier_id_entry, cost_entry, *_: add_item(
-            db_connection,
-            cursor,
-            sku_entry,
-            item_name_entry,
-            category_entry,
-            price_entry,
-            stock_entry,
-            supplier_id_entry,
-            cost_entry
-        ),
-        delete_item_callback=lambda delete_sku_entry, *_: delete_item(
-            db_connection,
-            cursor,
-            delete_sku_entry
-        ),
-        view_inventory_callback=lambda inventory_tree, *_: view_inventory(
-            db_connection,
-            cursor,
-            inventory_tree
-        ),
-        view_employees_callback=lambda employee_tree, *_: view_employees(cursor, employee_tree),
-        view_suppliers_callback=lambda suppliers_tree, *_: _populate_suppliers_treeview(suppliers.view_suppliers(cursor), suppliers_tree),
-        adjust_stock_callback=lambda adjust_sku_entry, adjust_quantity_entry, employee_id, reason, *_: adjust_stock(
-            db_connection,
-            cursor,
-            adjust_sku_entry,
-            adjust_quantity_entry,
-            employee_id,
-            reason
-        ),
-        low_stock_report_callback=lambda *_: low_stock_report(db_connection, cursor),
-        _update_cart_display_callback=_update_cart_display,
-        _display_receipt_callback=lambda receipt_tree, receipt_data: _display_receipt(receipt_data, receipt_tree, cursor),
-        get_customers_callback=lambda: customers.view_customers(cursor),
-        get_employees_callback=lambda: employees.view_employees(cursor),
-        view_customers_callback=lambda customer_tree, *_: _populate_customers_treeview(customers.view_customers(cursor), customer_tree),
-        
-        sales_by_employee_callback=sales_by_employee_callback,
-        get_suppliers_callback=lambda: suppliers.view_suppliers(cursor),
-        supplier_purchase_callback=supplier_purchase_callback,
-        adjustment_history_callback=inventory_adjustment_history_callback,
-        inventory_value_report_callback=lambda *_: inventory_value_report(cursor),
-        customer_purchase_history_callback=customer_purchase_history_callback,
-        user_role=user_role,  # Pass the user role to restrict access
-        username=username  # Pass the username for display
-    )
-
-    # Set the logout callback for the POS app
-    pos_app.logout_callback = handle_logout
+    pos_app = create_pos_app_instance(root, cart, cursor, db_connection, user_role, username)
 
     # Function to handle application closing (when X button is clicked)
     def on_closing():
         try:
-            print("Generating end-of-day report...")
+            logger.info("Generating end-of-day report...")
             send_end_of_day_report(cursor)
         except Exception as e:
-            print(f"Error sending end-of-day report: {e}")
+            logger.error(f"Error sending end-of-day report: {e}")
         finally:
             root.destroy()
 

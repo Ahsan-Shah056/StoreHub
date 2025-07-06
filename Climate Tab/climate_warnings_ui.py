@@ -6,6 +6,10 @@ Modern, visually appealing warnings subtab with clean card-based layout
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
+import logging
+
+# Configure logging for climate warnings module
+logger = logging.getLogger(__name__)
 
 # Import climate components
 import sys
@@ -345,7 +349,7 @@ class ClimateWarningsUI(ClimateBaseUI):
             self.update_alerts_display()
             
         except Exception as e:
-            print(f"Error refreshing warnings data: {e}")
+            logger.error(f"Error refreshing warnings data: {e}")
             import traceback
             traceback.print_exc()
             messagebox.showerror("Error", f"Failed to refresh data: {str(e)}")

@@ -1,4 +1,8 @@
 from .database import close_db
+import logging
+
+# Configure logging for inventory module
+logger = logging.getLogger(__name__)
 
 # Import for low stock alerts
 try:
@@ -179,5 +183,5 @@ def get_all_products():
         return products
         
     except Exception as e:
-        print(f"Error getting all products: {e}")
+        logger.error(f"Error getting all products: {e}")
         return []
